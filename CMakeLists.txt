@@ -1,0 +1,29 @@
+PROJECT(ROSS_Damaris)
+
+SET(DAMARIS_DIR $ENV{DAMARIS_DIR} CACHE STRING "Path to Damaris install")
+IF(NOT DAMARIS_DIR)
+    SET(DAMARIS_DIR $ENV{HOME}/local)
+ENDIF(NOT DAMARIS_DIR)
+
+## set ross-damaris sources
+INCLUDE_DIRECTORIES(${DAMARIS_DIR}/include})
+SET(rd_srcs core/damaris.h core/damaris.c)
+#ADD_SUBDIRECTORY(core)
+
+## print ROSS-Damaris Git Hash
+LIST(APPEND CMAKE_MODULE_PATH "${ROSS_SOURCE_DIR}/cmake")
+INCLUDE(GetGitRevisionDescription)
+GET_GIT_HEAD_REVISION(GIT_REFSPEC GIT_SHA1_RD)
+
+## build config files
+INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR})
+CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/ross-damaris-config.h.in ${CMAKE_BINARY_DIR}/ross-damaris-config.h @ONLY)
+SET(rd_srcs ${rd_srcs} ross-damaris-config.h)
+SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_SOURCE_DIR}/ross-damaris-config.h.in PROPERTIES GENERATED FALSE)
+SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_SOURCE_DIR}/ross-damaris-config.h PROPERTIES GENERATED TRUE)
+
+ADD_LIBRARY(ROSS_Damaris ${rd_srcs})
+
+## find ross.h
+INCLUDE_DIRECTORIES(${ROSS_SOURCE_DIR} ${ROSS_BINARY_DIR})
+TARGET_LINK_LIBRARIES(ROSS_Damaris ROSS)
