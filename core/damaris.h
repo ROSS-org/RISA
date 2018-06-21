@@ -1,4 +1,5 @@
 #include <ross.h>
+#include <Damaris.h>
 
 extern void st_set_damaris_parameters(int num_lp);
 extern void st_ross_damaris_init();
