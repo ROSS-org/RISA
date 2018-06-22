@@ -1,16 +1,22 @@
 PROJECT(ROSS_Damaris)
 
 SET(DAMARIS_DIR $ENV{DAMARIS_DIR} CACHE STRING "Path to Damaris install")
-IF(NOT DAMARIS_DIR)
-    SET(DAMARIS_DIR $ENV{HOME}/local)
-ENDIF(NOT DAMARIS_DIR)
+OPTION(USE_VISIT "Use VisIt (requires Damaris)" OFF)
+
+## set some internal cache vars that can be used in ROSS and model builds
+SET(DAMARIS_INCLUDE ${DAMARIS_DIR}/include CACHE INTERNAL "")
+SET(DAMARIS_LIBRARY ${DAMARIS_DIR}/lib CACHE INTERNAL "")
+
+SET(LINKER_STR "-rdynamic -L${DAMARIS_LIBRARY} -Wl,--whole-archive,-ldamaris,--no-whole-archive -lxerces-c -lboost_log -lboost_log_setup -lboost_filesystem -lboost_system -lboost_date_time -lboost_thread -lstdc++ -lmpi_cxx -lrt -ldl -lpthread")
+IF (USE_VISIT)
+    SET(VISIT_DIR $ENV{VISIT_DIR} CACHE STRING "Path to VisIt lib dir")
+    SET(LINKER_STR "${LINKER_STR} -L${VISIT_DIR} -lsimV2")
+ENDIF(USE_VISIT)
+SET(DAMARIS_LINKER_FLAGS ${LINKER_STR} CACHE INTERNAL "")
 
 ## set ross-damaris sources
-#SET(DAMARIS_INCLUDE ${DAMARIS_DIR}/include)
-#SET_PROPERTY(GLOBAL PROPERTY DAMARIS_INCLUDE ${DAMARIS_DIR}/include)
-INCLUDE_DIRECTORIES(${DAMARIS_DIR}/include)
+INCLUDE_DIRECTORIES(${DAMARIS_INCLUDE})
 SET(rd_srcs core/damaris.h core/damaris.c ${DAMARIS_DIR}/include/Damaris.h)
-#ADD_SUBDIRECTORY(core)
 
 ## print ROSS-Damaris Git Hash
 LIST(APPEND CMAKE_MODULE_PATH "${ROSS_SOURCE_DIR}/cmake")
@@ -24,10 +30,8 @@ SET(rd_srcs ${rd_srcs} ross-damaris-config.h)
 SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_SOURCE_DIR}/ross-damaris-config.h.in PROPERTIES GENERATED FALSE)
 SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_SOURCE_DIR}/ross-damaris-config.h PROPERTIES GENERATED TRUE)
 
-#ADD_LIBRARY(DAMARIS STATIC IMPORTED GLOBAL)
 ADD_LIBRARY(ROSS_Damaris ${rd_srcs})
 
-## find ross.h
+## link with ROSS library 
 INCLUDE_DIRECTORIES(${ROSS_SOURCE_DIR} ${ROSS_BINARY_DIR})
-#TARGET_INCLUDE_DIRECTORIES(ROSS_Damaris PUBLIC ${DAMARIS_INCLUDE})
 TARGET_LINK_LIBRARIES(ROSS_Damaris ROSS)

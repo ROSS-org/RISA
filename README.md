@@ -7,8 +7,13 @@ This readme contains some basic info for how to set-up ROSS to use Damaris.
 ROSS is currently up to date with [Damaris version 1.2.0](https://project.inria.fr/damaris/download).
 For Damaris installation instructions, see the [Damaris User Guide](https://project.inria.fr/damaris/documentation).
 
-Once that is done, make sure you've cloned caitlinross/ROSS-Vis and checkout the `damaris` branch.  
-First you'll need to do some setup with your model to make sure it will correctly link with Damaris and its dependencies.
+In your clone of the ROSS repo, you'll need to install submodules to use the Damaris component.
+```
+git submodule init damaris
+git submodule update damaris
+```
+
+Next you'll need to do some setup with your model to make sure it will correctly link with Damaris and its dependencies.
 
 ### Setting up your model
 So far this is being tested with PHOLD, so that model is set.  The basic instructions for setting up with another ROSS model should be the following:
@@ -16,24 +21,24 @@ So far this is being tested with PHOLD, so that model is set.  The basic instruc
 Add the following commands to your `CMakeLists.txt` file in your model directory.
 ```
 IF(USE_DAMARIS)
-  INCLUDE_DIRECTORIES(${DAMARIS_DIR}/include)
+  INCLUDE_DIRECTORIES(${DAMARIS_INCLUDE})
 ENDIF(USE_DAMARIS)
 ```
 
 After you've created the executable for your model in `CMakeLists.txt` (e.g., phold uses `ADD_EXECUTABLE`), you'll need to add the following lines (replacing `phold` with the name of your model executable):
 ```
 IF(USE_DAMARIS)
-  SET(DAMARIS_LINKER_FLAGS "-rdynamic -L/${DAMARIS_DIR}/lib -Wl,--whole-archive,-ldamaris,--no-whole-archive \
-    -lxerces-c -lboost_log -lboost_log_setup -lboost_filesystem -lboost_system -lboost_date_time -lboost_thread -lstdc++ -lmpi_cxx -lrt -ldl")
-  TARGET_LINK_LIBRARIES(phold ROSS ${DAMARIS_LINKER_FLAGS} ${DAMARIS_LIB} m)
+  TARGET_LINK_LIBRARIES(phold ROSS ROSS_Damaris ${DAMARIS_LINKER_FLAGS} m)
 ENDIF(USE_DAMARIS)
 ```
+
+As long as you've set `USE_DAMARIS` and `${DAMARIS_DIR}` (see below), the `${DAMARIS_INCLUDE}` and `${DAMARIS_LINKER_FLAGS}` will automatically populate with the correct values.
+
 ### Build ROSS
 Set ARCH and CC as usual with a ROSS build.  For Damaris, you will also need to set `LD_LIBRARY_PATH`. 
 I installed Damaris and all of the dependencies (Xerces-C, etc) to `$HOME/local` as suggested in the Damaris User Guide, so I used `export LD_LIBRARY_PATH=$HOME/local/lib`. 
 
-Now run ccmake (or set options with cmake command).  You should set `CMAKE_BUILD_TYPE` and `CMAKE_INSTALL_PREFIX` as you wish.  Now set `USE_DAMARIS` to `ON` and set `DAMARIS_DIR` appropriately.  It assumes `$HOME/local` as the default.  
-We assume that Damaris and its dependencies are all in this same directory for simplicty.  
+Now run ccmake (or set options with cmake command).  You should set `CMAKE_BUILD_TYPE` and `CMAKE_INSTALL_PREFIX` as you wish.  Now set `USE_DAMARIS` to `ON` and set `DAMARIS_DIR` appropriately for Damaris and its dependencies (e.g., `$HOME/local`).
 Now configure and generate the files as usual with ccmake.
 
 Now just `make` and `make install` and you should be set to run.
@@ -58,12 +63,10 @@ This is the configuration I used for building VisIt:
 If you're setting up on your local system, you probably want to remove the --server-components-only arg.  The build can take a couple of hours because the script downloads and installs dependencies.  
 
 Now that VisIt is set up, you need to rebuild Damaris.  See the Damaris User Guide for building with VisIt support.  
-Now you can build and link your model, but you'll need to add libsimV2 to `DAMARIS_LINKER_FLAGS`:
-```
-SET(DAMARIS_LINKER_FLAGS "-rdynamic -L/${DAMARIS_DIR}/lib -Wl,--whole-archive,-ldamaris,--no-whole-archive \
-  -lxerces-c -lboost_log -lboost_log_setup -lboost_filesystem -lboost_system -lboost_date_time -lboost_thread -lstdc++ -lpthread -lmpi_cxx -lrt -ldl \ 
-  -L/path/to/visit2.12.1/src/lib -lsimV2")
-```
+Now you'll have to rebuild ROSS to use VisIt as well.
+Once `USE_DAMARIS` is set to on in cmake, you can now set `USE_VISIT`.
+In addition, you'll need to set `VISIT_DIR` to the directory containing the VisIt library file.
+Setting these variables will update `DAMARIS_LINKER_FLAGS` appropriately in order to use VisIt with Damaris-ROSS.
 
 ## Running ROSS with Damaris and VisIt
 In the `ROSS-Vis/damaris` directory, there is a test.xml file.  This describes the data to Damaris.  The only thing you need to check here is that the path listed for VisIt is correct.  It should look like:
