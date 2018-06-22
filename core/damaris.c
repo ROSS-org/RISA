@@ -5,6 +5,8 @@
  * @brief ROSS integration with Damaris data managment
  */
 
+int g_st_ross_rank = 0;
+
 #define NUM_PE_VARS 4
 #define NUM_KP_VARS 3
 #define NUM_LP_VARS 6
@@ -34,20 +36,20 @@ static void lp_data(int inst_type);
 /**
  * @brief Set simulation parameters in Damaris
  */
-void st_set_damaris_parameters(int num_lp)
+void st_damaris_set_parameters(int num_lp)
 {
     int err;
     int num_pe = tw_nnodes();
     int num_kp = (int) g_tw_nkp;
 
     if ((err = damaris_parameter_set("num_lp", &num_lp, sizeof(num_lp))) != DAMARIS_OK)
-        damaris_error(TW_LOC, err, "num_lp");
+        st_damaris_error(TW_LOC, err, "num_lp");
 
     if ((err = damaris_parameter_set("num_pe", &num_pe, sizeof(num_pe))) != DAMARIS_OK)
-        damaris_error(TW_LOC, err, "num_pe");
+        st_damaris_error(TW_LOC, err, "num_pe");
 
     if ((err = damaris_parameter_set("num_kp", &num_kp, sizeof(num_kp))) != DAMARIS_OK)
-        damaris_error(TW_LOC, err, "num_kp");
+        st_damaris_error(TW_LOC, err, "num_kp");
 }
 
 /**
@@ -55,28 +57,28 @@ void st_set_damaris_parameters(int num_lp)
  *
  * This must be called after MPI is initialized. Damaris splits the MPI 
  * communicator and we set MPI_COMM_ROSS to the subcommunicator returned by Damaris.
- * This sets the g_tw_is_ross_rank.  Need to make sure that Damaris ranks
- * (g_tw_is_ross_rank == 0) return to model after this point. 
+ * This sets the g_st_ross_rank.  Need to make sure that Damaris ranks
+ * (g_st_ross_rank == 0) return to model after this point. 
  *
  */
-void st_ross_damaris_init()
+void st_damaris_ross_init()
 {
     int err;
     MPI_Comm ross_comm;
 
     // TODO don't hardcode Damaris config file
     if ((err = damaris_initialize("/home/rossc3/ROSS-Vis/damaris/test.xml", MPI_COMM_WORLD)) != DAMARIS_OK)
-        damaris_error(TW_LOC, err, NULL);
+        st_damaris_error(TW_LOC, err, NULL);
 
-    // g_tw_is_ross_rank > 0: ROSS MPI rank
-    // g_tw_is_ross_rank == 0: Damaris MPI rank
-    if ((err = damaris_start(&g_tw_is_ross_rank)) != DAMARIS_OK)
-        damaris_error(TW_LOC, err, NULL);
-    if(g_tw_is_ross_rank) 
+    // g_st_ross_rank > 0: ROSS MPI rank
+    // g_st_ross_rank == 0: Damaris MPI rank
+    if ((err = damaris_start(&g_st_ross_rank)) != DAMARIS_OK)
+        st_damaris_error(TW_LOC, err, NULL);
+    if(g_st_ross_rank) 
     {
         //get ROSS sub comm
         if ((err = damaris_client_comm_get(&ross_comm)) != DAMARIS_OK) 
-            damaris_error(TW_LOC, err, NULL);
+            st_damaris_error(TW_LOC, err, NULL);
         tw_comm_set(ross_comm);
     }
 
@@ -85,13 +87,15 @@ void st_ross_damaris_init()
 /**
  * @brief Shuts down Damaris and calls MPI_Finalize
  */
-void st_ross_damaris_finalize()
+void st_damaris_ross_finalize()
 {
+    if (g_st_ross_rank)
+        damaris_stop();
     //if (g_st_real_time_samp)
     //    printf("Rank %ld: Max blocks counted for Real Time instrumentation is %d\n", g_tw_mynode, max_block_counter);
     int err;
     if ((err = damaris_finalize()) != DAMARIS_OK)
-        damaris_error(TW_LOC, err, NULL);
+        st_damaris_error(TW_LOC, err, NULL);
     if (MPI_Finalize() != MPI_SUCCESS)
       tw_error(TW_LOC, "Failed to finalize MPI");
 }
@@ -99,10 +103,14 @@ void st_ross_damaris_finalize()
 /**
  * @brief Expose GVT-based instrumentation data to Damaris
  */
-void st_expose_data_damaris(tw_pe *me, tw_stime gvt, tw_statistics *s, int inst_type)
+void st_damaris_expose_data(tw_pe *me, tw_stime gvt, int inst_type)
 {
     int err, i;
     double *dummy;
+
+    tw_statistics s;
+    bzero(&s, sizeof(s));
+    tw_get_stats(me, &s);
     
     // write the coordinate info for meshes on only the first iteration.
     // each pe needs to only write the coordinates for which it will be 
@@ -115,28 +123,28 @@ void st_expose_data_damaris(tw_pe *me, tw_stime gvt, tw_statistics *s, int inst_
             pe_id[0] = (double) g_tw_mynode;
             pe_id[1] = (double) g_tw_mynode+1;
         if ((err = damaris_write("ross/pe_id", pe_id)) != DAMARIS_OK)
-            damaris_error(TW_LOC, err, "ross/pe_id");
+            st_damaris_error(TW_LOC, err, "ross/pe_id");
 
         // just a dummy variable to allow for creating a mesh of PE stats
         dummy = tw_calloc(TW_LOC, "damaris", sizeof(double), 2);
         dummy[0] = 0;
         dummy[1] = 1;
         if ((err = damaris_write("ross/dummy", dummy)) != DAMARIS_OK)
-            damaris_error(TW_LOC, err, "ross/dummy");
+            st_damaris_error(TW_LOC, err, "ross/dummy");
 
         // LP coordinates in local ids
         lp_id = tw_calloc(TW_LOC, "damaris", sizeof(double), g_tw_nlp+1);
         for (i = 0; i < g_tw_nlp + 1; i++)
             lp_id[i] = (double) i;
         if ((err = damaris_write("ross/lp_id", lp_id)) != DAMARIS_OK)
-            damaris_error(TW_LOC, err, "ross/lp_id");
+            st_damaris_error(TW_LOC, err, "ross/lp_id");
 
         // KP coordinates in local ids
         kp_id = tw_calloc(TW_LOC, "damaris", sizeof(double), g_tw_nkp+1);
         for (i = 0; i < g_tw_nkp + 1; i++)
             kp_id[i] = (double) i;
         if ((err = damaris_write("ross/kp_id", kp_id)) != DAMARIS_OK)
-            damaris_error(TW_LOC, err, "ross/kp_id");
+            st_damaris_error(TW_LOC, err, "ross/kp_id");
 
         // calloc the space for the variables we want to track
         pe_vars = tw_calloc(TW_LOC, "damaris", sizeof(int), NUM_PE_VARS-1);
@@ -152,16 +160,16 @@ void st_expose_data_damaris(tw_pe *me, tw_stime gvt, tw_statistics *s, int inst_
     }
 
     // collect data for each entity
-    pe_data(me, s, inst_type);
+    pe_data(me, &s, inst_type);
     kp_data(inst_type);
     lp_data(inst_type);
     if (inst_type == RT_COL)
         rt_block_counter++;
 
-    memcpy(&last_stats, s, sizeof(tw_statistics));
+    memcpy(&last_stats, &s, sizeof(tw_statistics));
 
     //if ((err = damaris_signal("test")) != DAMARIS_OK)
-    //    damaris_error(TW_LOC, err, "test");
+    //    st_damaris_error(TW_LOC, err, "test");
 }
 
 /**
@@ -189,12 +197,12 @@ static void pe_data(tw_pe *pe, tw_statistics *s, int inst_type)
         if (i < NUM_PE_VARS-1)
         {
             if ((err = damaris_write_block(var_name, block, &pe_vars[i])) != DAMARIS_OK)
-                damaris_error(TW_LOC, err, var_name);
+                st_damaris_error(TW_LOC, err, var_name);
         }
         else
         {
             if ((err = damaris_write_block(var_name, block, pe_efficiency)) != DAMARIS_OK)
-                damaris_error(TW_LOC, err, var_name);
+                st_damaris_error(TW_LOC, err, var_name);
         }
     }
 }
@@ -230,7 +238,7 @@ static void kp_data(int inst_type)
     //        block = rt_block_counter;
     //    }
     //    if ((err = damaris_write_block(var_name, block, kp_vars[i])) != DAMARIS_OK)
-    //        damaris_error(TW_LOC, err, var_name);
+    //        st_damaris_error(TW_LOC, err, var_name);
     //}
 }
 
@@ -271,18 +279,24 @@ static void lp_data(int inst_type)
     //        block = rt_block_counter;
     //    }
     //    if ((err = damaris_write(var_name, lp_vars[i])) != DAMARIS_OK)
-    //        damaris_error(TW_LOC, err, var_name);
+    //        st_damaris_error(TW_LOC, err, var_name);
     //}
 }
 
 /** 
  * @brief
  */
-void reset_block_counter()
+static void reset_block_counter()
 {
     if (rt_block_counter > max_block_counter)
         max_block_counter = rt_block_counter;
     rt_block_counter = 0;
+}
+
+void st_damaris_end_iteration()
+{
+    damaris_end_iteration();
+    reset_block_counter();
 }
 
 /**
@@ -290,7 +304,7 @@ void reset_block_counter()
  *
  * Some errors will stop simulation, but some will only warn and keep going. 
  */
-void damaris_error(const char *file, int line, int err, char *variable)
+void st_damaris_error(const char *file, int line, int err, char *variable)
 {
     switch(err)
     {
