@@ -11,6 +11,7 @@ int g_st_ross_rank = 0;
 #define NUM_KP_VARS 3
 #define NUM_LP_VARS 6
 
+static int damaris_initialized = 0;
 static int first_iteration = 1;
 static double *pe_id, *kp_id, *lp_id;
 static tw_statistics last_stats = {0};
@@ -63,12 +64,13 @@ void st_damaris_set_parameters(int num_lp)
  */
 void st_damaris_ross_init()
 {
-    int err;
+    int err, my_rank;
     MPI_Comm ross_comm;
 
     // TODO don't hardcode Damaris config file
     if ((err = damaris_initialize("/home/rossc3/ROSS-Vis/damaris/test.xml", MPI_COMM_WORLD)) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, NULL);
+    damaris_initialized = 1;
 
     // g_st_ross_rank > 0: ROSS MPI rank
     // g_st_ross_rank == 0: Damaris MPI rank
@@ -80,6 +82,12 @@ void st_damaris_ross_init()
         if ((err = damaris_client_comm_get(&ross_comm)) != DAMARIS_OK) 
             st_damaris_error(TW_LOC, err, NULL);
         tw_comm_set(ross_comm);
+        
+        // now make sure we have the correct rank number for ROSS ranks
+        if (MPI_Comm_rank(MPI_COMM_ROSS, &my_rank) != MPI_SUCCESS)
+            tw_error(TW_LOC, "Cannot get MPI_Comm_rank(MPI_COMM_ROSS)");
+
+        g_tw_mynode = my_rank;
     }
 
 }
@@ -89,6 +97,8 @@ void st_damaris_ross_init()
  */
 void st_damaris_ross_finalize()
 {
+    if (!damaris_initialized)
+        return;
     if (g_st_ross_rank)
         damaris_stop();
     //if (g_st_real_time_samp)
