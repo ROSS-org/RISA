@@ -8,14 +8,17 @@
 int g_st_ross_rank = 0;
 
 static int damaris_initialized = 0;
-static int first_iteration = 1;
 static double *pe_id, *kp_id, *lp_id;
-static tw_statistics last_pe_stats = {0};
+static tw_statistics last_pe_stats[3];
 
-static const char damaris_gvt_path[] = {"gvt_inst/"};
-static const char damaris_rt_path[] = {"rt_inst/"};
+// TODO update to other instrumentation types
+static const char *inst_path[3] = {
+    "gvt_inst",
+    "rt_inst",
+    "vt_inst"};
 static int rt_block_counter = 0;
 static int max_block_counter = 0;
+static int iterations = 0;
 
 static void expose_pe_data(tw_pe *pe, tw_statistics *s, int inst_type);
 static void expose_kp_data(int inst_type);
@@ -127,11 +130,13 @@ static const char *lp_var_names[NUM_LP_VARS] = {
 /**
  * @brief Set simulation parameters in Damaris
  */
-void st_damaris_set_parameters(int num_lp)
+static void set_parameters()
 {
     int err;
     int num_pe = tw_nnodes();
     int num_kp = (int) g_tw_nkp;
+    int num_lp = (int) g_tw_nlp;
+    printf("PE %ld num pe %d, num kp %d, num lp %d\n", g_tw_mynode, num_pe, num_kp, num_lp);
 
     if ((err = damaris_parameter_set("num_lp", &num_lp, sizeof(num_lp))) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, "num_lp");
@@ -183,6 +188,56 @@ void st_damaris_ross_init()
 
 }
 
+void st_damaris_inst_init()
+{
+    int err, i, j;
+    double *dummy;
+
+    set_parameters();
+
+    // each pe needs to only write the coordinates for which it will be 
+    // writing variables.
+    // PE coordinates - just need pe_id and pe_id + 1 to allow for zonal coloring
+    // on the mesh
+    pe_id = tw_calloc(TW_LOC, "damaris", sizeof(double), 2);
+    pe_id[0] = (double) g_tw_mynode;
+    pe_id[1] = (double) g_tw_mynode + 1;
+    if ((err = damaris_write("ross/pe_id", pe_id)) != DAMARIS_OK)
+        st_damaris_error(TW_LOC, err, "ross/pe_id");
+
+    // just a dummy variable to allow for creating a mesh of PE stats
+    dummy = tw_calloc(TW_LOC, "damaris", sizeof(double), 2);
+    dummy[0] = 0;
+    dummy[1] = 1;
+    if ((err = damaris_write("ross/dummy", dummy)) != DAMARIS_OK)
+        st_damaris_error(TW_LOC, err, "ross/dummy");
+
+    // LP coordinates in local ids
+    lp_id = tw_calloc(TW_LOC, "damaris", sizeof(double), g_tw_nlp + 1);
+    for (i = 0; i < g_tw_nlp + 1; i++)
+        lp_id[i] = (double) i;
+    if ((err = damaris_write("ross/lp_id", lp_id)) != DAMARIS_OK)
+        st_damaris_error(TW_LOC, err, "ross/lp_id");
+
+    // KP coordinates in local ids
+    kp_id = tw_calloc(TW_LOC, "damaris", sizeof(double), g_tw_nkp + 1);
+    for (i = 0; i < g_tw_nkp + 1; i++)
+        kp_id[i] = (double) i;
+    if ((err = damaris_write("ross/kp_id", kp_id)) != DAMARIS_OK)
+        st_damaris_error(TW_LOC, err, "ross/kp_id");
+
+    // calloc the space for the variables we want to track
+    for (i = 0; i <  NUM_PE_VARS; i++)
+    {
+        pe_data[i].var_path = tw_calloc(TW_LOC, "damaris", sizeof(char), 1024);
+        if (i < DPE_EFF)
+            pe_data[i].data_ptr = tw_calloc(TW_LOC, "damaris", sizeof(int), 1);
+        else
+            pe_data[i].data_ptr = tw_calloc(TW_LOC, "damaris", sizeof(float), 1);
+    }
+    printf ("PE %ld finished writing and callocing initial mesh and pe data\n", g_tw_mynode);
+}
+
 /**
  * @brief Shuts down Damaris and calls MPI_Finalize
  *
@@ -209,57 +264,10 @@ void st_damaris_ross_finalize()
 void st_damaris_expose_data(tw_pe *me, tw_stime gvt, int inst_type)
 {
     int err, i;
-    double *dummy;
 
     tw_statistics s;
     bzero(&s, sizeof(s));
     tw_get_stats(me, &s);
-    
-    // write the coordinate info for meshes on only the first iteration.
-    // each pe needs to only write the coordinates for which it will be 
-    // writing variables.
-    if (first_iteration)
-    {
-        // PE coordinates - just need pe_id and pe_id + 1 to allow for zonal coloring
-        // on the mesh
-        pe_id = tw_calloc(TW_LOC, "damaris", sizeof(double), 2);
-        pe_id[0] = (double) g_tw_mynode;
-        pe_id[1] = (double) g_tw_mynode + 1;
-        if ((err = damaris_write("ross/pe_id", pe_id)) != DAMARIS_OK)
-            st_damaris_error(TW_LOC, err, "ross/pe_id");
-
-        // just a dummy variable to allow for creating a mesh of PE stats
-        dummy = tw_calloc(TW_LOC, "damaris", sizeof(double), 2);
-        dummy[0] = 0;
-        dummy[1] = 1;
-        if ((err = damaris_write("ross/dummy", dummy)) != DAMARIS_OK)
-            st_damaris_error(TW_LOC, err, "ross/dummy");
-
-        // LP coordinates in local ids
-        lp_id = tw_calloc(TW_LOC, "damaris", sizeof(double), g_tw_nlp + 1);
-        for (i = 0; i < g_tw_nlp + 1; i++)
-            lp_id[i] = (double) i;
-        if ((err = damaris_write("ross/lp_id", lp_id)) != DAMARIS_OK)
-            st_damaris_error(TW_LOC, err, "ross/lp_id");
-
-        // KP coordinates in local ids
-        kp_id = tw_calloc(TW_LOC, "damaris", sizeof(double), g_tw_nkp + 1);
-        for (i = 0; i < g_tw_nkp + 1; i++)
-            kp_id[i] = (double) i;
-        if ((err = damaris_write("ross/kp_id", kp_id)) != DAMARIS_OK)
-            st_damaris_error(TW_LOC, err, "ross/kp_id");
-
-        // calloc the space for the variables we want to track
-        //pe_vars = tw_calloc(TW_LOC, "damaris", sizeof(int), NUM_PE_VARS-1);
-        //pe_efficiency = tw_calloc(TW_LOC, "damaris", sizeof(float), 1);
-
-        //for (i = 0; i < NUM_KP_VARS; i++)
-        //    kp_vars[i] = tw_calloc(TW_LOC, "damaris", sizeof(int), g_tw_nkp);
-
-        //for (i = 0; i < NUM_LP_VARS; i++)
-        //    lp_vars[i] = tw_calloc(TW_LOC, "damaris", sizeof(int), g_tw_nlp);
-
-    }
 
     // collect data for each entity
     expose_pe_data(me, &s, inst_type);
@@ -268,8 +276,7 @@ void st_damaris_expose_data(tw_pe *me, tw_stime gvt, int inst_type)
     if (inst_type == RT_COL)
         rt_block_counter++;
 
-    memcpy(&last_pe_stats, &s, sizeof(tw_statistics));
-    first_iteration = 0;
+    memcpy(&last_pe_stats[inst_type], &s, sizeof(tw_statistics));
 
     //if ((err = damaris_signal("test")) != DAMARIS_OK)
     //    st_damaris_error(TW_LOC, err, "test");
@@ -281,37 +288,19 @@ void st_damaris_expose_data(tw_pe *me, tw_stime gvt, int inst_type)
 static void expose_pe_data(tw_pe *pe, tw_statistics *s, int inst_type)
 {
     int err, i, block = 0;
-    char var_name[2048];
 
-    if (first_iteration)
-    {
-        // set up pe_data and get shmem pointers
-        for (i = 0; i <  NUM_PE_VARS; i++)
-        {
-            pe_data[i].var_path = tw_calloc(TW_LOC, "damaris", sizeof(char), 1024);
-            sprintf(pe_data[i].var_path, "ross/pes/gvt_inst/%s", pe_var_names[i]);
-            if (i < DPE_EFF)
-                pe_data[i].data_ptr = tw_calloc(TW_LOC, "damaris", sizeof(int), 1);
-            else
-                pe_data[i].data_ptr = tw_calloc(TW_LOC, "damaris", sizeof(float), 1);
-            //printf("PE %ld: i = %d, var %s\n", g_tw_mynode, i, pe_data[i].var_path);
-            //damaris_alloc(pe_data[i].var_path, pe_data[i].data_ptr);
-        }
-
-    }
-    
-    *((int*)pe_data[DPE_EVENT_PROC].data_ptr) = (int)( s->s_nevent_processed-last_pe_stats.s_nevent_processed);
-    *((int*)pe_data[DPE_EVENT_ABORT].data_ptr) = (int)(s->s_nevent_abort-last_pe_stats.s_nevent_abort);
-    *((int*)pe_data[DPE_E_RBS].data_ptr) = (int)(s->s_e_rbs-last_pe_stats.s_e_rbs);
-    *((int*)pe_data[DPE_RB_TOTAL].data_ptr) = (int)( s->s_rb_total-last_pe_stats.s_rb_total);
-    *((int*)pe_data[DPE_RB_SEC].data_ptr) = (int)(s->s_rb_secondary-last_pe_stats.s_rb_secondary);
+    *((int*)pe_data[DPE_EVENT_PROC].data_ptr) = (int)( s->s_nevent_processed-last_pe_stats[inst_type].s_nevent_processed);
+    *((int*)pe_data[DPE_EVENT_ABORT].data_ptr) = (int)(s->s_nevent_abort-last_pe_stats[inst_type].s_nevent_abort);
+    *((int*)pe_data[DPE_E_RBS].data_ptr) = (int)(s->s_e_rbs-last_pe_stats[inst_type].s_e_rbs);
+    *((int*)pe_data[DPE_RB_TOTAL].data_ptr) = (int)( s->s_rb_total-last_pe_stats[inst_type].s_rb_total);
+    *((int*)pe_data[DPE_RB_SEC].data_ptr) = (int)(s->s_rb_secondary-last_pe_stats[inst_type].s_rb_secondary);
     *((int*)pe_data[DPE_RB_PRIM].data_ptr) = *((int*)pe_data[DPE_RB_TOTAL].data_ptr) - *((int*)pe_data[DPE_RB_SEC].data_ptr);
-    *((int*)pe_data[DPE_FC_ATTEMPT].data_ptr) = (int)(s->s_fc_attempts-last_pe_stats.s_fc_attempts);
+    *((int*)pe_data[DPE_FC_ATTEMPT].data_ptr) = (int)(s->s_fc_attempts-last_pe_stats[inst_type].s_fc_attempts);
     *((int*)pe_data[DPE_PQ_SIZE].data_ptr) = tw_pq_get_size(pe->pq);
-    *((int*)pe_data[DPE_NET_SEND].data_ptr) = (int)(s->s_nsend_network-last_pe_stats.s_nsend_network);
-    *((int*)pe_data[DPE_NET_RECV].data_ptr) = (int)(s->s_nread_network-last_pe_stats.s_nread_network);
-    *((int*)pe_data[DPE_NGVTS].data_ptr) = (int)(g_tw_gvt_done - last_pe_stats.s_ngvts);
-    *((int*)pe_data[DPE_EVENT_TIES].data_ptr) = (int)(s->s_pe_event_ties-last_pe_stats.s_pe_event_ties);
+    *((int*)pe_data[DPE_NET_SEND].data_ptr) = (int)(s->s_nsend_network-last_pe_stats[inst_type].s_nsend_network);
+    *((int*)pe_data[DPE_NET_RECV].data_ptr) = (int)(s->s_nread_network-last_pe_stats[inst_type].s_nread_network);
+    *((int*)pe_data[DPE_NGVTS].data_ptr) = (int)(g_tw_gvt_done - last_pe_stats[inst_type].s_ngvts);
+    *((int*)pe_data[DPE_EVENT_TIES].data_ptr) = (int)(s->s_pe_event_ties-last_pe_stats[inst_type].s_pe_event_ties);
 
     int net_events = *((int*)pe_data[DPE_EVENT_PROC].data_ptr) - *((int*)pe_data[DPE_E_RBS].data_ptr);
     if (net_events > 0)
@@ -320,25 +309,28 @@ static void expose_pe_data(tw_pe *pe, tw_statistics *s, int inst_type)
     else
         *((float*)pe_data[DPE_EFF].data_ptr) = 0;
 
-    *((float*)pe_data[DPE_NET_READ_TIME].data_ptr) = (float)(pe->stats.s_net_read - last_pe_stats.s_net_read) / g_tw_clock_rate;
-    *((float*)pe_data[DPE_GVT_TIME].data_ptr) = (float)(pe->stats.s_gvt - last_pe_stats.s_gvt) / g_tw_clock_rate;
-    *((float*)pe_data[DPE_FC_TIME].data_ptr) = (float)(pe->stats.s_fossil_collect - last_pe_stats.s_fossil_collect) / g_tw_clock_rate;
-    *((float*)pe_data[DPE_EVENT_ABORT_TIME].data_ptr) = (float)(pe->stats.s_event_abort - last_pe_stats.s_event_abort) / g_tw_clock_rate;
-    *((float*)pe_data[DPE_EVENT_PROC_TIME].data_ptr) = (float)(pe->stats.s_event_process - last_pe_stats.s_event_process) / g_tw_clock_rate;
-    *((float*)pe_data[DPE_PQ_TIME].data_ptr) = (float)(pe->stats.s_pq - last_pe_stats.s_pq) / g_tw_clock_rate;
-    *((float*)pe_data[DPE_RB_TIME].data_ptr) = (float)(pe->stats.s_rollback - last_pe_stats.s_rollback) / g_tw_clock_rate;
-    *((float*)pe_data[DPE_CANQ_TIME].data_ptr) = (float)(pe->stats.s_cancel_q - last_pe_stats.s_cancel_q) / g_tw_clock_rate;
-    *((float*)pe_data[DPE_AVL_TIME].data_ptr) = (float)(pe->stats.s_avl - last_pe_stats.s_avl) / g_tw_clock_rate;
+    *((float*)pe_data[DPE_NET_READ_TIME].data_ptr) = (float)(pe->stats.s_net_read - last_pe_stats[inst_type].s_net_read) / g_tw_clock_rate;
+    *((float*)pe_data[DPE_GVT_TIME].data_ptr) = (float)(pe->stats.s_gvt - last_pe_stats[inst_type].s_gvt) / g_tw_clock_rate;
+    *((float*)pe_data[DPE_FC_TIME].data_ptr) = (float)(pe->stats.s_fossil_collect - last_pe_stats[inst_type].s_fossil_collect) / g_tw_clock_rate;
+    *((float*)pe_data[DPE_EVENT_ABORT_TIME].data_ptr) = (float)(pe->stats.s_event_abort - last_pe_stats[inst_type].s_event_abort) / g_tw_clock_rate;
+    *((float*)pe_data[DPE_EVENT_PROC_TIME].data_ptr) = (float)(pe->stats.s_event_process - last_pe_stats[inst_type].s_event_process) / g_tw_clock_rate;
+    *((float*)pe_data[DPE_PQ_TIME].data_ptr) = (float)(pe->stats.s_pq - last_pe_stats[inst_type].s_pq) / g_tw_clock_rate;
+    *((float*)pe_data[DPE_RB_TIME].data_ptr) = (float)(pe->stats.s_rollback - last_pe_stats[inst_type].s_rollback) / g_tw_clock_rate;
+    *((float*)pe_data[DPE_CANQ_TIME].data_ptr) = (float)(pe->stats.s_cancel_q - last_pe_stats[inst_type].s_cancel_q) / g_tw_clock_rate;
+    *((float*)pe_data[DPE_AVL_TIME].data_ptr) = (float)(pe->stats.s_avl - last_pe_stats[inst_type].s_avl) / g_tw_clock_rate;
 
+    if (inst_type == RT_COL)
+        block = rt_block_counter;
     // let damaris know we're done updating data
     for (i = 0; i < NUM_PE_VARS; i++)
     {
-        damaris_write(pe_data[i].var_path, pe_data[i].data_ptr);
+        sprintf(pe_data[i].var_path, "ross/pes/%s/%s", inst_path[inst_type], pe_var_names[i]);
+        if ((err = damaris_write_block(pe_data[i].var_path, block, pe_data[i].data_ptr)) != DAMARIS_OK)
+            st_damaris_error(TW_LOC, err, pe_data[i].var_path);
         //damaris_commit(pe_data[i].var_path);
         //damaris_clear(pe_data[i].var_path);
     }
     //printf("PE %ld damaris_write finished\n", g_tw_mynode);
-    
 }
 
 /**
@@ -433,6 +425,9 @@ static void reset_block_counter()
 void st_damaris_end_iteration()
 {
     damaris_end_iteration();
+    iterations++;
+    //if (rt_block_counter > 0)
+    //    printf("PE %ld end iteration #%d rt_block_counter = %d\n", g_tw_mynode, iterations, rt_block_counter);
     reset_block_counter();
 }
 
