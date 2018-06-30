@@ -26,10 +26,11 @@
         <layout name="lp_id_layout" type="double" dimensions="num_lp+1" /> 
         <layout name="lp_long_layout" type="long" dimensions="num_lp" />
         <layout name="lp_int_layout" type="int" dimensions="num_lp" />
-        <layout name="lp_double_layout" type="double" dimensions="num_lp" />
+        <layout name="lp_float_layout" type="float" dimensions="num_lp" />
 
         <layout name="kp_id_layout" type="double" dimensions="num_kp+1" /> 
         <layout name="kp_int_layout" type="int" dimensions="num_kp" />
+        <layout name="kp_float_layout" type="float" dimensions="num_kp" />
 
         <mesh name="mesh2d_lp" type="rectilinear" topology="2">
             <coord name="ross/lp_id" unit="lp_id" label="LP ID" />
@@ -107,47 +108,47 @@
 
             <group name="kps">
                 <group name="gvt_inst">
-                    <variable name="nevent_processed" layout="int" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_kp" centering="zonal" />
-                    <variable name="nevent_abort" layout="int" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_kp" centering="zonal" />
-                    <variable name="nevent_rb" layout="int" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_kp" centering="zonal" />
-                    <variable name="rb_total" layout="int" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_kp" centering="zonal" />
-                    <variable name="rb_prim" layout="int" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_kp" centering="zonal" />
-                    <variable name="rb_sec" layout="int" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_kp" centering="zonal" />
-                    <variable name="network_send" layout="int" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_kp" centering="zonal" />
-                    <variable name="network_recv" layout="int" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_kp" centering="zonal" />
-                    <variable name="virtual_time_diff" layout="float" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_kp" centering="zonal" />
-                    <variable name="efficiency" layout="float" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_kp" centering="zonal" />
+                    <variable name="nevent_processed" layout="kp_int_layout" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_kp" centering="zonal" />
+                    <variable name="nevent_abort" layout="kp_int_layout" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_kp" centering="zonal" />
+                    <variable name="nevent_rb" layout="kp_int_layout" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_kp" centering="zonal" />
+                    <variable name="rb_total" layout="kp_int_layout" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_kp" centering="zonal" />
+                    <variable name="rb_prim" layout="kp_int_layout" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_kp" centering="zonal" />
+                    <variable name="rb_sec" layout="kp_int_layout" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_kp" centering="zonal" />
+                    <variable name="network_send" layout="kp_int_layout" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_kp" centering="zonal" />
+                    <variable name="network_recv" layout="kp_int_layout" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_kp" centering="zonal" />
+                    <variable name="virtual_time_diff" layout="kp_float_layout" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_kp" centering="zonal" />
+                    <variable name="efficiency" layout="kp_float_layout" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_kp" centering="zonal" />
                 </group>
                 <group name="rt_inst">
-                    <variable name="nevent_processed" layout="int" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_kp" centering="zonal" />
-                    <variable name="nevent_abort" layout="int" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_kp" centering="zonal" />
-                    <variable name="nevent_rb" layout="int" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_kp" centering="zonal" />
-                    <variable name="rb_total" layout="int" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_kp" centering="zonal" />
-                    <variable name="rb_prim" layout="int" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_kp" centering="zonal" />
-                    <variable name="rb_sec" layout="int" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_kp" centering="zonal" />
-                    <variable name="network_send" layout="int" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_kp" centering="zonal" />
-                    <variable name="network_recv" layout="int" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_kp" centering="zonal" />
-                    <variable name="virtual_time_diff" layout="float" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_kp" centering="zonal" />
-                    <variable name="efficiency" layout="float" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_kp" centering="zonal" />
+                    <variable name="nevent_processed" layout="kp_int_layout" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_kp" centering="zonal" />
+                    <variable name="nevent_abort" layout="kp_int_layout" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_kp" centering="zonal" />
+                    <variable name="nevent_rb" layout="kp_int_layout" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_kp" centering="zonal" />
+                    <variable name="rb_total" layout="kp_int_layout" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_kp" centering="zonal" />
+                    <variable name="rb_prim" layout="kp_int_layout" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_kp" centering="zonal" />
+                    <variable name="rb_sec" layout="kp_int_layout" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_kp" centering="zonal" />
+                    <variable name="network_send" layout="kp_int_layout" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_kp" centering="zonal" />
+                    <variable name="network_recv" layout="kp_int_layout" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_kp" centering="zonal" />
+                    <variable name="virtual_time_diff" layout="kp_float_layout" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_kp" centering="zonal" />
+                    <variable name="efficiency" layout="kp_float_layout" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_kp" centering="zonal" />
                 </group>
             </group>
 
             <group name="lps">
                 <group name="gvt_inst">
-                    <variable name="nevent_processed" layout="int" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_lp" centering="zonal" />
-                    <variable name="nevent_abort" layout="int" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_lp" centering="zonal" />
-                    <variable name="nevent_rb" layout="int" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_lp" centering="zonal" />
-                    <variable name="network_send" layout="int" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_lp" centering="zonal" />
-                    <variable name="network_recv" layout="int" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_lp" centering="zonal" />
-                    <variable name="efficiency" layout="float" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_lp" centering="zonal" />
+                    <variable name="nevent_processed" layout="lp_int_layout" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_lp" centering="zonal" />
+                    <variable name="nevent_abort" layout="lp_int_layout" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_lp" centering="zonal" />
+                    <variable name="nevent_rb" layout="lp_int_layout" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_lp" centering="zonal" />
+                    <variable name="network_send" layout="lp_int_layout" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_lp" centering="zonal" />
+                    <variable name="network_recv" layout="lp_int_layout" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_lp" centering="zonal" />
+                    <variable name="efficiency" layout="lp_float_layout" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_lp" centering="zonal" />
                 </group>
                 <group name="rt_inst">
-                    <variable name="nevent_processed" layout="int" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_lp" centering="zonal" />
-                    <variable name="nevent_abort" layout="int" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_lp" centering="zonal" />
-                    <variable name="nevent_rb" layout="int" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_lp" centering="zonal" />
-                    <variable name="network_send" layout="int" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_lp" centering="zonal" />
-                    <variable name="network_recv" layout="int" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_lp" centering="zonal" />
-                    <variable name="efficiency" layout="float" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_lp" centering="zonal" />
+                    <variable name="nevent_processed" layout="lp_int_layout" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_lp" centering="zonal" />
+                    <variable name="nevent_abort" layout="lp_int_layout" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_lp" centering="zonal" />
+                    <variable name="nevent_rb" layout="lp_int_layout" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_lp" centering="zonal" />
+                    <variable name="network_send" layout="lp_int_layout" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_lp" centering="zonal" />
+                    <variable name="network_recv" layout="lp_int_layout" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_lp" centering="zonal" />
+                    <variable name="efficiency" layout="lp_float_layout" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_lp" centering="zonal" />
                 </group>
             </group>
         </group>

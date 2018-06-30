@@ -21,11 +21,11 @@ static int max_block_counter = 0;
 static int iterations = 0;
 
 static void expose_pe_data(tw_pe *pe, tw_statistics *s, int inst_type);
-static void expose_kp_data(int inst_type);
+static void expose_kp_data(tw_pe *pe, int inst_type);
 static void expose_lp_data(int inst_type);
 
 typedef struct {
-    void *data_ptr;
+    void **data_ptr;
     char *var_path;
 } damaris_variable;
 
@@ -136,7 +136,7 @@ static void set_parameters()
     int num_pe = tw_nnodes();
     int num_kp = (int) g_tw_nkp;
     int num_lp = (int) g_tw_nlp;
-    printf("PE %ld num pe %d, num kp %d, num lp %d\n", g_tw_mynode, num_pe, num_kp, num_lp);
+    //printf("PE %ld num pe %d, num kp %d, num lp %d\n", g_tw_mynode, num_pe, num_kp, num_lp);
 
     if ((err = damaris_parameter_set("num_lp", &num_lp, sizeof(num_lp))) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, "num_lp");
@@ -230,12 +230,26 @@ void st_damaris_inst_init()
     for (i = 0; i <  NUM_PE_VARS; i++)
     {
         pe_data[i].var_path = tw_calloc(TW_LOC, "damaris", sizeof(char), 1024);
+        pe_data[i].data_ptr = tw_calloc(TW_LOC, "damaris", sizeof(void *), 1);
         if (i < DPE_EFF)
-            pe_data[i].data_ptr = tw_calloc(TW_LOC, "damaris", sizeof(int), 1);
+            pe_data[i].data_ptr[0] = tw_calloc(TW_LOC, "damaris", sizeof(int), 1);
         else
-            pe_data[i].data_ptr = tw_calloc(TW_LOC, "damaris", sizeof(float), 1);
+            pe_data[i].data_ptr[0] = tw_calloc(TW_LOC, "damaris", sizeof(float), 1);
     }
-    printf ("PE %ld finished writing and callocing initial mesh and pe data\n", g_tw_mynode);
+
+    for (i = 0; i <  NUM_KP_VARS; i++)
+    {
+        kp_data[i].var_path = tw_calloc(TW_LOC, "damaris", sizeof(char), 1024);
+        kp_data[i].data_ptr = tw_calloc(TW_LOC, "damaris", sizeof(void *), g_tw_nkp);
+        for (j = 0; j < g_tw_nkp; j++)
+        {
+            if (i < DKP_VT_DIFF)
+                kp_data[i].data_ptr[j] = tw_calloc(TW_LOC, "damaris", sizeof(int), 1);
+            else
+                kp_data[i].data_ptr[j] = tw_calloc(TW_LOC, "damaris", sizeof(float), 1);
+        }
+    }
+    //printf ("PE %ld finished writing and callocing initial mesh and pe data\n", g_tw_mynode);
 }
 
 /**
@@ -271,7 +285,7 @@ void st_damaris_expose_data(tw_pe *me, tw_stime gvt, int inst_type)
 
     // collect data for each entity
     expose_pe_data(me, &s, inst_type);
-    expose_kp_data(inst_type);
+    expose_kp_data(me, inst_type);
     expose_lp_data(inst_type);
     if (inst_type == RT_COL)
         rt_block_counter++;
@@ -336,36 +350,41 @@ static void expose_pe_data(tw_pe *pe, tw_statistics *s, int inst_type)
 /**
  * @brief expose KP data to Damaris
  */
-static void expose_kp_data(int inst_type)
+static void expose_kp_data(tw_pe *pe, int inst_type)
 {
-    tw_kp *kp;
     int i, err, block = 0;
-    char var_name[2048];
+    tw_kp *kp;
 
-    //for (i = 0; i < g_tw_nkp; i++)
-    //{
-    //    kp = tw_getkp(i);
+    for (i = 0; i < g_tw_nkp; i++)
+    {
+        kp = tw_getkp(i);
 
-    //    kp_vars[0][i] = (int)(kp->s_rb_total - kp->last_s_rb_total_gvt);
-    //    kp_vars[1][i] = (int)(kp->s_rb_secondary - kp->last_s_rb_secondary_gvt);
-    //    kp_vars[2][i] = kp_vars[0][i] - kp_vars[1][i];
+        *((int*)kp_data[DKP_EVENT_PROC].data_ptr[i]) = (int)(kp->kp_stats->s_nevent_processed - kp->last_stats[inst_type]->s_nevent_processed);
+        *((int*)kp_data[DKP_EVENT_ABORT].data_ptr[i]) = (int)(kp->kp_stats->s_nevent_abort - kp->last_stats[inst_type]->s_nevent_abort);
+        *((int*)kp_data[DKP_E_RBS].data_ptr[i]) = (int)(kp->kp_stats->s_e_rbs - kp->last_stats[inst_type]->s_e_rbs);
+        *((int*)kp_data[DKP_RB_TOTAL].data_ptr[i]) = (int)(kp->kp_stats->s_rb_total - kp->last_stats[inst_type]->s_rb_total);
+        *((int*)kp_data[DKP_RB_SEC].data_ptr[i]) = (int)(kp->kp_stats->s_rb_secondary - kp->last_stats[inst_type]->s_rb_secondary);
+        *((int*)kp_data[DKP_RB_PRIM].data_ptr[i]) = *((int*)kp_data[DKP_RB_TOTAL].data_ptr[i]) - *((int*)kp_data[DKP_RB_SEC].data_ptr[i]);
+        *((int*)kp_data[DKP_NET_SEND].data_ptr[i]) = (int)(kp->kp_stats->s_nsend_network - kp->last_stats[inst_type]->s_nsend_network);
+        *((int*)kp_data[DKP_NET_RECV].data_ptr[i]) = (int)(kp->kp_stats->s_nread_network - kp->last_stats[inst_type]->s_nread_network);
+        *((float*)kp_data[DKP_VT_DIFF].data_ptr[i]) = (float)(kp->last_time - pe->GVT);
 
-    //    kp->last_s_rb_total_gvt = kp->s_rb_total;
-    //    kp->last_s_rb_secondary_gvt = kp->s_rb_secondary;
-    //}
+        int net_events = *((int*)kp_data[DKP_EVENT_PROC].data_ptr[i]) - *((int*)kp_data[DKP_E_RBS].data_ptr[i]);
+        if (net_events > 0)
+            *((float*)kp_data[DKP_EFF].data_ptr[i]) = (float) 100.0 * (1.0 - ((float) *((int*)kp_data[DKP_E_RBS].data_ptr[i]) / (float) net_events));
+        else
+            *((float*)kp_data[DKP_EFF].data_ptr[i]) = 0;
+    }
 
-    //for (i = 0; i < NUM_KP_VARS; i++)
-    //{
-    //    if (inst_type == GVT_COL)
-    //        snprintf(var_name, sizeof(damaris_gvt_path) + strlen(kp_var_names[i]),"%s%s", damaris_gvt_path, kp_var_names[i]);
-    //    else if (inst_type == RT_COL)
-    //    {
-    //        snprintf(var_name, sizeof(damaris_rt_path) + strlen(kp_var_names[i]),"%s%s", damaris_rt_path, kp_var_names[i]);
-    //        block = rt_block_counter;
-    //    }
-    //    if ((err = damaris_write_block(var_name, block, kp_vars[i])) != DAMARIS_OK)
-    //        st_damaris_error(TW_LOC, err, var_name);
-    //}
+    if (inst_type == RT_COL)
+        block = rt_block_counter;
+    // let damaris know we're done updating data
+    for (i = 0; i < NUM_KP_VARS; i++)
+    {
+        sprintf(kp_data[i].var_path, "ross/kps/%s/%s", inst_path[inst_type], kp_var_names[i]);
+        if ((err = damaris_write_block(kp_data[i].var_path, block, &kp_data[i].data_ptr[0])) != DAMARIS_OK)
+            st_damaris_error(TW_LOC, err, kp_data[i].var_path);
+    }
 }
 
 /**
