@@ -1,0 +1,14 @@
+prefix = @CMAKE_INSTALL_PREFIX@
+damaris_path = @DAMARIS_DIR@
+damaris_ldflags = @DAMARIS_LINKER_FLAGS@
+
+damaris_cflags=-I${damaris_path}/include
+ross_damaris_libs=-lROSS_Damaris
+
+Name: ROSS-Damaris
+Description: Rensselaer's Optimistic Simulation System - Damaris Integration
+Version: 1.0
+URL: https://github.com/caitlinross/ROSS-damaris
+Requires:
+Libs: ${damaris_ldflags} ${ross_damaris_libs}
+Cflags: ${damaris_cflags}

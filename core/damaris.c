@@ -164,7 +164,7 @@ void st_damaris_ross_init()
 
     // TODO don't hardcode Damaris config file
     // also set a default, but allow another xml file to be passed in through cmd line
-    if ((err = damaris_initialize("/home/rossc3/ROSS-Vis/damaris/test.xml", MPI_COMM_WORLD)) != DAMARIS_OK)
+    if ((err = damaris_initialize("/home/rossc3/ROSS-Vis/core/damaris/test.xml", MPI_COMM_WORLD)) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, NULL);
     damaris_initialized = 1;
 
