@@ -9,14 +9,20 @@ SET(DAMARIS_LIBRARY ${DAMARIS_DIR}/lib CACHE INTERNAL "")
 
 SET(LINKER_STR "-rdynamic -L${DAMARIS_LIBRARY} -Wl,--whole-archive,-ldamaris,--no-whole-archive -lxerces-c -lboost_log -lboost_log_setup -lboost_filesystem -lboost_system -lboost_date_time -lboost_thread -lstdc++ -lmpi_cxx -lrt -ldl -lpthread")
 IF (USE_VISIT)
-    SET(VISIT_DIR $ENV{VISIT_DIR} CACHE STRING "Path to VisIt lib dir")
-    SET(LINKER_STR "${LINKER_STR} -L${VISIT_DIR} -lsimV2")
+    SET(VISIT_DIR $ENV{VISIT_DIR} CACHE STRING "Path to VisIt src dir")
+    SET(LINKER_STR "${LINKER_STR} -L${VISIT_DIR}/lib -lsimV2")
 ENDIF(USE_VISIT)
 SET(DAMARIS_LINKER_FLAGS ${LINKER_STR} CACHE INTERNAL "")
 
 ## set ross-damaris sources
 INCLUDE_DIRECTORIES(${DAMARIS_INCLUDE})
-SET(rd_srcs core/damaris.h core/damaris.c ${DAMARIS_DIR}/include/Damaris.h)
+INCLUDE_DIRECTORIES(${VISIT_DIR}/sim/V2/lib)
+SET(rd_srcs 
+    core/damaris.h 
+    core/damaris.c 
+    ${DAMARIS_DIR}/include/Damaris.h)
+
+ADD_SUBDIRECTORY(plugins)
 
 ## print ROSS-Damaris Git Hash
 LIST(APPEND CMAKE_MODULE_PATH "${ROSS_SOURCE_DIR}/cmake")
@@ -32,9 +38,8 @@ SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_SOURCE_DIR}/ross-damaris-config.h PR
 
 ADD_LIBRARY(ROSS_Damaris ${rd_srcs})
 
-## link with ROSS library 
-INCLUDE_DIRECTORIES(${ROSS_SOURCE_DIR} ${ROSS_BINARY_DIR})
-TARGET_LINK_LIBRARIES(ROSS_Damaris ROSS)
+## link with Damaris and dependencies
+TARGET_LINK_LIBRARIES(ROSS_Damaris ${DAMARIS_LINKER_FLAGS})
 
 # for CODES pc file
 #CONFIGURE_FILE(ross-config.in ross-config @ONLY)
@@ -45,6 +50,6 @@ SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_BINARY_DIR}/ross-damaris.pc PROPERTI
 # make install
 INSTALL(FILES ${CMAKE_BINARY_DIR}/ross-damaris-config.h DESTINATION include)
 INSTALL(DIRECTORY ${ROSS_SOURCE_DIR}/damaris/core DESTINATION include/damaris FILES_MATCHING PATTERN "*.h")
-INSTALL(TARGETS ROSS_Damaris EXPORT ROSS_Damaris ARCHIVE DESTINATION lib LIBRARY DESTINATION lib)
+INSTALL(TARGETS ROSS_Damaris ARCHIVE DESTINATION lib LIBRARY DESTINATION lib)
 INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/ross-damaris.pc DESTINATION lib/pkgconfig)
 

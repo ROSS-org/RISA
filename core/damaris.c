@@ -44,6 +44,7 @@ typedef enum {
     DPE_EVENT_TIES,
     DPE_EFF,
     DPE_NET_READ_TIME,
+    DPE_NET_OTHER_TIME,
     DPE_GVT_TIME,
     DPE_FC_TIME,
     DPE_EVENT_ABORT_TIME,
@@ -99,6 +100,7 @@ static const char *pe_var_names[NUM_PE_VARS] = {
     "event_ties",
     "efficiency",
     "net_read_time",
+    "net_other_time",
     "gvt_time",
     "fc_time",
     "event_abort_time",
@@ -296,6 +298,9 @@ void st_damaris_expose_data(tw_pe *me, tw_stime gvt, int inst_type)
     bzero(&s, sizeof(s));
     tw_get_stats(me, &s);
 
+    if ((err = damaris_signal("damaris_gc")) != DAMARIS_OK)
+        st_damaris_error(TW_LOC, err, "damaris_gc");
+
     // collect data for each entity
     expose_pe_data(me, &s, inst_type);
     expose_kp_data(me, inst_type);
@@ -472,7 +477,7 @@ void st_damaris_error(const char *file, int line, int err, char *variable)
     switch(err)
     {
         case DAMARIS_ALLOCATION_ERROR:
-            tw_warning(file, line, "Damaris allocation error for variable %s\n", variable);
+            tw_warning(file, line, "Damaris allocation error for variable %s at GVT %f\n", variable, g_tw_pe[0]->GVT);
             break;
         case DAMARIS_ALREADY_INITIALIZED:
             tw_warning(file, line, "Damaris was already initialized\n");

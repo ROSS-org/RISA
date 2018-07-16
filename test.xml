@@ -16,7 +16,6 @@
         <parameter name="num_pe" type="int" value="0" />
         <parameter name="num_kp" type="int" value="0" />
 
-        <!-- TODO will need to handle cases where LP counts differ among PEs -->
         <layout name="pe_id_layout" type="double" dimensions="2" /> 
         <layout name="pe_int_layout" type="int" dimensions="num_pe, 1" />
         <layout name="pe_float_layout" type="float" dimensions="num_pe, 1" />
@@ -71,6 +70,7 @@
                     <variable name="event_ties" layout="int" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_pe" centering="zonal" />
                     <variable name="efficiency" layout="float" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_pe" centering="zonal" />
                     <variable name="net_read_time" layout="float" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_pe" centering="zonal" />
+                    <variable name="net_other_time" layout="float" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_pe" centering="zonal" />
                     <variable name="gvt_time" layout="float" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_pe" centering="zonal" />
                     <variable name="fc_time" layout="float" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_pe" centering="zonal" />
                     <variable name="event_abort_time" layout="float" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_pe" centering="zonal" />
@@ -95,6 +95,7 @@
                     <variable name="event_ties" layout="int" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_pe" centering="zonal" />
                     <variable name="efficiency" layout="float" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_pe" centering="zonal" />
                     <variable name="net_read_time" layout="float" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_pe" centering="zonal" />
+                    <variable name="net_other_time" layout="float" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_pe" centering="zonal" />
                     <variable name="gvt_time" layout="float" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_pe" centering="zonal" />
                     <variable name="fc_time" layout="float" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_pe" centering="zonal" />
                     <variable name="event_abort_time" layout="float" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_pe" centering="zonal" />
@@ -154,7 +155,10 @@
         </group>
     </data>
     <actions>
+        <event name="damaris_gc" action="damaris_gc" library="librdplugins.so" scope="group"/>
+        <!-- <error event="damaris_gc"/> -->
         <!--<event name="test" action="aggregate_data" library="libROSS_Damaris.so" scope="group" />-->
     </actions>
+    <!-- <log FileName="log/error" RotationSize="5" LogFormat="[%TimeStamp%]: %Message%" LogLevel="info"/> -->
 </simulation>
 
