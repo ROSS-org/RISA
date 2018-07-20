@@ -2,7 +2,7 @@
 
 /**
  * @file damaris.c
- * @brief ROSS integration with Damaris data managment
+ * @brief ROSS integration with Damaris data management
  */
 
 int g_st_ross_rank = 0;
@@ -17,6 +17,7 @@ static const char *inst_path[3] = {
     "rt_inst",
     "vt_inst"};
 static int rt_block_counter = 0;
+static int vt_block_counter = 0;
 static int max_block_counter = 0;
 static int iterations = 0;
 
@@ -298,15 +299,14 @@ void st_damaris_expose_data(tw_pe *me, tw_stime gvt, int inst_type)
     bzero(&s, sizeof(s));
     tw_get_stats(me, &s);
 
-    if ((err = damaris_signal("damaris_gc")) != DAMARIS_OK)
-        st_damaris_error(TW_LOC, err, "damaris_gc");
-
     // collect data for each entity
     expose_pe_data(me, &s, inst_type);
     expose_kp_data(me, inst_type);
     expose_lp_data(inst_type);
     if (inst_type == RT_COL)
         rt_block_counter++;
+    if (inst_type == ANALYSIS_LP)
+        vt_block_counter++;
 
     memcpy(&last_pe_stats[inst_type], &s, sizeof(tw_statistics));
 
@@ -353,12 +353,18 @@ static void expose_pe_data(tw_pe *pe, tw_statistics *s, int inst_type)
 
     if (inst_type == RT_COL)
         block = rt_block_counter;
+    if (inst_type == ANALYSIS_LP)
+        block = vt_block_counter;
     // let damaris know we're done updating data
     for (i = 0; i < NUM_PE_VARS; i++)
     {
         sprintf(pe_data[i].var_path, "ross/pes/%s/%s", inst_path[inst_type], pe_var_names[i]);
         if ((err = damaris_write_block(pe_data[i].var_path, block, pe_data[i].data_ptr)) != DAMARIS_OK)
+        {
+            printf("error: vt_block_counter %d\n", vt_block_counter);
             st_damaris_error(TW_LOC, err, pe_data[i].var_path);
+
+        }
         //damaris_commit(pe_data[i].var_path);
         //damaris_clear(pe_data[i].var_path);
     }
@@ -398,6 +404,8 @@ static void expose_kp_data(tw_pe *pe, int inst_type)
 
     if (inst_type == RT_COL)
         block = rt_block_counter;
+    if (inst_type == ANALYSIS_LP)
+        block = vt_block_counter;
     // let damaris know we're done updating data
     for (i = 0; i < NUM_KP_VARS; i++)
     {
@@ -436,6 +444,8 @@ static void expose_lp_data(int inst_type)
 
     if (inst_type == RT_COL)
         block = rt_block_counter;
+    if (inst_type == ANALYSIS_LP)
+        block = vt_block_counter;
     // let damaris know we're done updating data
     for (i = 0; i < NUM_LP_VARS; i++)
     {
@@ -448,11 +458,11 @@ static void expose_lp_data(int inst_type)
 /** 
  * @brief
  */
-static void reset_block_counter()
+static void reset_block_counter(int *counter)
 {
-    if (rt_block_counter > max_block_counter)
-        max_block_counter = rt_block_counter;
-    rt_block_counter = 0;
+    if (*counter > max_block_counter)
+        max_block_counter = *counter;
+    *counter = 0;
 }
 
 /**
@@ -460,11 +470,19 @@ static void reset_block_counter()
  */
 void st_damaris_end_iteration()
 {
-    damaris_end_iteration();
+    int err;
+
+    if ((err = damaris_signal("damaris_gc")) != DAMARIS_OK)
+        st_damaris_error(TW_LOC, err, "damaris_gc");
+
+    if ((err = damaris_end_iteration()) != DAMARIS_OK)
+        st_damaris_error(TW_LOC, err, "end iteration");
     iterations++;
-    //if (rt_block_counter > 0)
-    //    printf("PE %ld end iteration #%d rt_block_counter = %d\n", g_tw_mynode, iterations, rt_block_counter);
-    reset_block_counter();
+    //if (vt_block_counter > 0)
+    //    printf("PE %ld end iteration #%d vt_block_counter = %d\n", g_tw_mynode, iterations, vt_block_counter);
+    
+    reset_block_counter(&rt_block_counter);
+    reset_block_counter(&vt_block_counter);
 }
 
 /**
