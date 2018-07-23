@@ -8,6 +8,7 @@ extern int g_st_damaris_enabled;
  * any function here that starts with st_damaris means it is from the ROSS-Damaris library
  */
 extern const tw_optdef *st_damaris_opts(void);
+extern void st_damaris_init_print();
 extern void st_damaris_ross_init();
 extern void st_damaris_inst_init();
 extern void st_damaris_ross_finalize();

@@ -211,6 +211,15 @@ void st_damaris_ross_init()
 
 }
 
+void st_damaris_init_print()
+{
+    int total_size;
+    MPI_Comm_size(MPI_COMM_WORLD, &total_size);
+
+    printf("\nDamaris Configuration: \n");
+    printf("\t%-50s %11u\n", "Total Ranks", total_size - tw_nnodes());
+}
+
 void st_damaris_inst_init()
 {
     int err, i, j;
