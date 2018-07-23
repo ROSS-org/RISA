@@ -2,10 +2,12 @@
 #include <Damaris.h>
 
 extern int g_st_ross_rank;
+extern int g_st_damaris_enabled;
 
 /* if a function call starts with damaris, it is a call directly from Damaris library
  * any function here that starts with st_damaris means it is from the ROSS-Damaris library
  */
+extern const tw_optdef *st_damaris_opts(void);
 extern void st_damaris_ross_init();
 extern void st_damaris_inst_init();
 extern void st_damaris_ross_finalize();

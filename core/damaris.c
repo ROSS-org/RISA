@@ -130,6 +130,20 @@ static const char *lp_var_names[NUM_LP_VARS] = {
     "network_send",
     "network_recv",
     "efficiency"};
+
+int g_st_damaris_enabled = 0;
+
+static const tw_optdef damaris_options[] = {
+    TWOPT_GROUP("Damaris Integration"),
+    TWOPT_UINT("enable-damaris", g_st_damaris_enabled, "Turn on (1) or off (0) Damaris in situ analysis"),
+    TWOPT_END()
+};
+
+const tw_optdef *st_damaris_opts(void)
+{
+	return damaris_options;
+}
+
 /**
  * @brief Set simulation parameters in Damaris
  */
@@ -164,6 +178,12 @@ void st_damaris_ross_init()
 {
     int err, my_rank;
     MPI_Comm ross_comm;
+
+    if (!g_st_damaris_enabled)
+    {
+        g_st_ross_rank = 1;
+        return;
+    }
 
     // TODO don't hardcode Damaris config file
     // also set a default, but allow another xml file to be passed in through cmd line
