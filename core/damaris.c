@@ -250,39 +250,48 @@ void st_damaris_inst_init()
         st_damaris_error(TW_LOC, err, "ross/kp_id");
 
     // calloc the space for the variables we want to track
-    for (i = 0; i <  NUM_PE_VARS; i++)
+    if (g_st_pe_data)
     {
-        pe_data[i].var_path = tw_calloc(TW_LOC, "damaris", sizeof(char), 1024);
-        pe_data[i].data_ptr = tw_calloc(TW_LOC, "damaris", sizeof(void *), 1);
-        if (i < DPE_EFF)
-            pe_data[i].data_ptr[0] = tw_calloc(TW_LOC, "damaris", sizeof(int), 1);
-        else
-            pe_data[i].data_ptr[0] = tw_calloc(TW_LOC, "damaris", sizeof(float), 1);
-    }
-
-    for (i = 0; i <  NUM_KP_VARS; i++)
-    {
-        kp_data[i].var_path = tw_calloc(TW_LOC, "damaris", sizeof(char), 1024);
-        kp_data[i].data_ptr = tw_calloc(TW_LOC, "damaris", sizeof(void *), g_tw_nkp);
-        for (j = 0; j < g_tw_nkp; j++)
+        for (i = 0; i <  NUM_PE_VARS; i++)
         {
-            if (i < DKP_VT_DIFF)
-                kp_data[i].data_ptr[j] = tw_calloc(TW_LOC, "damaris", sizeof(int), 1);
+            pe_data[i].var_path = tw_calloc(TW_LOC, "damaris", sizeof(char), 1024);
+            pe_data[i].data_ptr = tw_calloc(TW_LOC, "damaris", sizeof(void *), 1);
+            if (i < DPE_EFF)
+                pe_data[i].data_ptr[0] = tw_calloc(TW_LOC, "damaris", sizeof(int), 1);
             else
-                kp_data[i].data_ptr[j] = tw_calloc(TW_LOC, "damaris", sizeof(float), 1);
+                pe_data[i].data_ptr[0] = tw_calloc(TW_LOC, "damaris", sizeof(float), 1);
         }
     }
 
-    for (i = 0; i <  NUM_LP_VARS; i++)
+    if (g_st_kp_data)
     {
-        lp_data[i].var_path = tw_calloc(TW_LOC, "damaris", sizeof(char), 1024);
-        lp_data[i].data_ptr = tw_calloc(TW_LOC, "damaris", sizeof(void *), g_tw_nlp);
-        for (j = 0; j < g_tw_nlp; j++)
+        for (i = 0; i <  NUM_KP_VARS; i++)
         {
-            if (i < DLP_EFF)
-                lp_data[i].data_ptr[j] = tw_calloc(TW_LOC, "damaris", sizeof(int), 1);
-            else
-                lp_data[i].data_ptr[j] = tw_calloc(TW_LOC, "damaris", sizeof(float), 1);
+            kp_data[i].var_path = tw_calloc(TW_LOC, "damaris", sizeof(char), 1024);
+            kp_data[i].data_ptr = tw_calloc(TW_LOC, "damaris", sizeof(void *), g_tw_nkp);
+            for (j = 0; j < g_tw_nkp; j++)
+            {
+                if (i < DKP_VT_DIFF)
+                    kp_data[i].data_ptr[j] = tw_calloc(TW_LOC, "damaris", sizeof(int), 1);
+                else
+                    kp_data[i].data_ptr[j] = tw_calloc(TW_LOC, "damaris", sizeof(float), 1);
+            }
+        }
+    }
+
+    if (g_st_lp_data)
+    {
+        for (i = 0; i <  NUM_LP_VARS; i++)
+        {
+            lp_data[i].var_path = tw_calloc(TW_LOC, "damaris", sizeof(char), 1024);
+            lp_data[i].data_ptr = tw_calloc(TW_LOC, "damaris", sizeof(void *), g_tw_nlp);
+            for (j = 0; j < g_tw_nlp; j++)
+            {
+                if (i < DLP_EFF)
+                    lp_data[i].data_ptr[j] = tw_calloc(TW_LOC, "damaris", sizeof(int), 1);
+                else
+                    lp_data[i].data_ptr[j] = tw_calloc(TW_LOC, "damaris", sizeof(float), 1);
+            }
         }
     }
     //printf ("PE %ld finished writing and callocing initial mesh and pe data\n", g_tw_mynode);
@@ -320,9 +329,13 @@ void st_damaris_expose_data(tw_pe *me, tw_stime gvt, int inst_type)
     tw_get_stats(me, &s);
 
     // collect data for each entity
-    expose_pe_data(me, &s, inst_type);
-    expose_kp_data(me, inst_type);
-    expose_lp_data(inst_type);
+    if (g_st_pe_data)
+        expose_pe_data(me, &s, inst_type);
+    if (g_st_kp_data)
+        expose_kp_data(me, inst_type);
+    if (g_st_lp_data)
+        expose_lp_data(inst_type);
+
     if (inst_type == RT_COL)
         rt_block_counter++;
     if (inst_type == ANALYSIS_LP)
