@@ -1,4 +1,5 @@
 #include <ross.h>
+#include <sys/stat.h>
 
 /**
  * @file damaris.c
@@ -132,10 +133,12 @@ static const char *lp_var_names[NUM_LP_VARS] = {
     "efficiency"};
 
 int g_st_damaris_enabled = 0;
+static char data_xml[4096];
 
 static const tw_optdef damaris_options[] = {
     TWOPT_GROUP("Damaris Integration"),
     TWOPT_UINT("enable-damaris", g_st_damaris_enabled, "Turn on (1) or off (0) Damaris in situ analysis"),
+    TWOPT_CHAR("data-xml", data_xml, "Path to XML file for describing data to Damaris"),
     TWOPT_END()
 };
 
@@ -185,9 +188,12 @@ void st_damaris_ross_init()
         return;
     }
 
-    // TODO don't hardcode Damaris config file
-    // also set a default, but allow another xml file to be passed in through cmd line
-    if ((err = damaris_initialize("/home/rossc3/ROSS-Vis/core/damaris/test.xml", MPI_COMM_WORLD)) != DAMARIS_OK)
+    struct stat buffer;
+    int file_check = stat(data_xml, &buffer);
+    if (file_check != 0)
+        tw_error(TW_LOC, "Need to provide the appropriate XML metadata file for Damaris!");
+
+    if ((err = damaris_initialize(data_xml, MPI_COMM_WORLD)) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, NULL);
     damaris_initialized = 1;
 
