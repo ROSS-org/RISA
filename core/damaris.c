@@ -9,6 +9,7 @@
 int g_st_ross_rank = 0;
 
 static int damaris_initialized = 0;
+static int debug_initialized = 0;
 static double *pe_id, *kp_id, *lp_id;
 static tw_statistics last_pe_stats[3];
 
@@ -133,17 +134,44 @@ static const char *lp_var_names[NUM_LP_VARS] = {
     "efficiency"};
 
 int g_st_damaris_enabled = 0;
+int g_st_opt_debug = 0;
 static char data_xml[4096];
 
 static const tw_optdef damaris_options[] = {
     TWOPT_GROUP("Damaris Integration"),
     TWOPT_UINT("enable-damaris", g_st_damaris_enabled, "Turn on (1) or off (0) Damaris in situ analysis"),
     TWOPT_CHAR("data-xml", data_xml, "Path to XML file for describing data to Damaris"),
+    TWOPT_UINT("opt-debug", g_st_opt_debug, "Turn on (1) or off (0) Optimistic debugging with Damaris"),
     TWOPT_END()
 };
 
-const tw_optdef *st_damaris_opts(void)
+static int num_sim_args;
+static char **sim_args;
+static char arg_string[1024];
+
+const tw_optdef *st_damaris_opts(int *argc, char ***argv)
 {
+    int i, idx = 0;
+    if (argc && argv)
+    {
+        num_sim_args = *argc;
+        sim_args = tw_calloc(TW_LOC, "damaris", sizeof(char*), num_sim_args);
+        //printf("num_sim_args %d, sim_args ", num_sim_args);
+
+        for (i = 0; i < num_sim_args; i++)
+        {
+            sim_args[i] = tw_calloc(TW_LOC, "damaris", sizeof(char), strlen(argv[0][i]));
+            strcpy(sim_args[i], argv[0][i]);
+            strcpy(&arg_string[idx], argv[0][i]);
+            idx += strlen(argv[0][i]);
+            sprintf(&arg_string[idx], " ");
+            idx++;
+            //printf("%s ", sim_args[i]);
+        }
+        arg_string[idx] = '\0';
+        //printf("\n");
+        //printf("idx = %d, arg_str %s\n", idx, arg_string);
+    }
 	return damaris_options;
 }
 
@@ -213,6 +241,24 @@ void st_damaris_ross_init()
             tw_error(TW_LOC, "Cannot get MPI_Comm_rank(MPI_COMM_ROSS)");
 
         g_tw_mynode = my_rank;
+
+        if (g_st_opt_debug)
+        {
+            // need to first write our arg data to damaris
+            if ((err = damaris_write("opt_debug/num_sim_args", &num_sim_args)) != DAMARIS_OK)
+                st_damaris_error(TW_LOC, err, "opt_debug/num_sim_args");
+            
+            if ((err = damaris_write("opt_debug/sim_args", &arg_string[0])) != DAMARIS_OK)
+                st_damaris_error(TW_LOC, err, "opt_debug/sim_args");
+
+            // now send our signal to init debug mode plugin
+            if ((err = damaris_signal("opt_debug_init")) != DAMARIS_OK)
+                st_damaris_error(TW_LOC, err, "opt_debug_init");
+
+            //if ((err = damaris_end_iteration()) != DAMARIS_OK)
+            //    st_damaris_error(TW_LOC, err, "end iteration");
+            
+        }
     }
 
 }
@@ -230,6 +276,9 @@ void st_damaris_inst_init()
 {
     int err, i, j;
     double *dummy;
+
+    if (g_st_opt_debug)
+        return;
 
     set_parameters();
 
@@ -520,11 +569,12 @@ void st_damaris_end_iteration()
 {
     int err;
 
-    if ((err = damaris_signal("damaris_gc")) != DAMARIS_OK)
-        st_damaris_error(TW_LOC, err, "damaris_gc");
+    //if ((err = damaris_signal("damaris_gc")) != DAMARIS_OK)
+    //    st_damaris_error(TW_LOC, err, "damaris_gc");
 
     if ((err = damaris_end_iteration()) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, "end iteration");
+
     iterations++;
     //if (vt_block_counter > 0)
     //    printf("PE %ld end iteration #%d vt_block_counter = %d\n", g_tw_mynode, iterations, vt_block_counter);

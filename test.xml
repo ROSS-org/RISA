@@ -46,6 +46,12 @@
             <coord name="ross/pe_id" unit="pe_id" label="PE ID" />
         </mesh>
 
+        <layout name="arg_layout" type="char" dimensions="1024" />
+        <group name="opt_debug">
+            <variable name="sim_args" layout="arg_layout" visualizable="false" time-varying="false" />
+            <variable name="num_sim_args" layout="int" visualizable="false" time-varying="false" />
+        </group>
+
         <group name="ross">
             <!---<variable name="gvt" layout="double" visualizable="false" time-varying="true" />
             <variable name="rt" layout="double" visualizable="false" time-varying="true" />-->
@@ -201,6 +207,7 @@
     </data>
     <actions>
         <event name="damaris_gc" action="damaris_gc" library="librdplugins.so" scope="group"/>
+        <event name="opt_debug_init" action="seq_init_event" library="librdplugins.so" scope="group"/>
         <!-- <error event="damaris_gc"/> -->
         <!--<event name="test" action="aggregate_data" library="libROSS_Damaris.so" scope="group" />-->
     </actions>

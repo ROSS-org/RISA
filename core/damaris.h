@@ -3,11 +3,12 @@
 
 extern int g_st_ross_rank;
 extern int g_st_damaris_enabled;
+extern int g_st_opt_debug;
 
 /* if a function call starts with damaris, it is a call directly from Damaris library
  * any function here that starts with st_damaris means it is from the ROSS-Damaris library
  */
-extern const tw_optdef *st_damaris_opts(void);
+extern const tw_optdef *st_damaris_opts(int *argc, char ***argv);
 extern void st_damaris_init_print();
 extern void st_damaris_ross_init();
 extern void st_damaris_inst_init();
