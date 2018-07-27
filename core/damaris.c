@@ -1,15 +1,20 @@
 #include <ross.h>
 #include <sys/stat.h>
+#include<stdlib.h>
+#include<unistd.h>
+#include<stdio.h>
+#include<fcntl.h>
 
 /**
  * @file damaris.c
  * @brief ROSS integration with Damaris data management
  */
+MPI_Comm MPI_COMM_ROSS_FULL; // only for use with optimistic debug mode
+static int full_ross_rank = -1; // rank within MPI_COMM_ROSS_FULL
 
 int g_st_ross_rank = 0;
 
 static int damaris_initialized = 0;
-static int debug_initialized = 0;
 static double *pe_id, *kp_id, *lp_id;
 static tw_statistics last_pe_stats[3];
 
@@ -149,29 +154,8 @@ static int num_sim_args;
 static char **sim_args;
 static char arg_string[1024];
 
-const tw_optdef *st_damaris_opts(int *argc, char ***argv)
+const tw_optdef *st_damaris_opts()
 {
-    int i, idx = 0;
-    if (argc && argv)
-    {
-        num_sim_args = *argc;
-        sim_args = tw_calloc(TW_LOC, "damaris", sizeof(char*), num_sim_args);
-        //printf("num_sim_args %d, sim_args ", num_sim_args);
-
-        for (i = 0; i < num_sim_args; i++)
-        {
-            sim_args[i] = tw_calloc(TW_LOC, "damaris", sizeof(char), strlen(argv[0][i]));
-            strcpy(sim_args[i], argv[0][i]);
-            strcpy(&arg_string[idx], argv[0][i]);
-            idx += strlen(argv[0][i]);
-            sprintf(&arg_string[idx], " ");
-            idx++;
-            //printf("%s ", sim_args[i]);
-        }
-        arg_string[idx] = '\0';
-        //printf("\n");
-        //printf("idx = %d, arg_str %s\n", idx, arg_string);
-    }
 	return damaris_options;
 }
 
@@ -194,6 +178,46 @@ static void set_parameters()
 
     if ((err = damaris_parameter_set("num_kp", &num_kp, sizeof(num_kp))) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, "num_kp");
+}
+
+// take one of our ranks and make it run a seq sim separate from the optimistic run
+void opt_debug_init()
+{
+    int my_rank, current_ross_size, sub_size;
+    MPI_Comm new_ross_comm, debug_comm;
+
+    // MPI_COMM_ROSS controls all non-damaris ranks at this point
+    MPI_Comm_size(MPI_COMM_ROSS, &current_ross_size);
+
+    // save our full ROSS communicator and ranks
+    MPI_COMM_ROSS_FULL = MPI_COMM_ROSS;
+    full_ross_rank = g_tw_mynode;
+    printf("opt_debug_init full world size is %d\n", current_ross_size);
+    
+    if (g_tw_mynode < current_ross_size - 1) //optimistic ranks
+    {
+        MPI_Comm_split(MPI_COMM_ROSS_FULL, 1, g_tw_mynode, &new_ross_comm);
+        MPI_Comm_split(MPI_COMM_ROSS_FULL, MPI_UNDEFINED, 0, &debug_comm);
+        tw_comm_set(new_ross_comm);
+    }
+    else // sequential rank
+    {
+        MPI_Comm_split(MPI_COMM_ROSS_FULL, MPI_UNDEFINED, 0, &new_ross_comm);
+        MPI_Comm_split(MPI_COMM_ROSS_FULL, 2, 0, &debug_comm);
+        tw_comm_set(debug_comm);
+        st_turn_off_instrumentation();
+
+        g_tw_synchronization_protocol = SEQUENTIAL;
+        freopen("redir.txt", "w", stdout); // redirect this ranks output to file for now
+    }
+
+    // now make sure we have the correct rank number for our version of MPI_COMM_ROSS
+    if (MPI_Comm_rank(MPI_COMM_ROSS, &my_rank) != MPI_SUCCESS)
+        tw_error(TW_LOC, "Cannot get MPI_Comm_rank(MPI_COMM_ROSS)");
+    g_tw_mynode = my_rank;
+
+    MPI_Comm_size(MPI_COMM_ROSS, &sub_size);
+    printf("I am rank %ld with comm size of %d\n", g_tw_mynode, sub_size);
 }
 
 /**
@@ -243,22 +267,25 @@ void st_damaris_ross_init()
         g_tw_mynode = my_rank;
 
         if (g_st_opt_debug)
-        {
-            // need to first write our arg data to damaris
-            if ((err = damaris_write("opt_debug/num_sim_args", &num_sim_args)) != DAMARIS_OK)
-                st_damaris_error(TW_LOC, err, "opt_debug/num_sim_args");
-            
-            if ((err = damaris_write("opt_debug/sim_args", &arg_string[0])) != DAMARIS_OK)
-                st_damaris_error(TW_LOC, err, "opt_debug/sim_args");
+            opt_debug_init();
 
-            // now send our signal to init debug mode plugin
-            if ((err = damaris_signal("opt_debug_init")) != DAMARIS_OK)
-                st_damaris_error(TW_LOC, err, "opt_debug_init");
+        //if (g_st_opt_debug)
+        //{
+        //    // need to first write our arg data to damaris
+        //    if ((err = damaris_write("opt_debug/num_sim_args", &num_sim_args)) != DAMARIS_OK)
+        //        st_damaris_error(TW_LOC, err, "opt_debug/num_sim_args");
+        //    
+        //    if ((err = damaris_write("opt_debug/sim_args", &arg_string[0])) != DAMARIS_OK)
+        //        st_damaris_error(TW_LOC, err, "opt_debug/sim_args");
 
-            //if ((err = damaris_end_iteration()) != DAMARIS_OK)
-            //    st_damaris_error(TW_LOC, err, "end iteration");
-            
-        }
+        //    // now send our signal to init debug mode plugin
+        //    if ((err = damaris_signal("opt_debug_init")) != DAMARIS_OK)
+        //        st_damaris_error(TW_LOC, err, "opt_debug_init");
+
+        //    //if ((err = damaris_end_iteration()) != DAMARIS_OK)
+        //    //    st_damaris_error(TW_LOC, err, "end iteration");
+        //    
+        //}
     }
 
 }

@@ -137,7 +137,7 @@ void seq_init_event(const std::string& event, int32_t src, int32_t step, const c
 	// grab these options, so we can remove them from our arg list
 	// we don't want these options turned on in our sequential run
     opt_add(st_inst_opts());
-    opt_add(st_damaris_opts(NULL, NULL));
+    opt_add(st_damaris_opts());
     opt_add(st_special_lp_opts());
 	opt_parse_mod(num_args, arg_str, &path[0], cmd);
  
