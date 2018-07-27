@@ -1,0 +1,75 @@
+<?xml version="1.0"?>
+<simulation name ="ROSS_opt_debug"
+    language="c" xmlns="http://damaris.gforge.inria.fr/damaris/model">
+    <architecture>
+        <domains count="1"/>
+        <dedicated cores="1" nodes="0"/>
+        <buffer name="buffer" size="67108864"/>
+        <queue name="queue" size="100"/>
+    </architecture>
+    <visit>
+        <path>/home/rossc3/visit/visit2.12.1/src</path>
+        <!-- <options> -debug 5 -verbose </options> -->
+        </visit>
+    <data>
+        <parameter name="num_lp" type="int" value="0" />
+        <parameter name="num_pe" type="int" value="0" />
+        <parameter name="num_kp" type="int" value="0" />
+
+        <layout name="pe_id_layout" type="double" dimensions="2" /> 
+        <layout name="pe_int_layout" type="int" dimensions="num_pe, 1" />
+        <layout name="pe_float_layout" type="float" dimensions="num_pe, 1" />
+
+        <layout name="dummy_layout" type="double" dimensions="2" />
+
+        <layout name="lp_id_layout" type="double" dimensions="num_lp+1" /> 
+        <layout name="lp_long_layout" type="long" dimensions="num_lp" />
+        <layout name="lp_int_layout" type="int" dimensions="num_lp" />
+        <layout name="lp_float_layout" type="float" dimensions="num_lp" />
+
+        <layout name="kp_id_layout" type="double" dimensions="num_kp+1" /> 
+        <layout name="kp_int_layout" type="int" dimensions="num_kp" />
+        <layout name="kp_float_layout" type="float" dimensions="num_kp" />
+
+        <mesh name="mesh2d_lp" type="rectilinear" topology="2">
+            <coord name="ross/lp_id" unit="lp_id" label="LP ID" />
+            <coord name="ross/pe_id" unit="pe_id" label="PE ID" />
+        </mesh>
+
+        <mesh name="mesh2d_kp" type="rectilinear" topology="2">
+            <coord name="ross/kp_id" unit="kp_id" label="KP ID" />
+            <coord name="ross/pe_id" unit="pe_id" label="PE ID" />
+        </mesh>
+
+        <mesh name="mesh2d_pe" type="rectilinear" topology="2">
+            <coord name="ross/dummy" unit=" " label=" " />
+            <coord name="ross/pe_id" unit="pe_id" label="PE ID" />
+        </mesh>
+
+
+        <group name="ross">
+            <!---<variable name="gvt" layout="double" visualizable="false" time-varying="true" />
+            <variable name="rt" layout="double" visualizable="false" time-varying="true" />-->
+
+            <group name = "pes">
+                <group name = "gvt_inst">
+                    <variable name="committed_events" layout="int" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_pe" centering="zonal" />
+                </group>
+            </group>
+
+            <group name="lps">
+                <group name="gvt_inst">
+                    <variable name="committed_events" layout="lp_int_layout" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_lp" centering="zonal" />
+                </group>
+            </group>
+        </group>
+    </data>
+    <actions>
+        <event name="damaris_gc" action="damaris_gc" library="librdplugins.so" scope="group"/>
+        <event name="opt_debug_init" action="seq_init_event" library="librdplugins.so" scope="group"/>
+        <!-- <error event="damaris_gc"/> -->
+        <!--<event name="test" action="aggregate_data" library="libROSS_Damaris.so" scope="group" />-->
+    </actions>
+    <!-- <log FileName="log/error" RotationSize="5" LogFormat="[%TimeStamp%]: %Message%" LogLevel="info"/> -->
+</simulation>
+

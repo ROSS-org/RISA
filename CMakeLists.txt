@@ -20,6 +20,7 @@ INCLUDE_DIRECTORIES(${VISIT_DIR}/sim/V2/lib)
 SET(rd_srcs 
     core/damaris.h 
     core/damaris.c 
+    core/opt-debug.c
     ${DAMARIS_DIR}/include/Damaris.h)
 
 ADD_SUBDIRECTORY(plugins)
