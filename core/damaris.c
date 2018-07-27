@@ -27,6 +27,7 @@ static int rt_block_counter = 0;
 static int vt_block_counter = 0;
 static int max_block_counter = 0;
 static int iterations = 0;
+static tw_stime current_gvt = 0;
 
 static void expose_pe_data(tw_pe *pe, tw_statistics *s, int inst_type);
 static void expose_kp_data(tw_pe *pe, int inst_type);
@@ -217,7 +218,7 @@ void opt_debug_init()
     g_tw_mynode = my_rank;
 
     MPI_Comm_size(MPI_COMM_ROSS, &sub_size);
-    printf("I am rank %ld with comm size of %d\n", g_tw_mynode, sub_size);
+    printf("I am rank %ld (full_ross_rank %d) with comm size of %d\n", g_tw_mynode, full_ross_rank, sub_size);
 }
 
 /**
@@ -608,6 +609,18 @@ void st_damaris_end_iteration()
     
     reset_block_counter(&rt_block_counter);
     reset_block_counter(&vt_block_counter);
+}
+
+tw_stime st_damaris_opt_debug_sync(tw_pe *pe)
+{
+    //printf("ross full rank %d reached barrier\n", full_ross_rank);
+    if (MPI_Barrier(MPI_COMM_ROSS_FULL) != MPI_SUCCESS)
+        tw_error(TW_LOC, "Failed to wait for MPI_Barrier");
+
+    // now let seq rank know the GVT of the opt run
+    current_gvt = pe->GVT;
+    MPI_Bcast(&current_gvt, 1, MPI_DOUBLE, 0, MPI_COMM_ROSS_FULL);
+    return current_gvt;
 }
 
 /**

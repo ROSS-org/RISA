@@ -15,4 +15,5 @@ extern void st_damaris_inst_init();
 extern void st_damaris_ross_finalize();
 extern void st_damaris_expose_data(tw_pe *me, tw_stime gvt, int inst_type);
 extern void st_damaris_end_iteration();
+extern tw_stime st_damaris_opt_debug_sync(tw_pe *pe);
 extern void st_damaris_error(const char *file, int line, int err, char *variable);
