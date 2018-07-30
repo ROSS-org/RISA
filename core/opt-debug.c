@@ -1,9 +1,13 @@
 #include <ross.h>
-#include "damaris.h"
+//#include "damaris.h"
 
 MPI_Comm MPI_COMM_ROSS_FULL; // only for use with optimistic debug mode
 static int full_ross_rank = -1; // rank within MPI_COMM_ROSS_FULL
-static tw_stime current_gvt = 0;
+static tw_stime current_gvt = 0.0;
+static tw_stime prev_gvt = 0.0;
+static void opt_debug_pe_data(tw_pe *pe, tw_statistics *s);
+static int first_iteration = 1;
+void opt_debug_expose_data(tw_pe *pe);
 
 // take one of our ranks and make it run a seq sim separate from the optimistic run
 void opt_debug_init()
@@ -17,7 +21,7 @@ void opt_debug_init()
     // save our full ROSS communicator and ranks
     MPI_COMM_ROSS_FULL = MPI_COMM_ROSS;
     full_ross_rank = g_tw_mynode;
-    printf("opt_debug_init full world size is %d\n", current_ross_size);
+    //printf("opt_debug_init full world size is %d\n", current_ross_size);
     
     if (g_tw_mynode < current_ross_size - 1) //optimistic ranks
     {
@@ -30,7 +34,6 @@ void opt_debug_init()
         MPI_Comm_split(MPI_COMM_ROSS_FULL, MPI_UNDEFINED, 0, &new_ross_comm);
         MPI_Comm_split(MPI_COMM_ROSS_FULL, 2, 0, &debug_comm);
         tw_comm_set(debug_comm);
-        st_turn_off_instrumentation();
 
         g_tw_synchronization_protocol = SEQUENTIAL;
         freopen("redir.txt", "w", stdout); // redirect this ranks output to file for now
@@ -43,17 +46,76 @@ void opt_debug_init()
 
     MPI_Comm_size(MPI_COMM_ROSS, &sub_size);
     printf("I am rank %ld (full_ross_rank %d) with comm size of %d\n", g_tw_mynode, full_ross_rank, sub_size);
+    st_inst_set_debug();
+    st_damaris_inst_init();
 }
 
+int it_no = 0;
 tw_stime st_damaris_opt_debug_sync(tw_pe *pe)
 {
-    //printf("ross full rank %d reached barrier\n", full_ross_rank);
+    int err;
+    if (g_tw_synchronization_protocol == SEQUENTIAL && !first_iteration
+            && current_gvt != prev_gvt)
+        st_damaris_opt_debug_data(pe);
+
+    first_iteration = 0;
+    prev_gvt = current_gvt;
+
     if (MPI_Barrier(MPI_COMM_ROSS_FULL) != MPI_SUCCESS)
         tw_error(TW_LOC, "Failed to wait for MPI_Barrier");
 
     // now let seq rank know the GVT of the opt run
     current_gvt = pe->GVT;
     MPI_Bcast(&current_gvt, 1, MPI_DOUBLE, 0, MPI_COMM_ROSS_FULL);
+
+    //printf("[GVT: %f, it: %d] rank %ld (sync=%d) finished Barrier and Bcast\n", 
+    //        current_gvt, it_no, g_tw_mynode, g_tw_synchronization_protocol);
+    if (g_tw_synchronization_protocol == OPTIMISTIC &&
+            current_gvt != prev_gvt && current_gvt < DBL_MAX)
+        st_damaris_opt_debug_data(pe);
+
     return current_gvt;
 }
 
+void st_damaris_opt_debug_data(tw_pe *pe)
+{
+    int err;
+
+    //printf("[GVT: %f, it: %d] rank %ld (sync=%d) has committed %llu events\n", 
+    //        pe->GVT, it_no, g_tw_mynode, g_tw_synchronization_protocol, pe->stats.s_committed_events);
+
+    opt_debug_expose_data(pe);
+    st_damaris_end_iteration();
+    if ((err = damaris_signal("opt_debug")) != DAMARIS_OK)
+        st_damaris_error(TW_LOC, err, "opt_debug");
+    it_no++;
+}
+
+void opt_debug_expose_data(tw_pe *pe)
+{
+    int err, i;
+
+    tw_statistics s;
+    bzero(&s, sizeof(s));
+    tw_get_stats(pe, &s);
+
+    // collect data for each entity
+    if (g_st_pe_data)
+        opt_debug_pe_data(pe, &s);
+    //if (g_st_lp_data)
+    //    opt_debug_expose_lp_data();
+
+}
+
+static void opt_debug_pe_data(tw_pe *pe, tw_statistics *s)
+{
+    int err, i, block = 0;
+    int committed_ev = (int)pe->stats.s_committed_events;
+
+    // let damaris know we're done updating data
+    if ((err = damaris_write_block("ross/pes/gvt_inst/committed_events", block, &committed_ev)) != DAMARIS_OK)
+        st_damaris_error(TW_LOC, err, pe_data[DPE_COMMITTED_EV].var_path);
+
+    if ((err = damaris_write_block("ross/pes/gvt_inst/sync", block, &g_tw_synchronization_protocol)) != DAMARIS_OK)
+        st_damaris_error(TW_LOC, err, pe_data[DPE_COMMITTED_EV].var_path);
+}

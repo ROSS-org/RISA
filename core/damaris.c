@@ -25,115 +25,13 @@ static int vt_block_counter = 0;
 static int max_block_counter = 0;
 static int iterations = 0;
 
-static void expose_pe_data(tw_pe *pe, tw_statistics *s, int inst_type);
-static void expose_kp_data(tw_pe *pe, int inst_type);
-static void expose_lp_data(int inst_type);
-
-typedef struct {
-    void **data_ptr;
-    char *var_path;
-} damaris_variable;
-
-typedef enum {
-    DPE_EVENT_PROC,
-    DPE_EVENT_ABORT,
-    DPE_E_RBS,
-    DPE_RB_TOTAL,
-    DPE_RB_PRIM,
-    DPE_RB_SEC,
-    DPE_FC_ATTEMPT,
-    DPE_PQ_SIZE,
-    DPE_NET_SEND,
-    DPE_NET_RECV,
-    DPE_NGVTS,
-    DPE_EVENT_TIES,
-    DPE_EFF,
-    DPE_NET_READ_TIME,
-    DPE_NET_OTHER_TIME,
-    DPE_GVT_TIME,
-    DPE_FC_TIME,
-    DPE_EVENT_ABORT_TIME,
-    DPE_EVENT_PROC_TIME,
-    DPE_PQ_TIME,
-    DPE_RB_TIME,
-    DPE_CANQ_TIME,
-    DPE_AVL_TIME,
-    NUM_PE_VARS
-} pe_vars;
-
-typedef enum {
-    DKP_EVENT_PROC,
-    DKP_EVENT_ABORT,
-    DKP_E_RBS,
-    DKP_RB_TOTAL,
-    DKP_RB_PRIM,
-    DKP_RB_SEC,
-    DKP_NET_SEND,
-    DKP_NET_RECV,
-    DKP_VT_DIFF,
-    DKP_EFF,
-    NUM_KP_VARS
-} kp_vars;
-
-typedef enum {
-    DLP_EVENT_PROC,
-    DLP_EVENT_ABORT,
-    DLP_E_RBS,
-    DLP_NET_SEND,
-    DLP_NET_RECV,
-    DLP_EFF,
-    NUM_LP_VARS
-} lp_vars;
-
 damaris_variable pe_data[NUM_PE_VARS];
 damaris_variable kp_data[NUM_KP_VARS];
 damaris_variable lp_data[NUM_LP_VARS];
 
-// set up variable path names based on setup in Damaris XML file
-static const char *pe_var_names[NUM_PE_VARS] = {
-    "nevent_processed",
-    "nevent_abort",
-    "nevent_rb",
-    "rb_total",
-    "rb_prim",
-    "rb_sec",
-    "fc_attempts", 
-    "pq_qsize", 
-    "network_send",
-    "network_recv",
-    "num_gvt",
-    "event_ties",
-    "efficiency",
-    "net_read_time",
-    "net_other_time",
-    "gvt_time",
-    "fc_time",
-    "event_abort_time",
-    "event_proc_time",
-    "pq_time",
-    "rb_time",
-    "cancel_q_time",
-    "avl_time"};
-
-static const char *kp_var_names[NUM_KP_VARS] = {
-    "nevent_processed",
-    "nevent_abort",
-    "nevent_rb",
-    "rb_total",
-    "rb_prim",
-    "rb_sec",
-    "network_send",
-    "network_recv",
-    "virtual_time_diff",
-    "efficiency"};
-
-static const char *lp_var_names[NUM_LP_VARS] = {
-    "nevent_processed",
-    "nevent_abort",
-    "nevent_rb",
-    "network_send",
-    "network_recv",
-    "efficiency"};
+static void expose_pe_data(tw_pe *pe, tw_statistics *s, int inst_type);
+static void expose_kp_data(tw_pe *pe, int inst_type);
+static void expose_lp_data(int inst_type);
 
 int g_st_damaris_enabled = 0;
 int g_st_opt_debug = 0;

@@ -54,6 +54,7 @@
             <group name = "pes">
                 <group name = "gvt_inst">
                     <variable name="committed_events" layout="int" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_pe" centering="zonal" />
+                    <variable name="sync" layout="int" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_pe" centering="zonal" />
                 </group>
             </group>
 
@@ -66,7 +67,7 @@
     </data>
     <actions>
         <event name="damaris_gc" action="damaris_gc" library="librdplugins.so" scope="group"/>
-        <event name="opt_debug_init" action="seq_init_event" library="librdplugins.so" scope="group"/>
+        <event name="opt_debug" action="opt_debug_comparison" library="librdplugins.so" scope="group"/>
         <!-- <error event="damaris_gc"/> -->
         <!--<event name="test" action="aggregate_data" library="libROSS_Damaris.so" scope="group" />-->
     </actions>
