@@ -119,10 +119,13 @@ static void opt_debug_pe_data(tw_pe *pe, tw_statistics *s)
 {
     int err, i, block = 0;
     int committed_ev = (int)pe->stats.s_committed_events;
+    float gvt = (float)pe->GVT;
 
     // let damaris know we're done updating data
     if ((err = damaris_write_block("ross/pes/gvt_inst/committed_events", block, &committed_ev)) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, "ross/pes/gvt_inst/committed_events");
+    if ((err = damaris_write_block("current_gvt", block, &gvt)) != DAMARIS_OK)
+        st_damaris_error(TW_LOC, err, "current_gvt");
 }
 
 static void opt_debug_lp_data()

@@ -47,6 +47,7 @@
 
         <variable name="nlp" layout="int" visualizable="false" time-varying="false" />
         <variable name="sync" layout="int" visualizable="false" time-varying="false" />
+        <variable name="current_gvt" layout="float" visualizable="false" time-varying="true" />
         <group name="ross">
             <!---<variable name="gvt" layout="double" visualizable="false" time-varying="true" />
             <variable name="rt" layout="double" visualizable="false" time-varying="true" />-->

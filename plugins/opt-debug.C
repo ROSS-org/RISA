@@ -16,6 +16,7 @@ static int num_pe = 0;
 static int seq_rank = -1;
 static int *num_lp = NULL;
 static int initialized = 0;
+static float prev_gvt = 0.0, current_gvt = 0.0;
 
 void lp_analysis(int step);
 void get_parameters(int32_t src);
@@ -35,6 +36,13 @@ void opt_debug_comparison(const std::string& event, int32_t src, int32_t step, c
 	else
 		cout << "ross/pes/gvt_inst/committed_events not found!" << endl;
 	
+	prev_gvt = current_gvt;
+	p = VariableManager::Search("current_gvt");
+	if (p)
+		current_gvt = *(float*)p->GetBlock(0, step, 0)->GetDataSpace().GetData();
+	else
+		cout << "current_gvt not found!" << endl;
+	
 	int opt_total = 0;
 	for (int i = 0; i < num_pe; i++)
 	{
@@ -44,8 +52,8 @@ void opt_debug_comparison(const std::string& event, int32_t src, int32_t step, c
 	}
 	if (opt_total != pe_commit_ev[seq_rank])
 	{
-		printf("WARNING: step %d opt committed events = %d and seq committed events = %d\n",
-				step, opt_total, pe_commit_ev[seq_rank]);
+		printf("[GVT %f - %f] WARNING: step %d opt committed events = %d and seq committed events = %d\n",
+				prev_gvt, current_gvt, step, opt_total, pe_commit_ev[seq_rank]);
 	}
 	lp_analysis(step);
 }
@@ -71,8 +79,8 @@ void lp_analysis(int step)
 		{
 			if (lp_commit_ev[i][j] != lp_commit_ev[seq_rank][seq_idx])
 			{
-				printf("WARNINGstep %d LP %d opt commit ev %d seq commit ev %d\n",
-						step, seq_idx, lp_commit_ev[i][j], lp_commit_ev[seq_rank][seq_idx]);
+				printf("[GVT %f - %f] WARNING: step %d LP %d opt commit ev %d seq commit ev %d\n",
+						prev_gvt, current_gvt, step, seq_idx, lp_commit_ev[i][j], lp_commit_ev[seq_rank][seq_idx]);
 			}
 			seq_idx++;
 		}
@@ -82,13 +90,7 @@ void lp_analysis(int step)
 
 void opt_debug_setup(const std::string& event, int32_t src, int32_t step, const char* args)
 {
-	cout << "opt_debug_init() step " << step << " src " << src << endl;
-	//if (!initialized)
-	//{
-		get_parameters(src);
-	//	initialized = 1;
-	//}
-
+	get_parameters(src);
 }
 
 void get_parameters(int32_t src)
@@ -116,7 +118,7 @@ void get_parameters(int32_t src)
 	else
 		cout << "num_lp param not found!" << endl;
 
-	cout << "src " << src << ": num_pe " << num_pe << " num_lp " << num_lp[src] << " seq_rank " << seq_rank << endl;
+	//cout << "src " << src << ": num_pe " << num_pe << " num_lp " << num_lp[src] << " seq_rank " << seq_rank << endl;
 }
 
 
