@@ -17,8 +17,6 @@
         <parameter name="num_kp" type="int" value="0" />
 
         <layout name="pe_id_layout" type="double" dimensions="2" /> 
-        <layout name="pe_int_layout" type="int" dimensions="num_pe, 1" />
-        <layout name="pe_float_layout" type="float" dimensions="num_pe, 1" />
 
         <layout name="dummy_layout" type="double" dimensions="2" />
 
@@ -47,6 +45,8 @@
         </mesh>
 
 
+        <variable name="nlp" layout="int" visualizable="false" time-varying="false" />
+        <variable name="sync" layout="int" visualizable="false" time-varying="false" />
         <group name="ross">
             <!---<variable name="gvt" layout="double" visualizable="false" time-varying="true" />
             <variable name="rt" layout="double" visualizable="false" time-varying="true" />-->
@@ -54,7 +54,6 @@
             <group name = "pes">
                 <group name = "gvt_inst">
                     <variable name="committed_events" layout="int" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_pe" centering="zonal" />
-                    <variable name="sync" layout="int" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_pe" centering="zonal" />
                 </group>
             </group>
 
@@ -68,6 +67,7 @@
     <actions>
         <event name="damaris_gc" action="damaris_gc" library="librdplugins.so" scope="group"/>
         <event name="opt_debug" action="opt_debug_comparison" library="librdplugins.so" scope="group"/>
+        <event name="opt_debug_setup" action="opt_debug_setup" library="librdplugins.so" scope="core"/>
         <!-- <error event="damaris_gc"/> -->
         <!--<event name="test" action="aggregate_data" library="libROSS_Damaris.so" scope="group" />-->
     </actions>

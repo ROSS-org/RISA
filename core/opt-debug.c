@@ -7,7 +7,9 @@ static tw_stime current_gvt = 0.0;
 static tw_stime prev_gvt = 0.0;
 static void opt_debug_pe_data(tw_pe *pe, tw_statistics *s);
 static int first_iteration = 1;
+static int initialized = 0;
 void opt_debug_expose_data(tw_pe *pe);
+static void opt_debug_lp_data();
 
 // take one of our ranks and make it run a seq sim separate from the optimistic run
 void opt_debug_init()
@@ -47,13 +49,13 @@ void opt_debug_init()
     MPI_Comm_size(MPI_COMM_ROSS, &sub_size);
     printf("I am rank %ld (full_ross_rank %d) with comm size of %d\n", g_tw_mynode, full_ross_rank, sub_size);
     st_inst_set_debug();
-    st_damaris_inst_init();
 }
 
 int it_no = 0;
 tw_stime st_damaris_opt_debug_sync(tw_pe *pe)
 {
     int err;
+
     if (g_tw_synchronization_protocol == SEQUENTIAL && !first_iteration
             && current_gvt != prev_gvt)
         st_damaris_opt_debug_data(pe);
@@ -86,6 +88,12 @@ void st_damaris_opt_debug_data(tw_pe *pe)
 
     opt_debug_expose_data(pe);
     st_damaris_end_iteration();
+    if (!initialized)
+    { // here in order to ensure all ROSS ranks have gotten their values in
+        if ((err = damaris_signal("opt_debug_setup")) != DAMARIS_OK)
+            st_damaris_error(TW_LOC, err, "opt_debug_setup");
+        initialized = 1;
+    }
     if ((err = damaris_signal("opt_debug")) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, "opt_debug");
     it_no++;
@@ -102,8 +110,8 @@ void opt_debug_expose_data(tw_pe *pe)
     // collect data for each entity
     if (g_st_pe_data)
         opt_debug_pe_data(pe, &s);
-    //if (g_st_lp_data)
-    //    opt_debug_expose_lp_data();
+    if (g_st_lp_data)
+        opt_debug_lp_data();
 
 }
 
@@ -114,8 +122,18 @@ static void opt_debug_pe_data(tw_pe *pe, tw_statistics *s)
 
     // let damaris know we're done updating data
     if ((err = damaris_write_block("ross/pes/gvt_inst/committed_events", block, &committed_ev)) != DAMARIS_OK)
-        st_damaris_error(TW_LOC, err, pe_data[DPE_COMMITTED_EV].var_path);
+        st_damaris_error(TW_LOC, err, "ross/pes/gvt_inst/committed_events");
+}
 
-    if ((err = damaris_write_block("ross/pes/gvt_inst/sync", block, &g_tw_synchronization_protocol)) != DAMARIS_OK)
-        st_damaris_error(TW_LOC, err, pe_data[DPE_COMMITTED_EV].var_path);
+static void opt_debug_lp_data()
+{
+    int err, i, block = 0;
+    int committed_ev[g_tw_nlp];
+    
+    for (i = 0; i < g_tw_nlp; i++)
+        committed_ev[i] = (int)g_tw_lp[i]->lp_stats->committed_events;
+
+    // let damaris know we're done updating data
+    if ((err = damaris_write_block("ross/lps/gvt_inst/committed_events", block, &committed_ev[0])) != DAMARIS_OK)
+        st_damaris_error(TW_LOC, err, "ross/lps/gvt_inst/committed_events");
 }

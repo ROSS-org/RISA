@@ -55,6 +55,7 @@ const tw_optdef *st_damaris_opts()
  */
 static void set_parameters()
 {
+    // TODO need to appropriately handle when nlp differs among PEs
     int err;
     int num_pe = tw_nnodes();
     int num_kp = (int) g_tw_nkp;
@@ -69,6 +70,15 @@ static void set_parameters()
 
     if ((err = damaris_parameter_set("num_kp", &num_kp, sizeof(num_kp))) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, "num_kp");
+
+    if (g_st_opt_debug)
+    {
+        if ((err = damaris_write("nlp", &num_lp)) != DAMARIS_OK)
+            st_damaris_error(TW_LOC, err, "nlp");
+
+        if ((err = damaris_write("sync", &g_tw_synchronization_protocol)) != DAMARIS_OK)
+            st_damaris_error(TW_LOC, err, "sync");
+    }
 }
 
 /**
@@ -137,9 +147,6 @@ void st_damaris_inst_init()
     int err, i, j;
     double *dummy;
 
-    if (g_st_opt_debug)
-        return;
-
     set_parameters();
 
     // each pe needs to only write the coordinates for which it will be 
@@ -172,6 +179,9 @@ void st_damaris_inst_init()
         kp_id[i] = (double) i;
     if ((err = damaris_write("ross/kp_id", kp_id)) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, "ross/kp_id");
+
+    if (g_st_opt_debug)
+        return;
 
     // calloc the space for the variables we want to track
     if (g_st_pe_data)
