@@ -177,3 +177,11 @@ void st_damaris_expose_event_data(tw_event *e)
 
     event_block++;
 }
+
+void st_damaris_opt_debug_finalize()
+{
+    int err;
+
+    if ((err = damaris_signal("opt_debug_finalize")) != DAMARIS_OK)
+        st_damaris_error(TW_LOC, err, "opt_debug_finalize");
+}

@@ -16,10 +16,12 @@ static int num_pe = 0;
 static int seq_rank = -1;
 static int *num_lp = NULL;
 static int initialized = 0;
+static int errors_found = 0;
 static float prev_gvt = 0.0, current_gvt = 0.0;
 
 void lp_analysis(int step);
 void event_analysis(int32_t step);
+void opt_debug_gc(int32_t step, const char *varname);
 
 // damaris event for optimistic debug analysis
 void opt_debug_comparison(const std::string& event, int32_t src, int32_t step, const char* args)
@@ -146,6 +148,7 @@ void event_analysis(int32_t step)
 				cout << "OPTIMISTIC ERROR FOUND:" << endl;
 				cout << "Sequential event: src_lp = " << cur_src_lp << " dest_lp " << cur_dest_lp << " ts " << cur_ts << endl;
 				cout << "Optimistic event: src_lp = " << opt_src_lp << " dest_lp " << opt_dest_lp << " ts " << opt_ts << endl;
+				errors_found = 1;
 
 			}
 			opt_idx[cur_pe]++;
@@ -154,11 +157,17 @@ void event_analysis(int32_t step)
 		{
 			cout << "OPTIMISTIC ERROR FOUND:" << endl;
 			cout << "Sequential event: src_lp = " << cur_src_lp << " dest_lp " << cur_dest_lp << " ts " << cur_ts << endl;
-
+			errors_found = 1;
 		}
 
 	}
+	opt_debug_gc(step, "ross/seq_event/src_lp");
+	opt_debug_gc(step, "ross/seq_event/dest_lp");
+	opt_debug_gc(step, "ross/seq_event/recv_ts");
 
+	opt_debug_gc(step, "ross/opt_event/src_lp");
+	opt_debug_gc(step, "ross/opt_event/dest_lp");
+	opt_debug_gc(step, "ross/opt_event/recv_ts");
 }
 
 void opt_debug_setup(const std::string& event, int32_t src, int32_t step, const char* args)
@@ -189,5 +198,25 @@ void opt_debug_setup(const std::string& event, int32_t src, int32_t step, const 
 	//cout << "src " << src << ": num_pe " << num_pe << " num_lp " << num_lp[src] << " seq_rank " << seq_rank << endl;
 }
 
+
+void opt_debug_finalize(const std::string& event, int32_t src, int32_t step, const char* args)
+{
+	cout << "\nDamaris Optimistic Debug: ";
+	if (errors_found)
+		cout << "Optimistic Errors were found!" << endl;
+	else
+		cout << "No Optimistic Errors detected!" << endl;
+}
+
+void opt_debug_gc(int32_t step, const char *varname)
+{
+	shared_ptr<Variable> v = VariableManager::Search(varname);
+
+	// Non-time-varying data are not removed 
+	if (v->IsTimeVarying()) {
+		v->ClearUpToIteration(step);
+	}
+
+}
 
 }

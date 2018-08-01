@@ -238,13 +238,17 @@ void st_damaris_inst_init()
  */
 void st_damaris_ross_finalize()
 {
+    int err;
     if (!damaris_initialized)
         return;
     if (g_st_ross_rank)
+    {
+        if (g_st_opt_debug)
+            st_damaris_opt_debug_finalize();
         damaris_stop();
+    }
     //if (g_st_real_time_samp)
     //    printf("Rank %ld: Max blocks counted for Real Time instrumentation is %d\n", g_tw_mynode, max_block_counter);
-    int err;
     if ((err = damaris_finalize()) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, NULL);
     if (MPI_Finalize() != MPI_SUCCESS)
