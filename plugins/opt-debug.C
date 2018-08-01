@@ -17,6 +17,7 @@ static int seq_rank = -1;
 static int *num_lp = NULL;
 static int initialized = 0;
 static int errors_found = 0;
+static int first_error_lpid = -1;
 static float prev_gvt = 0.0, current_gvt = 0.0;
 
 void lp_analysis(int step);
@@ -149,6 +150,8 @@ void event_analysis(int32_t step)
 				cout << "Sequential event: src_lp = " << cur_src_lp << " dest_lp " << cur_dest_lp << " ts " << cur_ts << endl;
 				cout << "Optimistic event: src_lp = " << opt_src_lp << " dest_lp " << opt_dest_lp << " ts " << opt_ts << endl;
 				errors_found = 1;
+				if (first_error_lpid == -1)
+					first_error_lpid = opt_src_lp;
 
 			}
 			opt_idx[cur_pe]++;
@@ -203,7 +206,7 @@ void opt_debug_finalize(const std::string& event, int32_t src, int32_t step, con
 {
 	cout << "\nDamaris Optimistic Debug: ";
 	if (errors_found)
-		cout << "Optimistic Errors were found!" << endl;
+		cout << "Optimistic Errors were found! Try looking at LP " << first_error_lpid << " for RC bugs" << endl;
 	else
 		cout << "No Optimistic Errors detected!" << endl;
 }
