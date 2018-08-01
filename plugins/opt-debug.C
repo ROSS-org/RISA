@@ -20,6 +20,7 @@ static float prev_gvt = 0.0, current_gvt = 0.0;
 
 void lp_analysis(int step);
 void get_parameters(int32_t src);
+void event_analysis(int32_t step);
 
 // damaris event for optimistic debug analysis
 void opt_debug_comparison(const std::string& event, int32_t src, int32_t step, const char* args)
@@ -56,11 +57,11 @@ void opt_debug_comparison(const std::string& event, int32_t src, int32_t step, c
 				prev_gvt, current_gvt, step, opt_total, pe_commit_ev[seq_rank]);
 	}
 	lp_analysis(step);
+	event_analysis(step);
 }
 
 void lp_analysis(int step)
 {
-	int num_lp = 32;
 	int *lp_commit_ev[num_pe];
 
 	shared_ptr<Variable> p = VariableManager::Search("ross/lps/gvt_inst/committed_events");
@@ -73,9 +74,11 @@ void lp_analysis(int step)
 		cout << "ross/lps/gvt_inst/committed_events not found!" << endl;
 
 	int seq_idx = 0;
-	for (int i = 0; i < num_pe - 1; i++)
+	for (int i = 0; i < num_pe; i++)
 	{
-		for (int j = 0; j < num_lp; j++)
+		if (i == seq_rank)
+			continue;
+		for (int j = 0; j < num_lp[i]; j++)
 		{
 			if (lp_commit_ev[i][j] != lp_commit_ev[seq_rank][seq_idx])
 			{
@@ -84,6 +87,69 @@ void lp_analysis(int step)
 			}
 			seq_idx++;
 		}
+	}
+
+}
+
+void event_analysis(int32_t step)
+{
+	shared_ptr<Variable> seq_src_lps = VariableManager::Search("ross/seq_event/src_lp");
+	shared_ptr<Variable> seq_dest_lps = VariableManager::Search("ross/seq_event/dest_lp");
+	shared_ptr<Variable> seq_recv_ts = VariableManager::Search("ross/seq_event/recv_ts");
+
+	shared_ptr<Variable> src_lps = VariableManager::Search("ross/opt_event/src_lp");
+	shared_ptr<Variable> dest_lps = VariableManager::Search("ross/opt_event/dest_lp");
+	shared_ptr<Variable> recv_ts = VariableManager::Search("ross/opt_event/recv_ts");
+
+	if (!src_lps || !dest_lps || !recv_ts)
+	{
+		cout << "ERROR in event_analysis()" << endl;
+		return;
+	}
+
+	int opt_idx[num_pe];
+	for (int i = 0; i < num_pe; i++)
+		opt_idx[i] = 0;
+	
+	int total_events = seq_src_lps->CountLocalBlocks(step);
+	int tmp1 = seq_dest_lps->CountLocalBlocks(step);
+	int tmp2 = seq_recv_ts->CountLocalBlocks(step);
+	if (total_events != tmp1 || total_events != tmp2)
+		cout << "ERROR found in event data; blocks not same for every seq var" << endl;
+	int cur_pe, cur_src_lp, cur_dest_lp;
+	int opt_pe, opt_src_lp, opt_dest_lp;
+	float cur_ts, opt_ts;
+	for (int i = 0; i < total_events; i++)
+	{
+		cur_src_lp = *(int*)seq_src_lps->GetBlock(seq_rank, step, i)->GetDataSpace().GetData();
+		cur_dest_lp = *(int*)seq_dest_lps->GetBlock(seq_rank, step, i)->GetDataSpace().GetData();
+		cur_ts = *(float*)seq_recv_ts->GetBlock(seq_rank, step, i)->GetDataSpace().GetData();
+		//cout << "Sequential event: src_lp = " << cur_src_lp << " dest_lp " << cur_dest_lp << " ts " << cur_ts << endl;
+
+		// TODO fix for CODES where LPs may not be evenly divided by num PEs
+		// perhaps give the plugin access to the mapping functions used in LP setup?
+		cur_pe = cur_dest_lp / num_lp[0];
+		//cout << "dest pe " << cur_pe << endl;
+
+		// we need to first check to see if there is an event located in the block to search
+		// if not, optimistic error
+
+		opt_src_lp = *(int*)src_lps->GetBlock(cur_pe, step, opt_idx[cur_pe])->GetDataSpace().GetData();
+		opt_dest_lp =*(int*)dest_lps->GetBlock(cur_pe, step, opt_idx[cur_pe])->GetDataSpace().GetData();
+		opt_ts = *(float*)recv_ts->GetBlock(cur_pe, step, opt_idx[cur_pe])->GetDataSpace().GetData();
+		//cout << "Optimistic event: src_lp = " << opt_src_lp << " dest_lp " << opt_dest_lp << " ts " << opt_ts << endl;
+
+		// now look in appropriate PE's data for matching event
+		if (opt_src_lp != cur_src_lp ||
+				opt_dest_lp != cur_dest_lp ||
+				opt_ts != cur_ts)
+		{
+			cout << "OPTIMISTIC ERROR FOUND:" << endl;
+			cout << "Sequential event: src_lp = " << cur_src_lp << " dest_lp " << cur_dest_lp << " ts " << cur_ts << endl;
+			cout << "Optimistic event: src_lp = " << opt_src_lp << " dest_lp " << opt_dest_lp << " ts " << opt_ts << endl;
+
+		}
+		opt_idx[cur_pe]++;
 	}
 
 }

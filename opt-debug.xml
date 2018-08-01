@@ -2,7 +2,7 @@
 <simulation name ="ROSS_opt_debug"
     language="c" xmlns="http://damaris.gforge.inria.fr/damaris/model">
     <architecture>
-        <domains count="1"/>
+        <domains count="1000"/>
         <dedicated cores="1" nodes="0"/>
         <buffer name="buffer" size="67108864"/>
         <queue name="queue" size="100"/>
@@ -51,9 +51,19 @@
         <group name="ross">
             <!---<variable name="gvt" layout="double" visualizable="false" time-varying="true" />
             <variable name="rt" layout="double" visualizable="false" time-varying="true" />-->
-
-            <group name = "pes">
-                <group name = "gvt_inst">
+            <group name="opt_event">
+                <variable name="src_lp" layout="int" visualizable="false" time-varying="true" />
+                <variable name="dest_lp" layout="int" visualizable="false" time-varying="true" />
+                <variable name="dest_pe" layout="int" visualizable="false" time-varying="true" />
+                <variable name="recv_ts" layout="float" visualizable="false" time-varying="true" />
+            </group>
+            <group name="seq_event">
+                <variable name="src_lp" layout="int" visualizable="false" time-varying="true" />
+                <variable name="dest_lp" layout="int" visualizable="false" time-varying="true" />
+                <variable name="recv_ts" layout="float" visualizable="false" time-varying="true" />
+            </group>
+            <group name="pes">
+                <group name="gvt_inst">
                     <variable name="committed_events" layout="int" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_pe" centering="zonal" />
                 </group>
             </group>

@@ -8,6 +8,8 @@ static tw_stime prev_gvt = 0.0;
 static void opt_debug_pe_data(tw_pe *pe, tw_statistics *s);
 static int first_iteration = 1;
 static int initialized = 0;
+static int event_block = 0;
+
 void opt_debug_expose_data(tw_pe *pe);
 static void opt_debug_lp_data();
 
@@ -88,6 +90,7 @@ void st_damaris_opt_debug_data(tw_pe *pe)
 
     opt_debug_expose_data(pe);
     st_damaris_end_iteration();
+    event_block = 0;
     if (!initialized)
     { // here in order to ensure all ROSS ranks have gotten their values in
         if ((err = damaris_signal("opt_debug_setup")) != DAMARIS_OK)
@@ -139,4 +142,38 @@ static void opt_debug_lp_data()
     // let damaris know we're done updating data
     if ((err = damaris_write_block("ross/lps/gvt_inst/committed_events", block, &committed_ev[0])) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, "ross/lps/gvt_inst/committed_events");
+}
+
+void st_damaris_expose_event_data(tw_event *e)
+{
+    int lpid, err;
+    float ts;
+    char prefix[1024];
+    char varname[1024];
+
+    if (g_tw_synchronization_protocol == SEQUENTIAL)
+        sprintf(prefix, "ross/seq_event");
+    else if (g_tw_synchronization_protocol == OPTIMISTIC)
+        sprintf(prefix, "ross/opt_event");
+
+    //printf("pe %ld (sync=%d) src_lp %d dest_lp %d recv_ts %f\n",
+    //        g_tw_mynode, g_tw_synchronization_protocol, (int)e->send_lp,
+    //        (int)e->dest_lp->gid, (float)e->recv_ts);
+
+    lpid = (int)e->send_lp;
+    sprintf(varname, "%s/src_lp", prefix);
+    if ((err = damaris_write_block(varname, event_block, &lpid)) != DAMARIS_OK)
+        st_damaris_error(TW_LOC, err, varname);
+
+    lpid = (int)e->dest_lp->gid;
+    sprintf(varname, "%s/dest_lp", prefix);
+    if ((err = damaris_write_block(varname, event_block, &lpid)) != DAMARIS_OK)
+        st_damaris_error(TW_LOC, err, varname);
+
+    ts = (float)e->recv_ts;
+    sprintf(varname, "%s/recv_ts", prefix);
+    if ((err = damaris_write_block(varname, event_block, &ts)) != DAMARIS_OK)
+        st_damaris_error(TW_LOC, err, varname);
+
+    event_block++;
 }
