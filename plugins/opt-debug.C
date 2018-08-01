@@ -19,7 +19,6 @@ static int initialized = 0;
 static float prev_gvt = 0.0, current_gvt = 0.0;
 
 void lp_analysis(int step);
-void get_parameters(int32_t src);
 void event_analysis(int32_t step);
 
 // damaris event for optimistic debug analysis
@@ -133,33 +132,36 @@ void event_analysis(int32_t step)
 
 		// we need to first check to see if there is an event located in the block to search
 		// if not, optimistic error
+		if (src_lps->GetBlock(cur_pe, step, opt_idx[cur_pe]))
+		{
+			opt_src_lp = *(int*)src_lps->GetBlock(cur_pe, step, opt_idx[cur_pe])->GetDataSpace().GetData();
+			opt_dest_lp =*(int*)dest_lps->GetBlock(cur_pe, step, opt_idx[cur_pe])->GetDataSpace().GetData();
+			opt_ts = *(float*)recv_ts->GetBlock(cur_pe, step, opt_idx[cur_pe])->GetDataSpace().GetData();
+			//cout << "Optimistic event: src_lp = " << opt_src_lp << " dest_lp " << opt_dest_lp << " ts " << opt_ts << endl;
+			// now look in appropriate PE's data for matching event
+			if (opt_src_lp != cur_src_lp ||
+					opt_dest_lp != cur_dest_lp ||
+					opt_ts != cur_ts)
+			{
+				cout << "OPTIMISTIC ERROR FOUND:" << endl;
+				cout << "Sequential event: src_lp = " << cur_src_lp << " dest_lp " << cur_dest_lp << " ts " << cur_ts << endl;
+				cout << "Optimistic event: src_lp = " << opt_src_lp << " dest_lp " << opt_dest_lp << " ts " << opt_ts << endl;
 
-		opt_src_lp = *(int*)src_lps->GetBlock(cur_pe, step, opt_idx[cur_pe])->GetDataSpace().GetData();
-		opt_dest_lp =*(int*)dest_lps->GetBlock(cur_pe, step, opt_idx[cur_pe])->GetDataSpace().GetData();
-		opt_ts = *(float*)recv_ts->GetBlock(cur_pe, step, opt_idx[cur_pe])->GetDataSpace().GetData();
-		//cout << "Optimistic event: src_lp = " << opt_src_lp << " dest_lp " << opt_dest_lp << " ts " << opt_ts << endl;
-
-		// now look in appropriate PE's data for matching event
-		if (opt_src_lp != cur_src_lp ||
-				opt_dest_lp != cur_dest_lp ||
-				opt_ts != cur_ts)
+			}
+			opt_idx[cur_pe]++;
+		}
+		else
 		{
 			cout << "OPTIMISTIC ERROR FOUND:" << endl;
 			cout << "Sequential event: src_lp = " << cur_src_lp << " dest_lp " << cur_dest_lp << " ts " << cur_ts << endl;
-			cout << "Optimistic event: src_lp = " << opt_src_lp << " dest_lp " << opt_dest_lp << " ts " << opt_ts << endl;
 
 		}
-		opt_idx[cur_pe]++;
+
 	}
 
 }
 
 void opt_debug_setup(const std::string& event, int32_t src, int32_t step, const char* args)
-{
-	get_parameters(src);
-}
-
-void get_parameters(int32_t src)
 {
 	/*
 	 * Note: couldn't get correct values from Damaris paramters
