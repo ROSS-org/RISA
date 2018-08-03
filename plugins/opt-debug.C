@@ -100,10 +100,12 @@ void event_analysis(int32_t step)
 {
 	shared_ptr<Variable> seq_src_lps = VariableManager::Search("ross/seq_event/src_lp");
 	shared_ptr<Variable> seq_dest_lps = VariableManager::Search("ross/seq_event/dest_lp");
+	shared_ptr<Variable> seq_send_ts = VariableManager::Search("ross/seq_event/send_ts");
 	shared_ptr<Variable> seq_recv_ts = VariableManager::Search("ross/seq_event/recv_ts");
 
 	shared_ptr<Variable> src_lps = VariableManager::Search("ross/opt_event/src_lp");
 	shared_ptr<Variable> dest_lps = VariableManager::Search("ross/opt_event/dest_lp");
+	shared_ptr<Variable> send_ts = VariableManager::Search("ross/opt_event/send_ts");
 	shared_ptr<Variable> recv_ts = VariableManager::Search("ross/opt_event/recv_ts");
 
 	if (!src_lps || !dest_lps || !recv_ts)
@@ -123,13 +125,16 @@ void event_analysis(int32_t step)
 		cout << "ERROR found in event data; blocks not same for every seq var" << endl;
 	int cur_pe, cur_src_lp, cur_dest_lp;
 	int opt_pe, opt_src_lp, opt_dest_lp;
-	float cur_ts, opt_ts;
+	float cur_recv_ts, opt_recv_ts;
+	float cur_send_ts, opt_send_ts;
 	for (int i = 0; i < total_events; i++)
 	{
 		cur_src_lp = *(int*)seq_src_lps->GetBlock(seq_rank, step, i)->GetDataSpace().GetData();
 		cur_dest_lp = *(int*)seq_dest_lps->GetBlock(seq_rank, step, i)->GetDataSpace().GetData();
-		cur_ts = *(float*)seq_recv_ts->GetBlock(seq_rank, step, i)->GetDataSpace().GetData();
-		//cout << "Sequential event: src_lp = " << cur_src_lp << " dest_lp " << cur_dest_lp << " ts " << cur_ts << endl;
+		cur_recv_ts = *(float*)seq_recv_ts->GetBlock(seq_rank, step, i)->GetDataSpace().GetData();
+		cur_send_ts = *(float*)seq_send_ts->GetBlock(seq_rank, step, i)->GetDataSpace().GetData();
+		cout << "[send: " << cur_send_ts << "] Sequential event: src_lp = " << cur_src_lp << 
+			" dest_lp " << cur_dest_lp << " ts " << cur_recv_ts << endl;
 
 		// TODO fix for CODES where LPs may not be evenly divided by num PEs
 		// perhaps give the plugin access to the mapping functions used in LP setup?
@@ -142,16 +147,17 @@ void event_analysis(int32_t step)
 		{
 			opt_src_lp = *(int*)src_lps->GetBlock(cur_pe, step, opt_idx[cur_pe])->GetDataSpace().GetData();
 			opt_dest_lp =*(int*)dest_lps->GetBlock(cur_pe, step, opt_idx[cur_pe])->GetDataSpace().GetData();
-			opt_ts = *(float*)recv_ts->GetBlock(cur_pe, step, opt_idx[cur_pe])->GetDataSpace().GetData();
-			//cout << "Optimistic event: src_lp = " << opt_src_lp << " dest_lp " << opt_dest_lp << " ts " << opt_ts << endl;
+			opt_recv_ts = *(float*)recv_ts->GetBlock(cur_pe, step, opt_idx[cur_pe])->GetDataSpace().GetData();
+			opt_send_ts = *(float*)send_ts->GetBlock(cur_pe, step, opt_idx[cur_pe])->GetDataSpace().GetData();
+			//cout << "Optimistic event: src_lp = " << opt_src_lp << " dest_lp " << opt_dest_lp << " ts " << opt_recv_ts << endl;
 			// now look in appropriate PE's data for matching event
-			if (opt_src_lp != cur_src_lp ||
-					opt_dest_lp != cur_dest_lp ||
-					opt_ts != cur_ts)
+			if (opt_src_lp != cur_src_lp || opt_dest_lp != cur_dest_lp ||
+					opt_recv_ts != cur_recv_ts || opt_send_ts != cur_send_ts)
 			{
 				cout << "OPTIMISTIC ERROR FOUND:" << endl;
-				cout << "Sequential event: src_lp = " << cur_src_lp << " dest_lp " << cur_dest_lp << " ts " << cur_ts << endl;
-				cout << "Optimistic event: src_lp = " << opt_src_lp << " dest_lp " << opt_dest_lp << " ts " << opt_ts << endl;
+				//cout << "[send: " << cur_send_ts << "] Sequential event: src_lp = " << cur_src_lp << 
+				//	" dest_lp " << cur_dest_lp << " ts " << cur_recv_ts << endl;
+				cout << "[send: " << opt_send_ts << "] Optimistic event: src_lp = " << opt_src_lp << " dest_lp " << opt_dest_lp << " ts " << opt_recv_ts << endl;
 				int event_id = event_map[opt_src_lp];
 				cout << "Check RC of ";
 				if (event_id != -1)
@@ -168,7 +174,8 @@ void event_analysis(int32_t step)
 		else
 		{
 			cout << "OPTIMISTIC ERROR FOUND:" << endl;
-			cout << "Sequential event: src_lp = " << cur_src_lp << " dest_lp " << cur_dest_lp << " ts " << cur_ts << endl;
+			cout << "[send: " << cur_send_ts << "] Sequential event: src_lp = " << cur_src_lp << 
+				" dest_lp " << cur_dest_lp << " ts " << cur_recv_ts << endl;
 			errors_found = 1;
 		}
 

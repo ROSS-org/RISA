@@ -270,6 +270,11 @@ void st_damaris_expose_event_data(tw_event *e)
     if ((err = damaris_write_block(varname, event_block, &ts)) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, varname);
 
+    ts = (float)e->send_ts;
+    sprintf(varname, "%s/send_ts", prefix);
+    if ((err = damaris_write_block(varname, event_block, &ts)) != DAMARIS_OK)
+        st_damaris_error(TW_LOC, err, varname);
+
     event_block++;
 }
 
