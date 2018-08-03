@@ -19,6 +19,9 @@ static int initialized = 0;
 static int errors_found = 0;
 static int first_error_lpid = -1;
 static float prev_gvt = 0.0, current_gvt = 0.0;
+static int *event_map;
+static char **event_handlers;
+static int num_types;
 
 void lp_analysis(int step);
 void event_analysis(int32_t step);
@@ -149,6 +152,12 @@ void event_analysis(int32_t step)
 				cout << "OPTIMISTIC ERROR FOUND:" << endl;
 				cout << "Sequential event: src_lp = " << cur_src_lp << " dest_lp " << cur_dest_lp << " ts " << cur_ts << endl;
 				cout << "Optimistic event: src_lp = " << opt_src_lp << " dest_lp " << opt_dest_lp << " ts " << opt_ts << endl;
+				int event_id = event_map[opt_src_lp];
+				cout << "Check RC of ";
+				if (event_id != -1)
+					cout << event_handlers[event_id] << endl;
+				else
+					cout << "EVENT SYMBOL WAS NOT FOUND DURING INITIALIZATION" << endl;
 				errors_found = 1;
 				if (first_error_lpid == -1)
 					first_error_lpid = opt_src_lp;
@@ -198,15 +207,74 @@ void opt_debug_setup(const std::string& event, int32_t src, int32_t step, const 
 	else
 		cout << "num_lp param not found!" << endl;
 
+	// TODO switch to just getting type info from the seq rank only?
+	if (src == seq_rank)
+	{
+		p = VariableManager::Search("num_types");
+		if (p)
+			num_types = *(int*)p->GetBlock(src, 0, 0)->GetDataSpace().GetData();
+		else
+			cout << "num_types variable not found!" << endl;
+		
+		char *temp_str;
+		p = VariableManager::Search("lp_types_str");
+		if (p)
+			temp_str = (char*)p->GetBlock(src, 0, 0)->GetDataSpace().GetData();
+		else
+			cout << "lp_types_str variable not found!" << endl;
+
+		event_handlers = (char**)calloc(num_types, sizeof(char*));
+		for (int i = 0; i < num_types; i++)
+			event_handlers[i] = (char*)calloc(256, sizeof(char));
+
+		int idx = 0;
+		const char s[2] = " ";
+		char *token;
+		
+		/* get the first token */
+		token = strtok(temp_str, s);
+		
+		/* walk through other tokens */
+		while(token != NULL)
+		{
+			strcpy(event_handlers[idx], token);
+			event_handlers[idx][strlen(token)] = '\0';
+			idx++;
+			token = strtok(NULL, s);
+		}
+		cout << "event handlers: " << endl;
+		for (int i = 0; i < num_types; i++)
+			cout << i << " " << event_handlers[i] << endl;
+		
+		p = VariableManager::Search("lp_types");
+		event_map = (int*) calloc(num_lp[seq_rank], sizeof(int));
+		if (p)
+			memcpy(event_map, (int*)p->GetBlock(src, 0, 0)->GetDataSpace().GetData(), sizeof(int) * num_lp[seq_rank]);
+		else
+			cout << "lp_types variable not found!" << endl;
+		cout << "event map: " << endl;
+		for (int i = 0; i < num_lp[seq_rank]; i++)
+			cout << i << " " << event_map[i] << endl;
+	}
+
 	//cout << "src " << src << ": num_pe " << num_pe << " num_lp " << num_lp[src] << " seq_rank " << seq_rank << endl;
 }
 
 
 void opt_debug_finalize(const std::string& event, int32_t src, int32_t step, const char* args)
 {
+	int event_id = event_map[first_error_lpid];
 	cout << "\nDamaris Optimistic Debug: ";
 	if (errors_found)
-		cout << "Optimistic Errors were found! Try looking at LP " << first_error_lpid << " for RC bugs" << endl;
+	{
+		cout << "Optimistic Errors were found!" << endl; 
+		cout << "Try looking at LP " << first_error_lpid << " for RC bugs ";
+	    cout << "in event function handler: ";
+		if (event_id != -1)
+			cout << event_handlers[event_id] << endl;
+		else
+			cout << "EVENT SYMBOL WAS NOT FOUND DURING INITIALIZATION" << endl;
+	}
 	else
 		cout << "No Optimistic Errors detected!" << endl;
 }

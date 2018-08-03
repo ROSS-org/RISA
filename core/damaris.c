@@ -72,13 +72,7 @@ static void set_parameters()
         st_damaris_error(TW_LOC, err, "num_kp");
 
     if (g_st_opt_debug)
-    {
-        if ((err = damaris_write("nlp", &num_lp)) != DAMARIS_OK)
-            st_damaris_error(TW_LOC, err, "nlp");
-
-        if ((err = damaris_write("sync", &g_tw_synchronization_protocol)) != DAMARIS_OK)
-            st_damaris_error(TW_LOC, err, "sync");
-    }
+        st_damaris_expose_setup_data();
 }
 
 /**
@@ -491,7 +485,8 @@ void st_damaris_error(const char *file, int line, int err, char *variable)
             tw_error(file, line, "Error calling damaris_finalize().\n");
             break;
         case DAMARIS_INVALID_BLOCK:
-            tw_error(file, line, "Damaris invalid block for variable:  %s\n", variable);
+            tw_error(file, line, "Damaris invalid block for variable:  %s. "
+                    "Try increasing the number of domains in your XML file.\n", variable);
             break;
         case DAMARIS_NOT_INITIALIZED:
             tw_warning(file, line, "Damaris has not been initialized\n");

@@ -1,4 +1,5 @@
 #include <ross.h>
+#include <dlfcn.h>
 //#include "damaris.h"
 
 MPI_Comm MPI_COMM_ROSS_FULL; // only for use with optimistic debug mode
@@ -9,6 +10,12 @@ static void opt_debug_pe_data(tw_pe *pe, tw_statistics *s);
 static int first_iteration = 1;
 static int initialized = 0;
 static int event_block = 0;
+static char **event_handlers;
+static int event_handlers_idx = 0;
+static int *event_map = NULL;
+
+#define MAX_EVENT_HANDLERS 10
+#define MAX_HANDLER_LEN 256
 
 void opt_debug_expose_data(tw_pe *pe);
 static void opt_debug_lp_data();
@@ -16,7 +23,7 @@ static void opt_debug_lp_data();
 // take one of our ranks and make it run a seq sim separate from the optimistic run
 void opt_debug_init()
 {
-    int my_rank, current_ross_size, sub_size;
+    int my_rank, current_ross_size, sub_size, i;
     MPI_Comm new_ross_comm, debug_comm;
 
     // MPI_COMM_ROSS controls all non-damaris ranks at this point
@@ -51,6 +58,94 @@ void opt_debug_init()
     MPI_Comm_size(MPI_COMM_ROSS, &sub_size);
     printf("I am rank %ld (full_ross_rank %d) with comm size of %d\n", g_tw_mynode, full_ross_rank, sub_size);
     st_inst_set_debug();
+
+    event_handlers = tw_calloc(TW_LOC, "damaris", sizeof(char*), MAX_EVENT_HANDLERS);
+    for (i = 0; i < MAX_EVENT_HANDLERS; i++)
+        event_handlers[i] = tw_calloc(TW_LOC, "damaris", sizeof(char), MAX_HANDLER_LEN);
+}
+
+// needs to be called from tw_lp_settype()
+void st_damaris_opt_debug_map(event_f handler, tw_lpid id)
+{
+    if (g_tw_synchronization_protocol != SEQUENTIAL)
+        return;
+
+    // TODO need to get event handler names to damaris plugin
+    // TODO error checking
+    int i, found = -1;
+    dlopen("/home/rossc3/cv-build/install/lib/libcodes.so", RTLD_NOW | RTLD_LOCAL);
+    Dl_info info;
+    dladdr(handler, &info);
+    //printf("test %s \n", info.dli_sname);
+
+    if (event_map == NULL)
+        event_map = tw_calloc(TW_LOC, "damaris", sizeof(int), g_tw_nlp);
+
+    if (info.dli_sname)
+    {
+        for (i = 0; i < event_handlers_idx; i++)
+        {
+            if (strcmp(info.dli_sname, event_handlers[i]) == 0)
+            {
+                found = i;
+                break;
+            }
+        }
+
+        if (found == -1)
+        {
+            strcpy(event_handlers[event_handlers_idx], info.dli_sname);
+            found = event_handlers_idx;
+            event_handlers_idx++;
+        }
+    }
+
+    // found == position in event_handlers
+    // unless we couldn't find the symbol, then it's a -1
+    event_map[id] = found;
+    //printf("lpid %ld event_map[id] = %d\n", id, event_map[id]);
+
+}
+
+void st_damaris_expose_setup_data()
+{
+    int err, i, idx = 0;
+    char handler_str[MAX_EVENT_HANDLERS * MAX_HANDLER_LEN];
+
+    if ((err = damaris_parameter_set("total_lp", &g_tw_nlp, sizeof(g_tw_nlp))) != DAMARIS_OK)
+        st_damaris_error(TW_LOC, err, "total_lp");
+
+    if ((err = damaris_write("nlp", &g_tw_nlp)) != DAMARIS_OK)
+        st_damaris_error(TW_LOC, err, "nlp");
+
+    if ((err = damaris_write("sync", &g_tw_synchronization_protocol)) != DAMARIS_OK)
+        st_damaris_error(TW_LOC, err, "sync");
+
+    // only need the following data from one rank
+    // sequential rank is the easiest
+    if (g_tw_synchronization_protocol == SEQUENTIAL)
+    {
+        printf("about to send event_map data using damaris_write\n");
+        if ((err = damaris_write("lp_types", event_map)) != DAMARIS_OK)
+            st_damaris_error(TW_LOC, err, "lp_types");
+
+        for (i = 0; i < event_handlers_idx; i++)
+        {
+            printf("event handlers[%d] %s\n", i, event_handlers[i]);
+            sprintf(&handler_str[idx], "%s", event_handlers[i]);
+            idx += strlen(event_handlers[i]);
+            handler_str[idx] = ' ';
+            idx++;
+        }
+        handler_str[idx] = '\0';
+        printf("handler_str: %s\n", handler_str);
+
+        if ((err = damaris_write("num_types", &event_handlers_idx)) != DAMARIS_OK)
+            st_damaris_error(TW_LOC, err, "num_types");
+
+        if ((err = damaris_write("lp_types_str", &handler_str[0])) != DAMARIS_OK)
+            st_damaris_error(TW_LOC, err, "lp_types_str");
+    }
 }
 
 int it_no = 0;

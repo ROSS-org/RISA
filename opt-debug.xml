@@ -2,7 +2,7 @@
 <simulation name ="ROSS_opt_debug"
     language="c" xmlns="http://damaris.gforge.inria.fr/damaris/model">
     <architecture>
-        <domains count="1000"/>
+        <domains count="5000"/>
         <dedicated cores="1" nodes="0"/>
         <buffer name="buffer" size="67108864"/>
         <queue name="queue" size="100"/>
@@ -13,6 +13,7 @@
         </visit>
     <data>
         <parameter name="num_lp" type="int" value="0" />
+        <parameter name="total_lp" type="int" value="0" />
         <parameter name="num_pe" type="int" value="0" />
         <parameter name="num_kp" type="int" value="0" />
 
@@ -28,6 +29,9 @@
         <layout name="kp_id_layout" type="double" dimensions="num_kp+1" /> 
         <layout name="kp_int_layout" type="int" dimensions="num_kp" />
         <layout name="kp_float_layout" type="float" dimensions="num_kp" />
+
+        <layout name="types_str_layout" type="char" dimensions="2560" />
+        <layout name="lp_types_layout" type="int" dimensions="total_lp" />
 
         <mesh name="mesh2d_lp" type="rectilinear" topology="2">
             <coord name="ross/lp_id" unit="lp_id" label="LP ID" />
@@ -47,6 +51,10 @@
 
         <variable name="nlp" layout="int" visualizable="false" time-varying="false" />
         <variable name="sync" layout="int" visualizable="false" time-varying="false" />
+        <variable name="lp_types" layout="lp_types_layout" visualizable="false" time-varying="false" />
+        <variable name="lp_types_str" layout="types_str_layout" visualizable="false" time-varying="false" />
+        <variable name="num_types" layout="int" visualizable="false" time-varying="false" />
+
         <variable name="current_gvt" layout="float" visualizable="false" time-varying="true" />
         <group name="ross">
             <!---<variable name="gvt" layout="double" visualizable="false" time-varying="true" />
@@ -55,11 +63,13 @@
                 <variable name="src_lp" layout="int" visualizable="false" time-varying="true" />
                 <variable name="dest_lp" layout="int" visualizable="false" time-varying="true" />
                 <variable name="dest_pe" layout="int" visualizable="false" time-varying="true" />
+                <variable name="send_ts" layout="float" visualizable="false" time-varying="true" />
                 <variable name="recv_ts" layout="float" visualizable="false" time-varying="true" />
             </group>
             <group name="seq_event">
                 <variable name="src_lp" layout="int" visualizable="false" time-varying="true" />
                 <variable name="dest_lp" layout="int" visualizable="false" time-varying="true" />
+                <variable name="send_ts" layout="float" visualizable="false" time-varying="true" />
                 <variable name="recv_ts" layout="float" visualizable="false" time-varying="true" />
             </group>
             <group name="pes">
