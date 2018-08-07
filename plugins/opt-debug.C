@@ -159,9 +159,18 @@ void check_opt_events(int32_t step)
 		shared_ptr<Event> seq_event = get_event(cur_src_lp, cur_dest_lp, cur_send_ts, cur_recv_ts);
 		if (!seq_event)
 		{
-			cout << "couldn't find matching seq event!" << endl;
-			cout << "opt event data: " << cur_src_lp << ", " << cur_dest_lp << 
-				", " << cur_send_ts << ", " << cur_recv_ts << endl;
+			cout << "OPTIMISTIC ERROR FOUND:" << endl;
+			cout << "[send: " << cur_send_ts << "] Optimistic event: src_lp " << cur_src_lp <<
+				" dest_lp " << cur_dest_lp << " ts " << cur_recv_ts << endl;
+			int event_id = event_map[cur_src_lp];
+			cout << "Check RC of ";
+			if (event_id != -1)
+				cout << event_handlers[event_id] << endl;
+			else
+				cout << "EVENT SYMBOL WAS NOT FOUND DURING INITIALIZATION" << endl;
+			errors_found = 1;
+			if (first_error_lpid == -1)
+				first_error_lpid = cur_src_lp;
 		}
 		it++;
 	}
