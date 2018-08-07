@@ -31,8 +31,7 @@ void lp_analysis(int32_t step);
 void event_analysis(int32_t step);
 void save_events(int32_t step, const std::string& var_prefix);
 void opt_debug_gc(int32_t step, const char *varname);
-//shared_ptr<Event> get_event(int src_lp, int dest_lp, float send_ts, float recv_ts);
-std::pair<Events::iterator, Events::iterator> get_event(int src_lp, int dest_lp, float send_ts, float recv_ts);
+shared_ptr<Event> get_event(int src_lp, int dest_lp, float send_ts, float recv_ts);
 void check_opt_events(int32_t step);
 
 // damaris event for optimistic debug analysis
@@ -122,10 +121,10 @@ void save_events(int32_t step, const std::string& var_prefix)
 		
 		cur_src_lp = *(int*)seq_src_lps->GetBlock(seq_rank, step, i)->GetDataSpace().GetData();
 		cur_dest_lp = *(int*)seq_dest_lps->GetBlock(seq_rank, step, i)->GetDataSpace().GetData();
-		cur_recv_ts = *(float*)seq_recv_ts->GetBlock(seq_rank, step, i)->GetDataSpace().GetData();
 		cur_send_ts = *(float*)seq_send_ts->GetBlock(seq_rank, step, i)->GetDataSpace().GetData();
+		cur_recv_ts = *(float*)seq_recv_ts->GetBlock(seq_rank, step, i)->GetDataSpace().GetData();
 
-		boost::shared_ptr<Event> e(new Event(cur_src_lp, cur_dest_lp, cur_recv_ts, cur_send_ts));
+		boost::shared_ptr<Event> e(new Event(cur_src_lp, cur_dest_lp, cur_send_ts, cur_recv_ts));
 		e->set_gvt(current_gvt);
 		e->set_damaris_iteration(step);
 		e->set_sync_type(1);
@@ -157,41 +156,25 @@ void check_opt_events(int32_t step)
 		float cur_send_ts = *(float*)send_ts->GetBlock(cur_source, step, cur_id)->GetDataSpace().GetData();
 		float cur_recv_ts = *(float*)recv_ts->GetBlock(cur_source, step, cur_id)->GetDataSpace().GetData();
 
-		//shared_ptr<Event> seq_event = get_event(cur_src_lp, cur_dest_lp, cur_send_ts, cur_recv_ts);
-		std::pair<Events::iterator, Events::iterator> seq_event = 
-			get_event(cur_src_lp, cur_dest_lp, cur_send_ts, cur_recv_ts);
-		if (seq_event.first == seq_event.second)
+		shared_ptr<Event> seq_event = get_event(cur_src_lp, cur_dest_lp, cur_send_ts, cur_recv_ts);
+		if (!seq_event)
 		{
-			if (seq_event.first == events.get<by_full_event>().end())
-			{
-				cout << "Optimistic error found" << endl;
-				cout << "opt event data: " << cur_src_lp << ", " << cur_dest_lp << 
-					", " << cur_send_ts << ", " << cur_recv_ts << endl;
-			}
-
+			cout << "couldn't find matching seq event!" << endl;
+			cout << "opt event data: " << cur_src_lp << ", " << cur_dest_lp << 
+				", " << cur_send_ts << ", " << cur_recv_ts << endl;
 		}
-		else
-			cout << "WARNING, get_event returned multiple events!" << endl;
-		//if (!seq_event)
-		//{
-		//	cout << "couldn't find matching seq event!" << endl;
-		//	//cout << "opt event data: " << cur_src_lp << ", " << cur_dest_lp << 
-		//	//	", " << cur_send_ts << ", " << cur_recv_ts << endl;
-		//}
 		it++;
 	}
 
 }
 
-//shared_ptr<Event> get_event(int src_lp, int dest_lp, float send_ts, float recv_ts)
-std::pair<Events::iterator, Events::iterator> get_event(int src_lp, int dest_lp, float send_ts, float recv_ts)
+shared_ptr<Event> get_event(int src_lp, int dest_lp, float send_ts, float recv_ts)
 {
-	//const Events::iterator& end = events.get<by_full_event>().end();
-	//Events::iterator begin = events.get<by_full_event>().find(
-	//		boost::make_tuple(src_lp, dest_lp, send_ts, recv_ts));
-	//if(begin == end) return shared_ptr<Event>();
-	//return *begin;
-	return events.get<by_full_event>().equal_range(boost::make_tuple(src_lp, dest_lp, send_ts, recv_ts));
+	const Events::iterator& end = events.get<by_full_event>().end();
+	Events::iterator begin = events.get<by_full_event>().find(
+			boost::make_tuple(src_lp, dest_lp, send_ts, recv_ts));
+	if(begin == end) return shared_ptr<Event>();
+	return *begin;
 }
 
 void event_analysis(int32_t step)
@@ -347,9 +330,9 @@ void opt_debug_setup(const std::string& event, int32_t src, int32_t step, const 
 			idx++;
 			token = strtok(NULL, s);
 		}
-		cout << "event handlers: " << endl;
-		for (int i = 0; i < num_types; i++)
-			cout << i << " " << event_handlers[i] << endl;
+		//cout << "event handlers: " << endl;
+		//for (int i = 0; i < num_types; i++)
+		//	cout << i << " " << event_handlers[i] << endl;
 		
 		p = VariableManager::Search("lp_types");
 		event_map = (int*) calloc(num_lp[seq_rank], sizeof(int));
@@ -357,9 +340,9 @@ void opt_debug_setup(const std::string& event, int32_t src, int32_t step, const 
 			memcpy(event_map, (int*)p->GetBlock(src, 0, 0)->GetDataSpace().GetData(), sizeof(int) * num_lp[seq_rank]);
 		else
 			cout << "lp_types variable not found!" << endl;
-		cout << "event map: " << endl;
-		for (int i = 0; i < num_lp[seq_rank]; i++)
-			cout << i << " " << event_map[i] << endl;
+		//cout << "event map: " << endl;
+		//for (int i = 0; i < num_lp[seq_rank]; i++)
+		//	cout << i << " " << event_map[i] << endl;
 	}
 
 	//cout << "src " << src << ": num_pe " << num_pe << " num_lp " << num_lp[src] << " seq_rank " << seq_rank << endl;
