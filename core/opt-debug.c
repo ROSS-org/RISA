@@ -47,7 +47,8 @@ void opt_debug_init()
         tw_comm_set(debug_comm);
 
         g_tw_synchronization_protocol = SEQUENTIAL;
-        freopen("redir.txt", "w", stdout); // redirect this ranks output to file for now
+        //freopen("redir.txt", "w", stdout); // redirect this ranks output to file for now
+        freopen("/dev/null", "w", stdout); // redirect this ranks output to file for now
     }
 
     // now make sure we have the correct rank number for our version of MPI_COMM_ROSS
@@ -58,6 +59,7 @@ void opt_debug_init()
     MPI_Comm_size(MPI_COMM_ROSS, &sub_size);
     printf("I am rank %ld (full_ross_rank %d) with comm size of %d\n", g_tw_mynode, full_ross_rank, sub_size);
     st_inst_set_debug();
+    st_set_gvt_print_interval(1.0); // turn off normal ROSS mid-simulation output
 
     event_handlers = tw_calloc(TW_LOC, "damaris", sizeof(char*), MAX_EVENT_HANDLERS);
     for (i = 0; i < MAX_EVENT_HANDLERS; i++)
@@ -146,6 +148,8 @@ void st_damaris_expose_setup_data()
         if ((err = damaris_write("lp_types_str", &handler_str[0])) != DAMARIS_OK)
             st_damaris_error(TW_LOC, err, "lp_types_str");
     }
+    if (g_tw_mynode == g_tw_masternode)
+        printf("***** STARTING OPTIMISTIC DEBUGGER WITH DAMARIS *****\n");
 }
 
 int it_no = 0;
@@ -284,4 +288,16 @@ void st_damaris_opt_debug_finalize()
 
     if ((err = damaris_signal("opt_debug_finalize")) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, "opt_debug_finalize");
+}
+
+void st_damaris_opt_debug_init_print()
+{
+    int total_size;
+    MPI_Comm_size(MPI_COMM_WORLD, &total_size);
+
+
+    printf("\nDamaris Optimistic Debug Configuration: \n");
+    printf("\t%-50s %11u\n", "Total Optimistic Ranks", tw_nnodes());
+    printf("\t%-50s %11u\n", "Sequential Rank", 1);
+    printf("\t%-50s %11u\n", "Damaris Ranks", total_size - tw_nnodes() - 1);
 }

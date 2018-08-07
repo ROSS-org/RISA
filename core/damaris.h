@@ -22,6 +22,7 @@ void st_damaris_expose_event_data(tw_event *e);
 void st_damaris_opt_debug_finalize();
 void st_damaris_opt_debug_map(event_f handler, tw_lpid id);
 void st_damaris_expose_setup_data();
+void st_damaris_opt_debug_init_print();
 
 
 typedef struct {

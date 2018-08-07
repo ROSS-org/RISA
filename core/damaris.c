@@ -129,6 +129,11 @@ void st_damaris_ross_init()
 
 void st_damaris_init_print()
 {
+    if (g_st_opt_debug)
+    {
+        st_damaris_opt_debug_init_print();
+        return;
+    }
     int total_size;
     MPI_Comm_size(MPI_COMM_WORLD, &total_size);
 

@@ -39,7 +39,6 @@ void opt_debug_comparison(const std::string& event, int32_t src, int32_t step, c
 {
 	int pe_commit_ev[num_pe];
 	step--;
-	cout << "******************** starting step " << step << " *************************" << endl;
 
 	shared_ptr<Variable> p = VariableManager::Search("ross/pes/gvt_inst/committed_events");
 	if (p)
@@ -56,6 +55,8 @@ void opt_debug_comparison(const std::string& event, int32_t src, int32_t step, c
 		current_gvt = *(float*)p->GetBlock(0, step, 0)->GetDataSpace().GetData();
 	else
 		cout << "current_gvt not found!" << endl;
+	cout << "*************** starting step " << step <<
+		" - current GVT: " << current_gvt << " ***************" << endl;
 	
 	int opt_total = 0;
 	for (int i = 0; i < num_pe; i++)
@@ -361,10 +362,10 @@ void opt_debug_setup(const std::string& event, int32_t src, int32_t step, const 
 void opt_debug_finalize(const std::string& event, int32_t src, int32_t step, const char* args)
 {
 	int event_id = event_map[first_error_lpid];
-	cout << "\nDamaris Optimistic Debug: ";
+	cout << "\n*************** DAMARIS OPTIMISTIC DEBUG FINAL OUTPUT ***************" << endl;
 	if (errors_found)
 	{
-		cout << "Optimistic Errors were found!" << endl; 
+		cout << "\nOptimistic Errors were found!" << endl; 
 		cout << "Try looking at LP " << first_error_lpid << " for RC bugs ";
 	    cout << "in event function handler: ";
 		if (event_id != -1)
@@ -373,7 +374,8 @@ void opt_debug_finalize(const std::string& event, int32_t src, int32_t step, con
 			cout << "EVENT SYMBOL WAS NOT FOUND DURING INITIALIZATION" << endl;
 	}
 	else
-		cout << "No Optimistic Errors detected!" << endl;
+		cout << "\nNo Optimistic Errors detected!" << endl;
+	cout << endl;
 }
 
 void opt_debug_gc(int32_t step, const char *varname)
