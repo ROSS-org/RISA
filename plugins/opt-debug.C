@@ -7,8 +7,11 @@
 #include "damaris/data/ParameterManager.hpp"
 #include "damaris/env/Environment.hpp"
 #include "ross.h"
+#include "Event.h"
+#include "EventIndex.h"
 
 using namespace damaris;
+using namespace opt_debug;
 
 extern "C" {
 
@@ -22,16 +25,22 @@ static float prev_gvt = 0.0, current_gvt = 0.0;
 static int *event_map;
 static char **event_handlers;
 static int num_types;
+EventIndex events;
 
-void lp_analysis(int step);
+void lp_analysis(int32_t step);
 void event_analysis(int32_t step);
+void save_events(int32_t step, const std::string& var_prefix);
 void opt_debug_gc(int32_t step, const char *varname);
+//shared_ptr<Event> get_event(int src_lp, int dest_lp, float send_ts, float recv_ts);
+std::pair<Events::iterator, Events::iterator> get_event(int src_lp, int dest_lp, float send_ts, float recv_ts);
+void check_opt_events(int32_t step);
 
 // damaris event for optimistic debug analysis
 void opt_debug_comparison(const std::string& event, int32_t src, int32_t step, const char* args)
 {
 	int pe_commit_ev[num_pe];
 	step--;
+	cout << "******************** starting step " << step << " *************************" << endl;
 
 	shared_ptr<Variable> p = VariableManager::Search("ross/pes/gvt_inst/committed_events");
 	if (p)
@@ -61,11 +70,13 @@ void opt_debug_comparison(const std::string& event, int32_t src, int32_t step, c
 		printf("[GVT %f - %f] WARNING: step %d opt committed events = %d and seq committed events = %d\n",
 				prev_gvt, current_gvt, step, opt_total, pe_commit_ev[seq_rank]);
 	}
-	lp_analysis(step);
-	event_analysis(step);
+	//lp_analysis(step);
+	//event_analysis(step);
+	save_events(step, "ross/seq_event");
+	check_opt_events(step);
 }
 
-void lp_analysis(int step)
+void lp_analysis(int32_t step)
 {
 	int *lp_commit_ev[num_pe];
 
@@ -94,6 +105,93 @@ void lp_analysis(int step)
 		}
 	}
 
+}
+
+void save_events(int32_t step, const std::string& var_prefix)
+{
+	shared_ptr<Variable> seq_src_lps = VariableManager::Search(var_prefix + "/src_lp");
+	shared_ptr<Variable> seq_dest_lps = VariableManager::Search(var_prefix + "/dest_lp");
+	shared_ptr<Variable> seq_send_ts = VariableManager::Search(var_prefix + "/send_ts");
+	shared_ptr<Variable> seq_recv_ts = VariableManager::Search(var_prefix + "/recv_ts");
+	
+	int total_events = seq_src_lps->CountLocalBlocks(step);
+	for (int i = 0; i < total_events; i++)
+	{
+		int cur_pe, cur_src_lp, cur_dest_lp;
+		float cur_recv_ts, cur_send_ts;
+		
+		cur_src_lp = *(int*)seq_src_lps->GetBlock(seq_rank, step, i)->GetDataSpace().GetData();
+		cur_dest_lp = *(int*)seq_dest_lps->GetBlock(seq_rank, step, i)->GetDataSpace().GetData();
+		cur_recv_ts = *(float*)seq_recv_ts->GetBlock(seq_rank, step, i)->GetDataSpace().GetData();
+		cur_send_ts = *(float*)seq_send_ts->GetBlock(seq_rank, step, i)->GetDataSpace().GetData();
+
+		boost::shared_ptr<Event> e(new Event(cur_src_lp, cur_dest_lp, cur_recv_ts, cur_send_ts));
+		e->set_gvt(current_gvt);
+		e->set_damaris_iteration(step);
+		e->set_sync_type(1);
+		// put all of our seq events into to the events container
+		events.insert(e);
+		//cout << "placed event " << cur_src_lp << ", " << cur_dest_lp << ", " 
+		//	<< cur_send_ts << ", "<< cur_recv_ts << endl;
+	}
+
+}
+
+void check_opt_events(int32_t step)
+{
+	shared_ptr<Variable> src_lps = VariableManager::Search("ross/opt_event/src_lp");
+	shared_ptr<Variable> dest_lps = VariableManager::Search("ross/opt_event/dest_lp");
+	shared_ptr<Variable> send_ts = VariableManager::Search("ross/opt_event/send_ts");
+	shared_ptr<Variable> recv_ts = VariableManager::Search("ross/opt_event/recv_ts");
+
+	BlocksByIteration::iterator it;
+	BlocksByIteration::iterator end;
+	src_lps->GetBlocksByIteration(step, it, end);
+
+	while (it != end)
+	{
+		int cur_id = (*it)->GetID();
+		int cur_source = (*it)->GetSource();
+		int cur_src_lp = *(int*)(*it)->GetDataSpace().GetData();
+		int cur_dest_lp = *(int*)dest_lps->GetBlock(cur_source, step, cur_id)->GetDataSpace().GetData();
+		float cur_send_ts = *(float*)send_ts->GetBlock(cur_source, step, cur_id)->GetDataSpace().GetData();
+		float cur_recv_ts = *(float*)recv_ts->GetBlock(cur_source, step, cur_id)->GetDataSpace().GetData();
+
+		//shared_ptr<Event> seq_event = get_event(cur_src_lp, cur_dest_lp, cur_send_ts, cur_recv_ts);
+		std::pair<Events::iterator, Events::iterator> seq_event = 
+			get_event(cur_src_lp, cur_dest_lp, cur_send_ts, cur_recv_ts);
+		if (seq_event.first == seq_event.second)
+		{
+			if (seq_event.first == events.get<by_full_event>().end())
+			{
+				cout << "Optimistic error found" << endl;
+				cout << "opt event data: " << cur_src_lp << ", " << cur_dest_lp << 
+					", " << cur_send_ts << ", " << cur_recv_ts << endl;
+			}
+
+		}
+		else
+			cout << "WARNING, get_event returned multiple events!" << endl;
+		//if (!seq_event)
+		//{
+		//	cout << "couldn't find matching seq event!" << endl;
+		//	//cout << "opt event data: " << cur_src_lp << ", " << cur_dest_lp << 
+		//	//	", " << cur_send_ts << ", " << cur_recv_ts << endl;
+		//}
+		it++;
+	}
+
+}
+
+//shared_ptr<Event> get_event(int src_lp, int dest_lp, float send_ts, float recv_ts)
+std::pair<Events::iterator, Events::iterator> get_event(int src_lp, int dest_lp, float send_ts, float recv_ts)
+{
+	//const Events::iterator& end = events.get<by_full_event>().end();
+	//Events::iterator begin = events.get<by_full_event>().find(
+	//		boost::make_tuple(src_lp, dest_lp, send_ts, recv_ts));
+	//if(begin == end) return shared_ptr<Event>();
+	//return *begin;
+	return events.get<by_full_event>().equal_range(boost::make_tuple(src_lp, dest_lp, send_ts, recv_ts));
 }
 
 void event_analysis(int32_t step)

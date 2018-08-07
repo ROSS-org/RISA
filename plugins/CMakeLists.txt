@@ -3,7 +3,10 @@ PROJECT(rdplugins)
 INCLUDE_DIRECTORIES(${DAMARIS_INCLUDE} ${VISIT_DIR}/sim/V2/lib)
 SET(plugin_srcs 
     garbage_collection.C
-    opt-debug.C)
+    opt-debug.C
+    Event.h
+    Event.cpp
+    EventIndex.h)
 
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR})
 ADD_LIBRARY(rdplugins SHARED ${plugin_srcs})
