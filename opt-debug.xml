@@ -31,6 +31,7 @@
         <layout name="kp_float_layout" type="float" dimensions="num_kp" />
 
         <layout name="types_str_layout" type="char" dimensions="2560" />
+        <layout name="ev_str_layout" type="char" dimensions="128" />
         <layout name="lp_types_layout" type="int" dimensions="total_lp" />
 
         <mesh name="mesh2d_lp" type="rectilinear" topology="2">
@@ -59,18 +60,26 @@
         <group name="ross">
             <!---<variable name="gvt" layout="double" visualizable="false" time-varying="true" />
             <variable name="rt" layout="double" visualizable="false" time-varying="true" />-->
+            <group name="spec_event">
+                <variable name="src_lp" layout="int" visualizable="false" time-varying="true" />
+                <variable name="dest_lp" layout="int" visualizable="false" time-varying="true" />
+                <variable name="send_ts" layout="float" visualizable="false" time-varying="true" />
+                <variable name="recv_ts" layout="float" visualizable="false" time-varying="true" />
+                <variable name="ev_name" layout="ev_str_layout" visualizable="false" time-varying="true" />
+            </group>
             <group name="opt_event">
                 <variable name="src_lp" layout="int" visualizable="false" time-varying="true" />
                 <variable name="dest_lp" layout="int" visualizable="false" time-varying="true" />
-                <variable name="dest_pe" layout="int" visualizable="false" time-varying="true" />
                 <variable name="send_ts" layout="float" visualizable="false" time-varying="true" />
                 <variable name="recv_ts" layout="float" visualizable="false" time-varying="true" />
+                <variable name="ev_name" layout="ev_str_layout" visualizable="false" time-varying="true" />
             </group>
             <group name="seq_event">
                 <variable name="src_lp" layout="int" visualizable="false" time-varying="true" />
                 <variable name="dest_lp" layout="int" visualizable="false" time-varying="true" />
                 <variable name="send_ts" layout="float" visualizable="false" time-varying="true" />
                 <variable name="recv_ts" layout="float" visualizable="false" time-varying="true" />
+                <variable name="ev_name" layout="ev_str_layout" visualizable="false" time-varying="true" />
             </group>
             <group name="pes">
                 <group name="gvt_inst">

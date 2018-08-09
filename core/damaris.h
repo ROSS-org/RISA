@@ -18,7 +18,7 @@ extern void st_damaris_end_iteration();
 extern tw_stime st_damaris_opt_debug_sync(tw_pe *pe);
 extern void st_damaris_error(const char *file, int line, int err, char *variable);
 void st_damaris_opt_debug_data(tw_pe *pe);
-void st_damaris_expose_event_data(tw_event *e);
+void st_damaris_expose_event_data(tw_event *e, int spec_event);
 void st_damaris_opt_debug_finalize();
 void st_damaris_opt_debug_map(event_f handler, tw_lpid id);
 void st_damaris_expose_setup_data();

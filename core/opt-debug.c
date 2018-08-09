@@ -72,10 +72,9 @@ void st_damaris_opt_debug_map(event_f handler, tw_lpid id)
     if (g_tw_synchronization_protocol != SEQUENTIAL)
         return;
 
-    // TODO need to get event handler names to damaris plugin
     // TODO error checking
     int i, found = -1;
-    dlopen("/home/rossc3/cv-build/install/lib/libcodes.so", RTLD_NOW | RTLD_LOCAL);
+    //dlopen("/home/rossc3/cv-build/install/lib/libcodes.so", RTLD_NOW | RTLD_LOCAL);
     Dl_info info;
     dladdr(handler, &info);
     //printf("test %s \n", info.dli_sname);
@@ -243,7 +242,7 @@ static void opt_debug_lp_data()
         st_damaris_error(TW_LOC, err, "ross/lps/gvt_inst/committed_events");
 }
 
-void st_damaris_expose_event_data(tw_event *e)
+void st_damaris_expose_event_data(tw_event *e, int spec_event)
 {
     int lpid, err;
     float ts;
@@ -253,7 +252,12 @@ void st_damaris_expose_event_data(tw_event *e)
     if (g_tw_synchronization_protocol == SEQUENTIAL)
         sprintf(prefix, "ross/seq_event");
     else if (g_tw_synchronization_protocol == OPTIMISTIC)
-        sprintf(prefix, "ross/opt_event");
+    {
+        if (spec_event == 1)
+            sprintf(prefix, "ross/spec_event");
+        else
+            sprintf(prefix, "ross/opt_event");
+    }
 
     //printf("pe %ld (sync=%d) src_lp %d dest_lp %d recv_ts %f\n",
     //        g_tw_mynode, g_tw_synchronization_protocol, (int)e->send_lp,
@@ -264,7 +268,7 @@ void st_damaris_expose_event_data(tw_event *e)
     if ((err = damaris_write_block(varname, event_block, &lpid)) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, varname);
 
-    lpid = (int)e->dest_lp->gid;
+    lpid = (int)e->dest_lpid;
     sprintf(varname, "%s/dest_lp", prefix);
     if ((err = damaris_write_block(varname, event_block, &lpid)) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, varname);
@@ -278,9 +282,39 @@ void st_damaris_expose_event_data(tw_event *e)
     sprintf(varname, "%s/send_ts", prefix);
     if ((err = damaris_write_block(varname, event_block, &ts)) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, varname);
+    
+    char ev_buffer[128];
+    int collect_flag = 1;
+    int model_data = 0;
+    sprintf(varname, "%s/ev_name", prefix);
+    spec_event = 0; // just a quick fix for now
+    // try to get model event data
+    if (spec_event)
+    {
+        if (e->src_lp->model_types && e->src_lp->model_types->ev_trace)
+        {
+            (*e->src_lp->model_types->ev_trace)(tw_event_data(e), e->src_lp, &ev_buffer[0], &collect_flag);
+            model_data = 1;
+        }
+
+    }
+    else
+    {
+        if (e->dest_lp->model_types && e->dest_lp->model_types->ev_trace)
+        {
+            (*e->dest_lp->model_types->ev_trace)(tw_event_data(e), e->dest_lp, &ev_buffer[0], &collect_flag);
+            model_data = 1;
+        }
+    }
+    if (model_data)
+    {
+        if ((err = damaris_write_block(varname, event_block, &ev_buffer[0])) != DAMARIS_OK)
+            st_damaris_error(TW_LOC, err, varname);
+    }
 
     event_block++;
 }
+
 
 void st_damaris_opt_debug_finalize()
 {

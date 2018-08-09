@@ -1,6 +1,8 @@
 #ifndef EVENT_H
 #define EVENT_H
 
+#include <iostream>
+
 namespace opt_debug{
 
 class Event
@@ -15,6 +17,7 @@ class Event
 
     int sync_type;
     int damaris_iteration;
+    std::string event_name;
 
 
     public:
@@ -32,10 +35,15 @@ class Event
 
     virtual void set_gvt(float cur_gvt) { gvt = cur_gvt; }
     virtual float get_gvt() const { return gvt; }
+
     virtual void set_sync_type(int sync) { sync_type = sync; }
     virtual int get_sync_type() const { return sync_type; }
+
     virtual void set_damaris_iteration(int i) { damaris_iteration = i; }
     virtual int get_damaris_iteration() const { return damaris_iteration; }
+
+    virtual void set_event_name(std::string& name) { event_name = name; }
+    virtual std::string get_event_name() const { return event_name; }
 };
 
 
