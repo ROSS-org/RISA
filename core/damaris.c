@@ -94,8 +94,8 @@ static const char *pe_var_names[NUM_PE_VARS] = {
     "rb_total",
     "rb_prim",
     "rb_sec",
-    "fc_attempts", 
-    "pq_qsize", 
+    "fc_attempts",
+    "pq_qsize",
     "network_send",
     "network_recv",
     "num_gvt",
@@ -142,13 +142,16 @@ static const tw_optdef damaris_options[] = {
     TWOPT_END()
 };
 
+/**
+ * @brief Returns the damaris_options struct so ROSS can pull in the options
+ */
 const tw_optdef *st_damaris_opts(void)
 {
 	return damaris_options;
 }
 
 /**
- * @brief Set simulation parameters in Damaris
+ * @brief Sets up the simulation parameters needed by Damaris
  */
 static void set_parameters()
 {
@@ -171,10 +174,10 @@ static void set_parameters()
 /**
  * @brief Sets up ROSS to use Damaris
  *
- * This must be called after MPI is initialized. Damaris splits the MPI 
+ * This must be called after MPI is initialized. Damaris splits the MPI
  * communicator and we set MPI_COMM_ROSS to the subcommunicator returned by Damaris.
- * This sets the g_st_ross_rank.  Need to make sure that Damaris ranks
- * (g_st_ross_rank == 0) return to model after this point. 
+ * This sets the variable g_st_ross_rank to 1 on ROSS ranks and 0 on Damaris ranks.
+ * Need to make sure that Damaris ranks return to model after this point.
  *
  */
 void st_damaris_ross_init()
@@ -201,13 +204,13 @@ void st_damaris_ross_init()
     // g_st_ross_rank == 0: Damaris MPI rank
     if ((err = damaris_start(&g_st_ross_rank)) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, NULL);
-    if(g_st_ross_rank) 
+    if(g_st_ross_rank)
     {
         //get ROSS sub comm, sets to MPI_COMM_ROSS
-        if ((err = damaris_client_comm_get(&ross_comm)) != DAMARIS_OK) 
+        if ((err = damaris_client_comm_get(&ross_comm)) != DAMARIS_OK)
             st_damaris_error(TW_LOC, err, NULL);
         tw_comm_set(ross_comm);
-        
+
         // now make sure we have the correct rank number for ROSS ranks
         if (MPI_Comm_rank(MPI_COMM_ROSS, &my_rank) != MPI_SUCCESS)
             tw_error(TW_LOC, "Cannot get MPI_Comm_rank(MPI_COMM_ROSS)");
@@ -217,6 +220,9 @@ void st_damaris_ross_init()
 
 }
 
+/**
+ * @brief Some initialization output to print when using Damaris.
+ */
 void st_damaris_init_print()
 {
     int total_size;
@@ -226,6 +232,9 @@ void st_damaris_init_print()
     printf("\t%-50s %11u\n", "Total Ranks", total_size - tw_nnodes());
 }
 
+/**
+ * @brief Initializes variables to be used for getting ROSS instrumentation data to Damaris.
+ */
 void st_damaris_inst_init()
 {
     int err, i, j;
@@ -233,7 +242,7 @@ void st_damaris_inst_init()
 
     set_parameters();
 
-    // each pe needs to only write the coordinates for which it will be 
+    // each pe needs to only write the coordinates for which it will be
     // writing variables.
     // PE coordinates - just need pe_id and pe_id + 1 to allow for zonal coloring
     // on the mesh
@@ -503,8 +512,13 @@ static void expose_lp_data(int inst_type)
     }
 }
 
-/** 
- * @brief
+/**
+ * @brief Resets block counters when ending a Damaris iteration.
+ *
+ * A PE may notify Damaris of multiple samples for a given variable within a single iteration.
+ * Damaris refers to these as blocks or domains and needs to be passed the domain/block id
+ * when there is more than one per iteration. This resets the counter variable to 0 when cleaning
+ * up at the end of an iteration.
  */
 static void reset_block_counter(int *counter)
 {
@@ -514,7 +528,10 @@ static void reset_block_counter(int *counter)
 }
 
 /**
- * @brief
+ * @brief Signals to Damaris that the current iteration is over.
+ *
+ * Iterations should always end at GVT (though it doesn't have to be every GVT), because
+ * the call to damaris_end_iteration() contains a collective call.
  */
 void st_damaris_end_iteration()
 {
@@ -528,7 +545,7 @@ void st_damaris_end_iteration()
     iterations++;
     //if (vt_block_counter > 0)
     //    printf("PE %ld end iteration #%d vt_block_counter = %d\n", g_tw_mynode, iterations, vt_block_counter);
-    
+
     reset_block_counter(&rt_block_counter);
     reset_block_counter(&vt_block_counter);
 }
@@ -536,7 +553,7 @@ void st_damaris_end_iteration()
 /**
  * @brief Make Damaris error checking easier.
  *
- * Some errors will stop simulation, but some will only warn and keep going. 
+ * Some errors will stop simulation, but some will only warn and keep going.
  */
 void st_damaris_error(const char *file, int line, int err, char *variable)
 {

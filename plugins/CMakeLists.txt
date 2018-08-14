@@ -2,7 +2,7 @@ PROJECT(rdplugins)
 
 INCLUDE_DIRECTORIES(${DAMARIS_INCLUDE} ${VISIT_DIR}/sim/V2/lib)
 SET(plugin_srcs 
-    garbage_collection.C)
+    garbage_collection.cpp)
 
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR})
 ADD_LIBRARY(rdplugins SHARED ${plugin_srcs})
