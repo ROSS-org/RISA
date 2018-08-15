@@ -30,7 +30,7 @@ static void opt_debug_lp_data();
  * @brief Initialize the optimistic debugger
  *
  * To be called by st_damaris_ross_init() if debugger is turned on.
- * Once Damaris has pulled it's necessary ranks, we set the returned communicator to be
+ * Once Damaris has pulled its necessary ranks, we set the returned communicator to be
  * MPI_COMM_ROSS_FULL, so we can continue to do collectives with all ROSS ranks.
  * But now we split ROSS ranks further for optimistic debugging. One rank will
  * run a sequential version, while the remaining ranks will run the optimistic version.

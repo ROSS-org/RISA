@@ -9,8 +9,6 @@
  * Damaris integration component. ROSS and models should NOT call anything here directly!
  */
 #include "damaris-api.h"
-#include <ross.h>
-#include <Damaris.h>
 
 extern int g_st_opt_debug;
 extern int g_st_rng_check;

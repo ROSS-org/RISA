@@ -3,7 +3,7 @@ PROJECT(rdplugins)
 INCLUDE_DIRECTORIES(${DAMARIS_INCLUDE} ${VISIT_DIR}/sim/V2/lib)
 SET(plugin_srcs 
     garbage_collection.cpp
-    opt-debug.C
+    opt-debug.cpp
     rng-check.cpp
     util.cpp
     Event.h
