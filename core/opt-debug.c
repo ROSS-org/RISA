@@ -356,14 +356,12 @@ static void opt_debug_lp_data()
  */
 void st_damaris_call_event(tw_event *cev, tw_lp *clp)
 {
-    if (!cev->rng_count_begin)
-        cev->rng_count_begin = tw_calloc(TW_LOC, "damaris", sizeof(unsigned long), g_tw_nRNG_per_lp);
-    if (!cev->rng_count_end)
-        cev->rng_count_end = tw_calloc(TW_LOC, "damaris", sizeof(unsigned long), g_tw_nRNG_per_lp);
+    if (!cev->rng_count)
+        cev->rng_count = tw_calloc(TW_LOC, "damaris", sizeof(unsigned long), g_tw_nRNG_per_lp);
     
     int i;
     for (i = 0; i < g_tw_nRNG_per_lp; i++)
-        cev->rng_count_begin[i] = clp->rng[i].count;
+        cev->rng_count[i] = clp->rng[i].count;
 
     (*clp->type->event)(clp->cur_state, &cev->cv, tw_event_data(cev), clp);
 
@@ -384,7 +382,7 @@ void st_damaris_call_rev_event(tw_event *cev, tw_lp *clp)
     (*clp->type->revent)(clp->cur_state, &cev->cv, tw_event_data(cev), clp);
 
     for (i = 0; i < g_tw_nRNG_per_lp; i++)
-        cev->rng_count_end[i] = clp->rng[i].count;
+        cev->rng_count[i] = clp->rng[i].count;
 
     st_damaris_expose_event_data(cev, "ross/rev_event");
 
@@ -398,8 +396,7 @@ void st_damaris_expose_event_data(tw_event *e, const char *prefix)
     int lpid, err, i;
     float ts;
     char varname[1024];
-    long rng_count_begin[g_tw_nRNG_per_lp];
-    long rng_count_end[g_tw_nRNG_per_lp];
+    long rng_count[g_tw_nRNG_per_lp];
 
     //printf("pe %ld (sync=%d) src_lp %d dest_lp %d recv_ts %f\n",
     //        g_tw_mynode, g_tw_synchronization_protocol, (int)e->send_lp,
@@ -427,14 +424,10 @@ void st_damaris_expose_event_data(tw_event *e, const char *prefix)
 
     for (i = 0; i < g_tw_nRNG_per_lp; i++)
     {
-        rng_count_begin[i] = (long)(e->rng_count_begin[i]);
-        rng_count_end[i] = (long)(e->rng_count_end[i]);
+        rng_count[i] = (long)(e->rng_count[i]);
     }
-    sprintf(varname, "%s/rng_count_begin", prefix);
-    if ((err = damaris_write_block(varname, event_block, &rng_count_begin[0])) != DAMARIS_OK)
-        st_damaris_error(TW_LOC, err, varname);
-    sprintf(varname, "%s/rng_count_end", prefix);
-    if ((err = damaris_write_block(varname, event_block, &rng_count_end[0])) != DAMARIS_OK)
+    sprintf(varname, "%s/rng_count", prefix);
+    if ((err = damaris_write_block(varname, event_block, &rng_count[0])) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, varname);
     
     char ev_buffer[128];

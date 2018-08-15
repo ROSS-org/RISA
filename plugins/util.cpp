@@ -50,8 +50,7 @@ void save_events(int32_t step, const std::string& var_prefix, int num_rng, float
 	shared_ptr<Variable> seq_send_ts = VariableManager::Search(var_prefix + "/send_ts");
 	shared_ptr<Variable> seq_recv_ts = VariableManager::Search(var_prefix + "/recv_ts");
 	shared_ptr<Variable> ev_names = VariableManager::Search(var_prefix + "/ev_name");
-	shared_ptr<Variable> rng_count = VariableManager::Search(var_prefix + "/rng_count_begin");
-	shared_ptr<Variable> prev_rng_count = VariableManager::Search(var_prefix + "/rng_count_end");
+	shared_ptr<Variable> rng_count = VariableManager::Search(var_prefix + "/rng_count");
 	
 	BlocksByIteration::iterator it;
 	BlocksByIteration::iterator end;

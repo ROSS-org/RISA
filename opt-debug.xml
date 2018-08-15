@@ -70,8 +70,7 @@
                 <variable name="send_ts" layout="float" visualizable="false" time-varying="true" />
                 <variable name="recv_ts" layout="float" visualizable="false" time-varying="true" />
                 <variable name="ev_name" layout="ev_str_layout" visualizable="false" time-varying="true" />
-                <variable name="rng_count_begin" layout="rng_layout" visualizable="false" time-varying="true" />
-                <variable name="rng_count_end" layout="rng_layout" visualizable="false" time-varying="true" />
+                <variable name="rng_count" layout="rng_layout" visualizable="false" time-varying="true" />
             </group>
             <group name="rev_event">
                 <variable name="src_lp" layout="int" visualizable="false" time-varying="true" />
@@ -79,8 +78,7 @@
                 <variable name="send_ts" layout="float" visualizable="false" time-varying="true" />
                 <variable name="recv_ts" layout="float" visualizable="false" time-varying="true" />
                 <variable name="ev_name" layout="ev_str_layout" visualizable="false" time-varying="true" />
-                <variable name="rng_count_begin" layout="rng_layout" visualizable="false" time-varying="true" />
-                <variable name="rng_count_end" layout="rng_layout" visualizable="false" time-varying="true" />
+                <variable name="rng_count" layout="rng_layout" visualizable="false" time-varying="true" />
             </group>
             <group name="opt_event">
                 <variable name="src_lp" layout="int" visualizable="false" time-varying="true" />
@@ -88,8 +86,7 @@
                 <variable name="send_ts" layout="float" visualizable="false" time-varying="true" />
                 <variable name="recv_ts" layout="float" visualizable="false" time-varying="true" />
                 <variable name="ev_name" layout="ev_str_layout" visualizable="false" time-varying="true" />
-                <variable name="rng_count_begin" layout="rng_layout" visualizable="false" time-varying="true" />
-                <variable name="rng_count_end" layout="rng_layout" visualizable="false" time-varying="true" />
+                <variable name="rng_count" layout="rng_layout" visualizable="false" time-varying="true" />
             </group>
             <group name="seq_event">
                 <variable name="src_lp" layout="int" visualizable="false" time-varying="true" />
@@ -97,8 +94,7 @@
                 <variable name="send_ts" layout="float" visualizable="false" time-varying="true" />
                 <variable name="recv_ts" layout="float" visualizable="false" time-varying="true" />
                 <variable name="ev_name" layout="ev_str_layout" visualizable="false" time-varying="true" />
-                <variable name="rng_count_begin" layout="rng_layout" visualizable="false" time-varying="true" />
-                <variable name="rng_count_end" layout="rng_layout" visualizable="false" time-varying="true" />
+                <variable name="rng_count" layout="rng_layout" visualizable="false" time-varying="true" />
             </group>
             <group name="pes">
                 <group name="gvt_inst">

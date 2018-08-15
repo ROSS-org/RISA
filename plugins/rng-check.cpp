@@ -48,13 +48,12 @@ void rng_check_event(const std::string& event, int32_t src, int32_t step, const 
 void rng_check(int32_t step)
 {
 	cout << "plugin: rng_check()" << endl;
-	shared_ptr<Variable> src_lps = VariableManager::Search("ross/opt_event/src_lp");
-	shared_ptr<Variable> dest_lps = VariableManager::Search("ross/opt_event/dest_lp");
-	shared_ptr<Variable> send_ts = VariableManager::Search("ross/opt_event/send_ts");
-	shared_ptr<Variable> recv_ts = VariableManager::Search("ross/opt_event/recv_ts");
-	shared_ptr<Variable> ev_names = VariableManager::Search("ross/opt_event/ev_name");
-	shared_ptr<Variable> rng_count = VariableManager::Search("ross/opt_event/rng_count_begin");
-	shared_ptr<Variable> prev_rng_count = VariableManager::Search("ross/opt_event/rng_count_end");
+	shared_ptr<Variable> src_lps = VariableManager::Search("ross/rev_event/src_lp");
+	shared_ptr<Variable> dest_lps = VariableManager::Search("ross/rev_event/dest_lp");
+	shared_ptr<Variable> send_ts = VariableManager::Search("ross/rev_event/send_ts");
+	shared_ptr<Variable> recv_ts = VariableManager::Search("ross/rev_event/recv_ts");
+	shared_ptr<Variable> ev_names = VariableManager::Search("ross/rev_event/ev_name");
+	shared_ptr<Variable> rng_count = VariableManager::Search("ross/rev_event/rng_count");
 
 	BlocksByIteration::iterator it;
 	BlocksByIteration::iterator end;

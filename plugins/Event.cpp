@@ -10,7 +10,6 @@ Event::Event(int src, int dest, float send, float recv, int num_rng)
     recv_ts = recv;
 
     rng_count = (long*)calloc(num_rng, sizeof(long));
-    prev_rng_count = (long*)calloc(num_rng, sizeof(long));
 }
 
 }
