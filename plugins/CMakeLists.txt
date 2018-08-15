@@ -2,7 +2,7 @@ PROJECT(rdplugins)
 
 INCLUDE_DIRECTORIES(${DAMARIS_INCLUDE} ${VISIT_DIR}/sim/V2/lib)
 SET(plugin_srcs 
-    garbage_collection.C
+    garbage_collection.cpp
     opt-debug.C
     rng-check.cpp
     util.cpp
@@ -15,12 +15,3 @@ ADD_LIBRARY(rdplugins SHARED ${plugin_srcs})
 SET_PROPERTY(TARGET rdplugins PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 INSTALL(TARGETS rdplugins EXPORT rdplugins ARCHIVE DESTINATION lib LIBRARY DESTINATION lib)
-
-
-#SET(VTK_DIR $ENV{HOME}/vtk-bin)
-#FIND_PACKAGE(VTK REQUIRED)
-#INCLUDE(${VTK_USE_FILE})
-#SET(damaris_srcs plugins.cpp)
-##INCLUDE_DIRECTORIES(${VTK_INCLUDE_DIR})
-#TARGET_LINK_LIBRARIES(ROSS_Damaris ${VTK_LIBRARIES} ROSS)
-
