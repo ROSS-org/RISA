@@ -1,4 +1,5 @@
 #include <ross.h>
+#include "damaris.h"
 #include <sys/stat.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -126,7 +127,7 @@ void st_damaris_ross_init()
 
         g_tw_mynode = my_rank;
 
-        if (g_st_opt_debug)
+        if (g_st_opt_debug || g_st_rng_check)
             opt_debug_init();
     }
 

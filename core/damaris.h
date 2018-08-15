@@ -1,30 +1,27 @@
+#ifndef DAMARIS_H
+#define DAMARIS_H
+
+/**
+ * @file damaris.h
+ * @brief Describes the API for using Damaris with ROSS.
+ *
+ * The variables and functions defined here should only be used directly by the 
+ * Damaris integration component. ROSS and models should NOT call anything here directly!
+ */
+#include "damaris-api.h"
 #include <ross.h>
 #include <Damaris.h>
 
-extern int g_st_ross_rank;
-extern int g_st_damaris_enabled;
 extern int g_st_opt_debug;
 extern int g_st_rng_check;
 
 /* if a function call starts with damaris, it is a call directly from Damaris library
  * any function here that starts with st_damaris means it is from the ROSS-Damaris library
  */
-const tw_optdef *st_damaris_opts();
-void st_damaris_init_print();
-void st_damaris_ross_init();
-void st_damaris_inst_init();
-void st_damaris_ross_finalize();
-void st_damaris_expose_data(tw_pe *me, tw_stime gvt, int inst_type);
-void st_damaris_end_iteration();
-tw_stime st_damaris_opt_debug_sync(tw_pe *pe);
-void st_damaris_error(const char *file, int line, int err, char *variable);
 void st_damaris_opt_debug_data(tw_pe *pe);
-void st_damaris_expose_event_data(tw_event *e, const char *prefix);
 void st_damaris_opt_debug_finalize();
-void st_damaris_opt_debug_map(event_f handler, tw_lpid id);
 void st_damaris_expose_setup_data();
 void st_damaris_opt_debug_init_print();
-void st_damaris_call_event(tw_event *cev, tw_lp *clp);
 void st_damaris_rng_check_end_iteration();
 
 
@@ -140,3 +137,5 @@ static const char *lp_var_names[NUM_LP_VARS] = {
 
 
 void opt_debug_init();
+
+#endif // DAMARIS_H

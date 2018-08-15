@@ -102,7 +102,7 @@ void rng_check(int32_t step)
 
 void rng_check_setup(const std::string& event, int32_t src, int32_t step, const char* args)
 {
-	cout << "plugin: opt_debug_setup()" << endl;
+	cout << "plugin: rng_check_setup()" << endl;
 	/*
 	 * Note: couldn't get correct values from Damaris paramters
 	 * even though the clients can successfully call 

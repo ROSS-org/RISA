@@ -116,6 +116,7 @@
     <actions>
         <event name="damaris_gc" action="damaris_gc" library="librdplugins.so" scope="group"/>
         <event name="opt_debug" action="opt_debug_comparison" library="librdplugins.so" scope="group"/>
+        <event name="rng_check_setup" action="rng_check_setup" library="librdplugins.so" scope="group"/>
         <event name="rng_check_event" action="rng_check_event" library="librdplugins.so" scope="group"/>
         <event name="opt_debug_setup" action="opt_debug_setup" library="librdplugins.so" scope="core"/>
         <event name="opt_debug_finalize" action="opt_debug_finalize" library="librdplugins.so" scope="group"/>

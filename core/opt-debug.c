@@ -1,4 +1,5 @@
 #include <ross.h>
+#include "damaris.h"
 #include <dlfcn.h>
 
 /**
@@ -17,6 +18,7 @@ static int event_block = 0;
 static char **event_handlers;
 static int event_handlers_idx = 0;
 static int *event_map = NULL;
+int g_st_debug_enabled = 0;
 
 #define MAX_EVENT_HANDLERS 10
 #define MAX_HANDLER_LEN 256
@@ -79,6 +81,8 @@ void opt_debug_init()
     event_handlers = tw_calloc(TW_LOC, "damaris", sizeof(char*), MAX_EVENT_HANDLERS);
     for (i = 0; i < MAX_EVENT_HANDLERS; i++)
         event_handlers[i] = tw_calloc(TW_LOC, "damaris", sizeof(char), MAX_HANDLER_LEN);
+
+    g_st_debug_enabled = 1;
 }
 
 /**
@@ -127,6 +131,9 @@ void st_damaris_opt_debug_map(event_f handler, tw_lpid id)
 
 }
 
+/**
+ * @brief Pass all setup data to Damaris
+ */
 void st_damaris_expose_setup_data()
 {
     int err, i, idx = 0;
@@ -178,6 +185,9 @@ void st_damaris_expose_setup_data()
 }
 
 int it_no = 0;
+/**
+ * @brief Used to synchronize optimistic and sequential simulation runs
+ */
 tw_stime st_damaris_opt_debug_sync(tw_pe *pe)
 {
     int err;
@@ -205,6 +215,9 @@ tw_stime st_damaris_opt_debug_sync(tw_pe *pe)
     return current_gvt;
 }
 
+/**
+ * @brief Wrap up a Damaris iteration for the RNG Check component
+ */
 void st_damaris_rng_check_end_iteration()
 {
     int err;
@@ -220,6 +233,9 @@ void st_damaris_rng_check_end_iteration()
     
 }
 
+/**
+ * @brief Collecting optimistic debug data
+ */
 void st_damaris_opt_debug_data(tw_pe *pe)
 {
     int err;
@@ -241,6 +257,9 @@ void st_damaris_opt_debug_data(tw_pe *pe)
     it_no++;
 }
 
+/**
+ * @brief RNG check data
+ */
 void st_damaris_opt_rng_data(tw_pe *pe)
 {
     int err;
@@ -261,6 +280,9 @@ void st_damaris_opt_rng_data(tw_pe *pe)
     it_no++;
 }
 
+/**
+ * @brief wrapper for exposing the appropriate data to Damaris
+ */
 void opt_debug_expose_data(tw_pe *pe)
 {
     int err, i;
@@ -277,6 +299,9 @@ void opt_debug_expose_data(tw_pe *pe)
 
 }
 
+/**
+ * @brief Expose PE opt debugging data
+ */
 static void opt_debug_pe_data(tw_pe *pe, tw_statistics *s)
 {
     int err, i, block = 0;
@@ -290,6 +315,9 @@ static void opt_debug_pe_data(tw_pe *pe, tw_statistics *s)
         st_damaris_error(TW_LOC, err, "current_gvt");
 }
 
+/**
+ * @brief Expose LP opt debugging data
+ */
 static void opt_debug_lp_data()
 {
     int err, i, block = 0;
@@ -303,9 +331,13 @@ static void opt_debug_lp_data()
         st_damaris_error(TW_LOC, err, "ross/lps/gvt_inst/committed_events");
 }
 
-// for optimistic debugging, do our event/commit calls here so we can do some
-// processing before and after the call, without having to worry about multiple
-// function calls in ROSS
+/**
+ * @brief Collects forward event data and calls event
+ *
+ * for optimistic debugging, do our event/commit calls here so we can do some
+ * processing before and after the call, without having to worry about multiple
+ * function calls in ROSS
+ */
 void st_damaris_call_event(tw_event *cev, tw_lp *clp)
 {
     if (!cev->rng_count_begin)
@@ -326,6 +358,9 @@ void st_damaris_call_event(tw_event *cev, tw_lp *clp)
 
 }
 
+/**
+ * @brief Collects reverse event data and calls event
+ */
 void st_damaris_call_rev_event(tw_event *cev, tw_lp *clp)
 {
     
@@ -339,6 +374,9 @@ void st_damaris_call_rev_event(tw_event *cev, tw_lp *clp)
 
 }
 
+/**
+ * @brief exposing event data to Damaris
+ */
 void st_damaris_expose_event_data(tw_event *e, const char *prefix)
 {
     int lpid, err, i;
@@ -398,7 +436,9 @@ void st_damaris_expose_event_data(tw_event *e, const char *prefix)
     event_block++;
 }
 
-
+/**
+ * @brief Signals to Damaris to call opt debug finalize event
+ */
 void st_damaris_opt_debug_finalize()
 {
     int err;
@@ -407,6 +447,9 @@ void st_damaris_opt_debug_finalize()
         st_damaris_error(TW_LOC, err, "opt_debug_finalize");
 }
 
+/**
+ * @brief optimistic debugging specific output
+ */
 void st_damaris_opt_debug_init_print()
 {
     int total_size;

@@ -19,6 +19,7 @@ INCLUDE_DIRECTORIES(${DAMARIS_INCLUDE})
 INCLUDE_DIRECTORIES(${VISIT_DIR}/sim/V2/lib)
 SET(rd_srcs 
     core/damaris.h 
+    core/damaris-api.h
     core/damaris.c 
     core/opt-debug.c
     ${DAMARIS_DIR}/include/Damaris.h)
