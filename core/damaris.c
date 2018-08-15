@@ -61,6 +61,7 @@ const tw_optdef *st_damaris_opts(void)
  */
 static void set_parameters()
 {
+    printf("set_parameters()\n");
     // TODO need to appropriately handle when nlp differs among PEs
     int err;
     int num_pe = tw_nnodes();
@@ -77,7 +78,7 @@ static void set_parameters()
     if ((err = damaris_parameter_set("num_kp", &num_kp, sizeof(num_kp))) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, "num_kp");
 
-    if (g_st_opt_debug)
+    if (g_st_debug_enabled)
         st_damaris_expose_setup_data();
 }
 
@@ -191,7 +192,7 @@ void st_damaris_inst_init()
     if ((err = damaris_write("ross/kp_id", kp_id)) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, "ross/kp_id");
 
-    if (g_st_opt_debug)
+    if (g_st_debug_enabled)
         return;
 
     // calloc the space for the variables we want to track
@@ -254,7 +255,7 @@ void st_damaris_ross_finalize()
         return;
     if (g_st_ross_rank)
     {
-        if (g_st_opt_debug)
+        if (g_st_debug_enabled)
             st_damaris_opt_debug_finalize();
         damaris_stop();
     }

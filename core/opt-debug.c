@@ -83,6 +83,7 @@ void opt_debug_init()
         event_handlers[i] = tw_calloc(TW_LOC, "damaris", sizeof(char), MAX_HANDLER_LEN);
 
     g_st_debug_enabled = 1;
+    printf("opt_debug_init() end\n");
 }
 
 /**
@@ -154,9 +155,12 @@ void st_damaris_expose_setup_data()
     if ((err = damaris_write("rng_check", &g_st_rng_check)) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, "rng_check");
 
+    if ((err = damaris_write("num_rngs", &g_tw_nRNG_per_lp)) != DAMARIS_OK)
+        st_damaris_error(TW_LOC, err, "num_rngs");
+
     // only need the following data from one rank
     // sequential rank is the easiest
-    if (g_tw_synchronization_protocol == SEQUENTIAL || g_st_rng_check == 1)
+    if (g_tw_synchronization_protocol == SEQUENTIAL)
     {
         if ((err = damaris_write("lp_types", event_map)) != DAMARIS_OK)
             st_damaris_error(TW_LOC, err, "lp_types");
@@ -177,14 +181,26 @@ void st_damaris_expose_setup_data()
         if ((err = damaris_write("lp_types_str", &handler_str[0])) != DAMARIS_OK)
             st_damaris_error(TW_LOC, err, "lp_types_str");
 
-        if ((err = damaris_write("num_rngs", &g_tw_nRNG_per_lp)) != DAMARIS_OK)
-            st_damaris_error(TW_LOC, err, "num_rngs");
     }
     if (g_tw_mynode == g_tw_masternode)
-        printf("***** STARTING OPTIMISTIC DEBUGGER WITH DAMARIS *****\n");
+    {
+        if (g_st_opt_debug)
+            printf("***** STARTING OPTIMISTIC DEBUGGER WITH DAMARIS *****\n");
+        if (g_st_rng_check)
+            printf("***** STARTING OPTIMISTIC RNG DEBUGGER WITH DAMARIS *****\n");
+    }
 }
 
 int it_no = 0;
+
+void st_damaris_debug_end_iteration(tw_pe *pe)
+{
+    if (g_st_opt_debug)
+        st_damaris_opt_debug_sync(pe);
+    else if (g_st_rng_check)
+        st_damaris_rng_check_end_iteration();
+}
+
 /**
  * @brief Used to synchronize optimistic and sequential simulation runs
  */
@@ -224,8 +240,8 @@ void st_damaris_rng_check_end_iteration()
     st_damaris_end_iteration();
     if (!initialized)
     { // here in order to ensure all ROSS ranks have gotten their values in
-        if ((err = damaris_signal("opt_debug_setup")) != DAMARIS_OK)
-            st_damaris_error(TW_LOC, err, "opt_debug_setup");
+        if ((err = damaris_signal("rng_check_setup")) != DAMARIS_OK)
+            st_damaris_error(TW_LOC, err, "rng_check_setup");
         initialized = 1;
     }
     if ((err = damaris_signal("rng_check_event")) != DAMARIS_OK)

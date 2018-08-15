@@ -14,7 +14,6 @@ using namespace opt_debug;
 extern "C" {
 
 static int num_pe = 0;
-static int seq_rank = -1;
 static int *num_lp = NULL;
 static int num_rng = 0;
 static int initialized = 0;
@@ -100,6 +99,7 @@ void rng_check(int32_t step)
 
 }
 
+// use group scope for this event, so we only do it once
 void rng_check_setup(const std::string& event, int32_t src, int32_t step, const char* args)
 {
 	cout << "plugin: rng_check_setup()" << endl;
@@ -113,76 +113,26 @@ void rng_check_setup(const std::string& event, int32_t src, int32_t step, const 
 
 	num_pe = Environment::CountTotalClients();
 	
-	shared_ptr<Variable> p = VariableManager::Search("sync");
-	if (p && *(int*)p->GetBlock(src, 0, 0)->GetDataSpace().GetData() == 1)
-		seq_rank = src;
+	shared_ptr<Variable> p;
 
 	if (!num_lp)
 		num_lp = (int*) calloc(num_pe, sizeof(int));
 
 	p = VariableManager::Search("nlp");
 	if (p)
-		num_lp[src] = *(int*)p->GetBlock(src, 0, 0)->GetDataSpace().GetData();
+    {
+        for (int i = 0; i < num_pe; i++)
+            num_lp[i] = *(int*)p->GetBlock(i, 0, 0)->GetDataSpace().GetData();
+    }
 	else
 		cout << "num_lp param not found!" << endl;
 
-	// TODO switch to just getting type info from the seq rank only?
-	if (src == seq_rank)
-	{
-		p = VariableManager::Search("num_types");
-		if (p)
-			num_types = *(int*)p->GetBlock(src, 0, 0)->GetDataSpace().GetData();
-		else
-			cout << "num_types variable not found!" << endl;
-		
-		p = VariableManager::Search("num_rngs");
-		if (p)
-			num_rng = *(int*)p->GetBlock(src, 0, 0)->GetDataSpace().GetData();
-		else
-			cout << "num_rngs variable not found!" << endl;
-		cout << "number of RNGs: " << num_rng << endl;
-		
-		char *temp_str;
-		p = VariableManager::Search("lp_types_str");
-		if (p)
-			temp_str = (char*)p->GetBlock(src, 0, 0)->GetDataSpace().GetData();
-		else
-			cout << "lp_types_str variable not found!" << endl;
+    p = VariableManager::Search("num_rngs");
+    if (p)
+        num_rng = *(int*)p->GetBlock(0, 0, 0)->GetDataSpace().GetData();
+    else
+        cout << "num_rngs variable not found!" << endl;
 
-		event_handlers = (char**)calloc(num_types, sizeof(char*));
-		for (int i = 0; i < num_types; i++)
-			event_handlers[i] = (char*)calloc(256, sizeof(char));
-
-		int idx = 0;
-		const char s[2] = " ";
-		char *token;
-		
-		/* get the first token */
-		token = strtok(temp_str, s);
-		
-		/* walk through other tokens */
-		while(token != NULL)
-		{
-			strcpy(event_handlers[idx], token);
-			event_handlers[idx][strlen(token)] = '\0';
-			idx++;
-			token = strtok(NULL, s);
-		}
-		//cout << "event handlers: " << endl;
-		//for (int i = 0; i < num_types; i++)
-		//	cout << i << " " << event_handlers[i] << endl;
-		
-		p = VariableManager::Search("lp_types");
-		event_map = (int*) calloc(num_lp[seq_rank], sizeof(int));
-		if (p)
-			memcpy(event_map, (int*)p->GetBlock(src, 0, 0)->GetDataSpace().GetData(), sizeof(int) * num_lp[seq_rank]);
-		else
-			cout << "lp_types variable not found!" << endl;
-		//cout << "event map: " << endl;
-		//for (int i = 0; i < num_lp[seq_rank]; i++)
-		//	cout << i << " " << event_map[i] << endl;
-	}
-
-	//cout << "src " << src << ": num_pe " << num_pe << " num_lp " << num_lp[src] << " seq_rank " << seq_rank << endl;
+    cout << "end rng_check_setup: num_pe " << num_pe << " num_rng " << num_rng << endl;
 }
 }
