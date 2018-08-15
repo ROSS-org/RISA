@@ -40,7 +40,7 @@ void rng_check_event(const std::string& event, int32_t src, int32_t step, const 
 	cout << "*************** starting step " << step <<
 		" ***************" << endl;
 	
-	//save_events(step, "ross/fwd_event");
+	save_events(step, "ross/fwd_event", num_rng, 0.0, events);
 	rng_check(step);
 
 }
