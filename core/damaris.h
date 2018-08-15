@@ -4,25 +4,28 @@
 extern int g_st_ross_rank;
 extern int g_st_damaris_enabled;
 extern int g_st_opt_debug;
+extern int g_st_rng_check;
 
 /* if a function call starts with damaris, it is a call directly from Damaris library
  * any function here that starts with st_damaris means it is from the ROSS-Damaris library
  */
-extern const tw_optdef *st_damaris_opts();
-extern void st_damaris_init_print();
-extern void st_damaris_ross_init();
-extern void st_damaris_inst_init();
-extern void st_damaris_ross_finalize();
-extern void st_damaris_expose_data(tw_pe *me, tw_stime gvt, int inst_type);
-extern void st_damaris_end_iteration();
-extern tw_stime st_damaris_opt_debug_sync(tw_pe *pe);
-extern void st_damaris_error(const char *file, int line, int err, char *variable);
+const tw_optdef *st_damaris_opts();
+void st_damaris_init_print();
+void st_damaris_ross_init();
+void st_damaris_inst_init();
+void st_damaris_ross_finalize();
+void st_damaris_expose_data(tw_pe *me, tw_stime gvt, int inst_type);
+void st_damaris_end_iteration();
+tw_stime st_damaris_opt_debug_sync(tw_pe *pe);
+void st_damaris_error(const char *file, int line, int err, char *variable);
 void st_damaris_opt_debug_data(tw_pe *pe);
-void st_damaris_expose_event_data(tw_event *e, int spec_event);
+void st_damaris_expose_event_data(tw_event *e, const char *prefix);
 void st_damaris_opt_debug_finalize();
 void st_damaris_opt_debug_map(event_f handler, tw_lpid id);
 void st_damaris_expose_setup_data();
 void st_damaris_opt_debug_init_print();
+void st_damaris_call_event(tw_event *cev, tw_lp *clp);
+void st_damaris_rng_check_end_iteration();
 
 
 typedef struct {

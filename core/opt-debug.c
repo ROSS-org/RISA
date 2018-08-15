@@ -34,21 +34,24 @@ void opt_debug_init()
     full_ross_rank = g_tw_mynode;
     //printf("opt_debug_init full world size is %d\n", current_ross_size);
     
-    if (g_tw_mynode < current_ross_size - 1) //optimistic ranks
+    if (!g_st_rng_check)
     {
-        MPI_Comm_split(MPI_COMM_ROSS_FULL, 1, g_tw_mynode, &new_ross_comm);
-        MPI_Comm_split(MPI_COMM_ROSS_FULL, MPI_UNDEFINED, 0, &debug_comm);
-        tw_comm_set(new_ross_comm);
-    }
-    else // sequential rank
-    {
-        MPI_Comm_split(MPI_COMM_ROSS_FULL, MPI_UNDEFINED, 0, &new_ross_comm);
-        MPI_Comm_split(MPI_COMM_ROSS_FULL, 2, 0, &debug_comm);
-        tw_comm_set(debug_comm);
+        if (g_tw_mynode < current_ross_size - 1) //optimistic ranks
+        {
+            MPI_Comm_split(MPI_COMM_ROSS_FULL, 1, g_tw_mynode, &new_ross_comm);
+            MPI_Comm_split(MPI_COMM_ROSS_FULL, MPI_UNDEFINED, 0, &debug_comm);
+            tw_comm_set(new_ross_comm);
+        }
+        else // sequential rank
+        {
+            MPI_Comm_split(MPI_COMM_ROSS_FULL, MPI_UNDEFINED, 0, &new_ross_comm);
+            MPI_Comm_split(MPI_COMM_ROSS_FULL, 2, 0, &debug_comm);
+            tw_comm_set(debug_comm);
 
-        g_tw_synchronization_protocol = SEQUENTIAL;
-        //freopen("redir.txt", "w", stdout); // redirect this ranks output to file for now
-        freopen("/dev/null", "w", stdout); // redirect this ranks output to file for now
+            g_tw_synchronization_protocol = SEQUENTIAL;
+            //freopen("redir.txt", "w", stdout); // redirect this ranks output to file for now
+            freopen("/dev/null", "w", stdout); // redirect this ranks output to file for now
+        }
     }
 
     // now make sure we have the correct rank number for our version of MPI_COMM_ROSS
@@ -116,17 +119,22 @@ void st_damaris_expose_setup_data()
     if ((err = damaris_parameter_set("total_lp", &g_tw_nlp, sizeof(g_tw_nlp))) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, "total_lp");
 
+    if ((err = damaris_parameter_set("num_rng", &g_tw_nRNG_per_lp, sizeof(g_tw_nRNG_per_lp))) != DAMARIS_OK)
+        st_damaris_error(TW_LOC, err, "num_rng");
+
     if ((err = damaris_write("nlp", &g_tw_nlp)) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, "nlp");
 
     if ((err = damaris_write("sync", &g_tw_synchronization_protocol)) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, "sync");
 
+    if ((err = damaris_write("rng_check", &g_st_rng_check)) != DAMARIS_OK)
+        st_damaris_error(TW_LOC, err, "rng_check");
+
     // only need the following data from one rank
     // sequential rank is the easiest
-    if (g_tw_synchronization_protocol == SEQUENTIAL)
+    if (g_tw_synchronization_protocol == SEQUENTIAL || g_st_rng_check == 1)
     {
-        printf("about to send event_map data using damaris_write\n");
         if ((err = damaris_write("lp_types", event_map)) != DAMARIS_OK)
             st_damaris_error(TW_LOC, err, "lp_types");
 
@@ -139,13 +147,15 @@ void st_damaris_expose_setup_data()
             idx++;
         }
         handler_str[idx] = '\0';
-        printf("handler_str: %s\n", handler_str);
 
         if ((err = damaris_write("num_types", &event_handlers_idx)) != DAMARIS_OK)
             st_damaris_error(TW_LOC, err, "num_types");
 
         if ((err = damaris_write("lp_types_str", &handler_str[0])) != DAMARIS_OK)
             st_damaris_error(TW_LOC, err, "lp_types_str");
+
+        if ((err = damaris_write("num_rngs", &g_tw_nRNG_per_lp)) != DAMARIS_OK)
+            st_damaris_error(TW_LOC, err, "num_rngs");
     }
     if (g_tw_mynode == g_tw_masternode)
         printf("***** STARTING OPTIMISTIC DEBUGGER WITH DAMARIS *****\n");
@@ -179,6 +189,21 @@ tw_stime st_damaris_opt_debug_sync(tw_pe *pe)
     return current_gvt;
 }
 
+void st_damaris_rng_check_end_iteration()
+{
+    int err;
+    st_damaris_end_iteration();
+    if (!initialized)
+    { // here in order to ensure all ROSS ranks have gotten their values in
+        if ((err = damaris_signal("opt_debug_setup")) != DAMARIS_OK)
+            st_damaris_error(TW_LOC, err, "opt_debug_setup");
+        initialized = 1;
+    }
+    if ((err = damaris_signal("rng_check_event")) != DAMARIS_OK)
+        st_damaris_error(TW_LOC, err, "rng_check_event");
+    
+}
+
 void st_damaris_opt_debug_data(tw_pe *pe)
 {
     int err;
@@ -197,6 +222,26 @@ void st_damaris_opt_debug_data(tw_pe *pe)
     }
     if ((err = damaris_signal("opt_debug")) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, "opt_debug");
+    it_no++;
+}
+
+void st_damaris_opt_rng_data(tw_pe *pe)
+{
+    int err;
+
+    //printf("[GVT: %f, it: %d] rank %ld (sync=%d) has committed %llu events\n", 
+    //        pe->GVT, it_no, g_tw_mynode, g_tw_synchronization_protocol, pe->stats.s_committed_events);
+
+    st_damaris_end_iteration();
+    event_block = 0;
+    if (!initialized)
+    { // here in order to ensure all ROSS ranks have gotten their values in
+        if ((err = damaris_signal("opt_debug_setup")) != DAMARIS_OK)
+            st_damaris_error(TW_LOC, err, "opt_debug_setup");
+        initialized = 1;
+    }
+    if ((err = damaris_signal("rng_check")) != DAMARIS_OK)
+        st_damaris_error(TW_LOC, err, "rng_check");
     it_no++;
 }
 
@@ -242,22 +287,49 @@ static void opt_debug_lp_data()
         st_damaris_error(TW_LOC, err, "ross/lps/gvt_inst/committed_events");
 }
 
-void st_damaris_expose_event_data(tw_event *e, int spec_event)
+// for optimistic debugging, do our event/commit calls here so we can do some
+// processing before and after the call, without having to worry about multiple
+// function calls in ROSS
+void st_damaris_call_event(tw_event *cev, tw_lp *clp)
 {
-    int lpid, err;
-    float ts;
-    char prefix[1024];
-    char varname[1024];
+    if (!cev->rng_count_begin)
+        cev->rng_count_begin = tw_calloc(TW_LOC, "damaris", sizeof(unsigned long), g_tw_nRNG_per_lp);
+    if (!cev->rng_count_end)
+        cev->rng_count_end = tw_calloc(TW_LOC, "damaris", sizeof(unsigned long), g_tw_nRNG_per_lp);
+    
+    int i;
+    for (i = 0; i < g_tw_nRNG_per_lp; i++)
+        cev->rng_count_begin[i] = clp->rng[i].count;
 
-    if (g_tw_synchronization_protocol == SEQUENTIAL)
-        sprintf(prefix, "ross/seq_event");
-    else if (g_tw_synchronization_protocol == OPTIMISTIC)
-    {
-        if (spec_event == 1)
-            sprintf(prefix, "ross/spec_event");
-        else
-            sprintf(prefix, "ross/opt_event");
-    }
+    (*clp->type->event)(clp->cur_state, &cev->cv, tw_event_data(cev), clp);
+
+    if (g_tw_synchronization_protocol == OPTIMISTIC)
+        st_damaris_expose_event_data(cev, "ross/fwd_event");
+    else
+        st_damaris_expose_event_data(cev, "ross/seq_event");
+
+}
+
+void st_damaris_call_rev_event(tw_event *cev, tw_lp *clp)
+{
+    
+    int i;
+    (*clp->type->revent)(clp->cur_state, &cev->cv, tw_event_data(cev), clp);
+
+    for (i = 0; i < g_tw_nRNG_per_lp; i++)
+        cev->rng_count_end[i] = clp->rng[i].count;
+
+    st_damaris_expose_event_data(cev, "ross/rev_event");
+
+}
+
+void st_damaris_expose_event_data(tw_event *e, const char *prefix)
+{
+    int lpid, err, i;
+    float ts;
+    char varname[1024];
+    long rng_count_begin[g_tw_nRNG_per_lp];
+    long rng_count_end[g_tw_nRNG_per_lp];
 
     //printf("pe %ld (sync=%d) src_lp %d dest_lp %d recv_ts %f\n",
     //        g_tw_mynode, g_tw_synchronization_protocol, (int)e->send_lp,
@@ -282,32 +354,27 @@ void st_damaris_expose_event_data(tw_event *e, int spec_event)
     sprintf(varname, "%s/send_ts", prefix);
     if ((err = damaris_write_block(varname, event_block, &ts)) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, varname);
+
+    for (i = 0; i < g_tw_nRNG_per_lp; i++)
+    {
+        rng_count_begin[i] = (long)(e->rng_count_begin[i]);
+        rng_count_end[i] = (long)(e->rng_count_end[i]);
+    }
+    sprintf(varname, "%s/rng_count_begin", prefix);
+    if ((err = damaris_write_block(varname, event_block, &rng_count_begin[0])) != DAMARIS_OK)
+        st_damaris_error(TW_LOC, err, varname);
+    sprintf(varname, "%s/rng_count_end", prefix);
+    if ((err = damaris_write_block(varname, event_block, &rng_count_end[0])) != DAMARIS_OK)
+        st_damaris_error(TW_LOC, err, varname);
     
     char ev_buffer[128];
     int collect_flag = 1;
-    int model_data = 0;
     sprintf(varname, "%s/ev_name", prefix);
-    spec_event = 0; // just a quick fix for now
-    // try to get model event data
-    if (spec_event)
-    {
-        if (e->src_lp->model_types && e->src_lp->model_types->ev_trace)
-        {
-            (*e->src_lp->model_types->ev_trace)(tw_event_data(e), e->src_lp, &ev_buffer[0], &collect_flag);
-            model_data = 1;
-        }
 
-    }
-    else
+    // try to get model event data
+    if (e->dest_lp->model_types && e->dest_lp->model_types->ev_trace)
     {
-        if (e->dest_lp->model_types && e->dest_lp->model_types->ev_trace)
-        {
-            (*e->dest_lp->model_types->ev_trace)(tw_event_data(e), e->dest_lp, &ev_buffer[0], &collect_flag);
-            model_data = 1;
-        }
-    }
-    if (model_data)
-    {
+        (*e->dest_lp->model_types->ev_trace)(tw_event_data(e), e->dest_lp, &ev_buffer[0], &collect_flag);
         if ((err = damaris_write_block(varname, event_block, &ev_buffer[0])) != DAMARIS_OK)
             st_damaris_error(TW_LOC, err, varname);
     }

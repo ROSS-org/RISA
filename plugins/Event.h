@@ -1,6 +1,7 @@
 #ifndef EVENT_H
 #define EVENT_H
 
+#include <cstdlib>
 #include <iostream>
 
 namespace opt_debug{
@@ -14,6 +15,8 @@ class Event
     float send_ts;
     float recv_ts;
     float gvt; // gvt when this event was committed
+    long *rng_count;
+    long *prev_rng_count;
 
     int sync_type;
     int damaris_iteration;
@@ -23,7 +26,7 @@ class Event
     public:
 
     // constructor
-    Event(int src, int dest, float send, float recv);
+    Event(int src, int dest, float send, float recv, int num_rng);
 
     // destructor
     ~Event() {}
@@ -44,6 +47,11 @@ class Event
 
     virtual void set_event_name(std::string& name) { event_name = name; }
     virtual std::string get_event_name() const { return event_name; }
+
+    virtual void set_rng_count(int pos, long count) { rng_count[pos] = count; }
+    virtual long get_rng_count(int pos) { return rng_count[pos]; }
+    virtual void set_prev_rng_count(int pos, long count) { prev_rng_count[pos] = count; }
+    virtual long get_prev_rng_count(int pos) { return prev_rng_count[pos]; }
 };
 
 

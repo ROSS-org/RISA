@@ -4,6 +4,8 @@ INCLUDE_DIRECTORIES(${DAMARIS_INCLUDE} ${VISIT_DIR}/sim/V2/lib)
 SET(plugin_srcs 
     garbage_collection.C
     opt-debug.C
+    rng-check.cpp
+    util.cpp
     Event.h
     Event.cpp
     EventIndex.h)

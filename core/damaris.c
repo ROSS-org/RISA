@@ -35,6 +35,7 @@ static void expose_lp_data(int inst_type);
 
 int g_st_damaris_enabled = 0;
 int g_st_opt_debug = 0;
+int g_st_rng_check = 0;
 static char data_xml[4096];
 
 static const tw_optdef damaris_options[] = {
@@ -42,6 +43,7 @@ static const tw_optdef damaris_options[] = {
     TWOPT_UINT("enable-damaris", g_st_damaris_enabled, "Turn on (1) or off (0) Damaris in situ analysis"),
     TWOPT_CHAR("data-xml", data_xml, "Path to XML file for describing data to Damaris"),
     TWOPT_UINT("opt-debug", g_st_opt_debug, "Turn on (1) or off (0) Optimistic debugging with Damaris"),
+    TWOPT_UINT("rng-check", g_st_rng_check, "Turn on (1) or off (0) model RNG reverse computation checking"),
     TWOPT_END()
 };
 
