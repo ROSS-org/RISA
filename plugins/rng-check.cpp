@@ -37,14 +37,8 @@ void rng_check_event(const std::string& event, int32_t src, int32_t step, const 
 	int pe_commit_ev[num_pe];
 	step--;
 
-	prev_gvt = current_gvt;
-	shared_ptr<Variable> p = VariableManager::Search("current_gvt");
-	if (p)
-		current_gvt = *(float*)p->GetBlock(0, step, 0)->GetDataSpace().GetData();
-	else
-		cout << "current_gvt not found!" << endl;
 	cout << "*************** starting step " << step <<
-		" - current GVT: " << current_gvt << " ***************" << endl;
+		" ***************" << endl;
 	
 	//save_events(step, "ross/fwd_event");
 	rng_check(step);
