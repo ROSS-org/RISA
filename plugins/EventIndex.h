@@ -24,6 +24,7 @@ struct by_full_event {};
 struct by_partial {};
 struct by_damaris_it {};
 struct by_sync_type {};
+struct by_event_id {};
 /* end tags */
 
 typedef boost::multi_index_container<
@@ -52,6 +53,12 @@ typedef boost::multi_index_container<
                         bmi::const_mem_fun<Event,int,&Event::get_dest_lp>,
                         bmi::const_mem_fun<Event,float,&Event::get_recv_ts>
                     >
+                >,
+                bmi::hashed_unique<bmi::tag<by_event_id>,
+                    bmi::composite_key<Event,
+                        bmi::const_mem_fun<Event,int,&Event::get_dest_pe>,
+                        bmi::const_mem_fun<Event,long,&Event::get_event_id>
+                    >
                 >
         >
     > EventIndex;
@@ -63,6 +70,7 @@ typedef EventIndex::index<by_damaris_it>::type EventByIteration;
 typedef EventIndex::index<by_sync_type>::type EventBySync;
 typedef EventIndex::index<by_full_event>::type Events;
 typedef EventIndex::index<by_partial>::type EventsPartial;
+typedef EventIndex::index<by_event_id>::type EventsByID;
 
 }
 

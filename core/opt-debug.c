@@ -372,6 +372,7 @@ void st_damaris_call_rev_event(tw_event *cev, tw_lp *clp)
 void st_damaris_expose_event_data(tw_event *e, const char *prefix)
 {
     int lpid, err, i;
+    long event_id;
     float ts;
     char varname[1024];
     long rng_count[g_tw_nRNG_per_lp];
@@ -398,6 +399,11 @@ void st_damaris_expose_event_data(tw_event *e, const char *prefix)
     ts = (float)e->send_ts;
     sprintf(varname, "%s/send_ts", prefix);
     if ((err = damaris_write_block(varname, event_block, &ts)) != DAMARIS_OK)
+        st_damaris_error(TW_LOC, err, varname);
+
+    event_id = (long)e->event_id;
+    sprintf(varname, "%s/event_id", prefix);
+    if ((err = damaris_write_block(varname, event_block, &event_id)) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, varname);
 
     for (i = 0; i < g_tw_nRNG_per_lp; i++)

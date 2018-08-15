@@ -16,6 +16,8 @@ class Event
     float recv_ts;
     float gvt; // gvt when this event was committed
     long *rng_count;
+    int dest_pe;
+    long event_id;
 
     int sync_type;
     int damaris_iteration;
@@ -49,6 +51,12 @@ class Event
 
     virtual void set_rng_count(int pos, long count) { rng_count[pos] = count; }
     virtual long get_rng_count(int pos) { return rng_count[pos]; }
+
+    virtual void set_dest_pe(int peid) { dest_pe = peid; }
+    virtual int get_dest_pe() const { return dest_pe; }
+
+    virtual void set_event_id(long id) { event_id = id; }
+    virtual long get_event_id() const { return event_id; }
 };
 
 

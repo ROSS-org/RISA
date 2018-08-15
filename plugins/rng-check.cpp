@@ -65,6 +65,7 @@ void rng_check(int32_t step)
 	shared_ptr<Variable> dest_lps = VariableManager::Search("ross/rev_event/dest_lp");
 	shared_ptr<Variable> send_ts = VariableManager::Search("ross/rev_event/send_ts");
 	shared_ptr<Variable> recv_ts = VariableManager::Search("ross/rev_event/recv_ts");
+	shared_ptr<Variable> event_ids = VariableManager::Search("ross/rev_event/event_id");
 	shared_ptr<Variable> ev_names = VariableManager::Search("ross/rev_event/ev_name");
 	shared_ptr<Variable> rng_count = VariableManager::Search("ross/rev_event/rng_count");
 
@@ -80,12 +81,13 @@ void rng_check(int32_t step)
 		int cur_dest_lp = *(int*)dest_lps->GetBlock(cur_source, step, cur_id)->GetDataSpace().GetData();
 		float cur_send_ts = *(float*)send_ts->GetBlock(cur_source, step, cur_id)->GetDataSpace().GetData();
 		float cur_recv_ts = *(float*)recv_ts->GetBlock(cur_source, step, cur_id)->GetDataSpace().GetData();
+		long ev_id = *(long*)event_ids->GetBlock(cur_source, step, cur_id)->GetDataSpace().GetData();
 		long *cur_rng_counts = (long*)rng_count->GetBlock(cur_source, step, cur_id)->GetDataSpace().GetData();
 		string cur_name;
 	    //if (ev_names->GetBlock(cur_source, step, cur_id))
 		//	cur_name = string((char*)ev_names->GetBlock(cur_source, step, cur_id)->GetDataSpace().GetData());
 
-		shared_ptr<Event> fwd_event = get_event(events, cur_src_lp, cur_dest_lp, cur_send_ts, cur_recv_ts);
+		shared_ptr<Event> fwd_event = get_event_by_id(events, cur_source, ev_id);
 		//cout << "event " << cur_src_lp << ", " << cur_dest_lp << ", " 
 		//	<< cur_send_ts << ", "<< cur_recv_ts << ", " <<  cur_rng_counts[0] << endl;
 		if (fwd_event)
@@ -100,6 +102,8 @@ void rng_check(int32_t step)
 				}
 			}
 		}
+        else
+            cout << "error: didn't find a fwd event" << endl;
 		it++;
 	}
 
