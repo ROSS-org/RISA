@@ -49,4 +49,5 @@ void st_damaris_debug_end_iteration(tw_pe *pe);
 void st_damaris_opt_debug_map(event_f handler, tw_lpid id);
 tw_stime st_damaris_opt_debug_sync(tw_pe *pe);
 void st_damaris_call_event(tw_event *cev, tw_lp *clp);
+void st_damaris_call_rev_event(tw_event *cev, tw_lp *clp);
 #endif // DAMARIS_API_H
