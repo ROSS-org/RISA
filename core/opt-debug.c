@@ -1,6 +1,10 @@
 #include <ross.h>
 #include <dlfcn.h>
-//#include "damaris.h"
+
+/**
+ * @file opt-debug.c
+ * @brief Handles the ROSS side of the optimistic debugger plugin for Damaris
+ */
 
 MPI_Comm MPI_COMM_ROSS_FULL; // only for use with optimistic debug mode
 static int full_ross_rank = -1; // rank within MPI_COMM_ROSS_FULL
@@ -20,7 +24,15 @@ static int *event_map = NULL;
 void opt_debug_expose_data(tw_pe *pe);
 static void opt_debug_lp_data();
 
-// take one of our ranks and make it run a seq sim separate from the optimistic run
+/**
+ * @brief Initialize the optimistic debugger
+ *
+ * To be called by st_damaris_ross_init() if debugger is turned on.
+ * Once Damaris has pulled it's necessary ranks, we set the returned communicator to be
+ * MPI_COMM_ROSS_FULL, so we can continue to do collectives with all ROSS ranks.
+ * But now we split ROSS ranks further for optimistic debugging. One rank will
+ * run a sequential version, while the remaining ranks will run the optimistic version.
+ */
 void opt_debug_init()
 {
     int my_rank, current_ross_size, sub_size, i;
@@ -69,7 +81,11 @@ void opt_debug_init()
         event_handlers[i] = tw_calloc(TW_LOC, "damaris", sizeof(char), MAX_HANDLER_LEN);
 }
 
-// needs to be called from tw_lp_settype()
+/**
+ * @brief This collects event handlers for providing detailed debugging information.
+ *
+ * This function needs to be called for each LP from the tw_lp_settype() function.
+ */
 void st_damaris_opt_debug_map(event_f handler, tw_lpid id)
 {
     if (g_tw_synchronization_protocol != SEQUENTIAL)
