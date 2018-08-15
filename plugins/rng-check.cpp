@@ -43,6 +43,19 @@ void rng_check_event(const std::string& event, int32_t src, int32_t step, const 
 	save_events(step, "ross/fwd_event", num_rng, 0.0, events);
 	rng_check(step);
 
+	variable_gc(step, "ross/fwd_event/src_lp");
+	variable_gc(step, "ross/fwd_event/dest_lp");
+	variable_gc(step, "ross/fwd_event/send_ts");
+	variable_gc(step, "ross/fwd_event/recv_ts");
+	variable_gc(step, "ross/fwd_event/ev_name");
+	variable_gc(step, "ross/fwd_event/rng_count");
+
+	variable_gc(step, "ross/rev_event/src_lp");
+	variable_gc(step, "ross/rev_event/dest_lp");
+	variable_gc(step, "ross/rev_event/send_ts");
+	variable_gc(step, "ross/rev_event/recv_ts");
+	variable_gc(step, "ross/rev_event/ev_name");
+	variable_gc(step, "ross/rev_event/rng_count");
 }
 
 void rng_check(int32_t step)
@@ -72,16 +85,16 @@ void rng_check(int32_t step)
 	    //if (ev_names->GetBlock(cur_source, step, cur_id))
 		//	cur_name = string((char*)ev_names->GetBlock(cur_source, step, cur_id)->GetDataSpace().GetData());
 
-		shared_ptr<Event> seq_event = get_event(events, cur_src_lp, cur_dest_lp, cur_send_ts, cur_recv_ts);
+		shared_ptr<Event> fwd_event = get_event(events, cur_src_lp, cur_dest_lp, cur_send_ts, cur_recv_ts);
 		//cout << "event " << cur_src_lp << ", " << cur_dest_lp << ", " 
 		//	<< cur_send_ts << ", "<< cur_recv_ts << ", " <<  cur_rng_counts[0] << endl;
-		if (seq_event)
+		if (fwd_event)
 		{
 			for (int i = 0; i < num_rng; i++)
 			{
-				//cout << "seq[i] " << seq_event->get_rng_count(i);
+				//cout << "seq[i] " << fwd_event->get_rng_count(i);
 				//cout << " opt[i] " << cur_rng_counts[i] << endl;;
-				if (seq_event->get_rng_count(i) != cur_rng_counts[i])
+				if (fwd_event->get_rng_count(i) != cur_rng_counts[i])
 				{
 					cout << "RNG ERROR FOUND LP " << cur_src_lp << endl; 
 				}
@@ -127,5 +140,23 @@ void rng_check_setup(const std::string& event, int32_t src, int32_t step, const 
         cout << "num_rngs variable not found!" << endl;
 
     cout << "end rng_check_setup: num_pe " << num_pe << " num_rng " << num_rng << endl;
+}
+
+void rng_check_finalize(const std::string& event, int32_t src, int32_t step, const char* args)
+{
+	cout << "\n*************** DAMARIS OPTIMISTIC RNG DEBUG FINAL OUTPUT ***************" << endl;
+	//if (errors_found)
+	//{
+	//	cout << "\nOptimistic Errors were found!" << endl; 
+	//	cout << "Try looking at LP " << first_error_lpid << " for RC bugs ";
+	//    cout << "in event function handler: ";
+	//	if (event_id != -1)
+	//		cout << event_handlers[event_id] << " specifically: " << first_error_name << endl;
+	//	else
+	//		cout << "\nEVENT SYMBOL WAS NOT FOUND DURING INITIALIZATION" << endl;
+	//}
+	//else
+	//	cout << "\nNo Optimistic Errors detected!" << endl;
+	//cout << endl;
 }
 }

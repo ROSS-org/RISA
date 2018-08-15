@@ -238,6 +238,7 @@ void st_damaris_rng_check_end_iteration()
 {
     int err;
     st_damaris_end_iteration();
+    event_block = 0;
     if (!initialized)
     { // here in order to ensure all ROSS ranks have gotten their values in
         if ((err = damaris_signal("rng_check_setup")) != DAMARIS_OK)
@@ -270,29 +271,6 @@ void st_damaris_opt_debug_data(tw_pe *pe)
     }
     if ((err = damaris_signal("opt_debug")) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, "opt_debug");
-    it_no++;
-}
-
-/**
- * @brief RNG check data
- */
-void st_damaris_opt_rng_data(tw_pe *pe)
-{
-    int err;
-
-    //printf("[GVT: %f, it: %d] rank %ld (sync=%d) has committed %llu events\n", 
-    //        pe->GVT, it_no, g_tw_mynode, g_tw_synchronization_protocol, pe->stats.s_committed_events);
-
-    st_damaris_end_iteration();
-    event_block = 0;
-    if (!initialized)
-    { // here in order to ensure all ROSS ranks have gotten their values in
-        if ((err = damaris_signal("opt_debug_setup")) != DAMARIS_OK)
-            st_damaris_error(TW_LOC, err, "opt_debug_setup");
-        initialized = 1;
-    }
-    if ((err = damaris_signal("rng_check")) != DAMARIS_OK)
-        st_damaris_error(TW_LOC, err, "rng_check");
     it_no++;
 }
 
@@ -452,8 +430,16 @@ void st_damaris_opt_debug_finalize()
 {
     int err;
 
-    if ((err = damaris_signal("opt_debug_finalize")) != DAMARIS_OK)
-        st_damaris_error(TW_LOC, err, "opt_debug_finalize");
+    if (g_st_opt_debug)
+    {
+        if ((err = damaris_signal("opt_debug_finalize")) != DAMARIS_OK)
+            st_damaris_error(TW_LOC, err, "opt_debug_finalize");
+    }
+    if (g_st_rng_check)
+    {
+        if ((err = damaris_signal("rng_check_finalize")) != DAMARIS_OK)
+            st_damaris_error(TW_LOC, err, "rng_check_finalize");
+    }
 }
 
 /**
