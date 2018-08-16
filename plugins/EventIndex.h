@@ -54,9 +54,9 @@ typedef boost::multi_index_container<
                         bmi::const_mem_fun<Event,float,&Event::get_recv_ts>
                     >
                 >,
-                bmi::hashed_unique<bmi::tag<by_event_id>,
+                bmi::ordered_non_unique<bmi::tag<by_event_id>,
                     bmi::composite_key<Event,
-                        bmi::const_mem_fun<Event,int,&Event::get_dest_pe>,
+                        bmi::const_mem_fun<Event,int,&Event::get_source_pe>,
                         bmi::const_mem_fun<Event,long,&Event::get_event_id>
                     >
                 >

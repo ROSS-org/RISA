@@ -48,14 +48,14 @@ void rng_check_event(const std::string& event, int32_t src, int32_t step, const 
 	variable_gc(step, "ross/fwd_event/send_ts");
 	variable_gc(step, "ross/fwd_event/recv_ts");
 	variable_gc(step, "ross/fwd_event/ev_name");
-	variable_gc(step, "ross/fwd_event/rng_count");
+	variable_gc(step, "ross/fwd_event/rng_count_before");
 
 	variable_gc(step, "ross/rev_event/src_lp");
 	variable_gc(step, "ross/rev_event/dest_lp");
 	variable_gc(step, "ross/rev_event/send_ts");
 	variable_gc(step, "ross/rev_event/recv_ts");
 	variable_gc(step, "ross/rev_event/ev_name");
-	variable_gc(step, "ross/rev_event/rng_count");
+	variable_gc(step, "ross/rev_event/rng_count_before");
 }
 
 void rng_check(int32_t step)
@@ -66,8 +66,10 @@ void rng_check(int32_t step)
 	shared_ptr<Variable> send_ts = VariableManager::Search("ross/rev_event/send_ts");
 	shared_ptr<Variable> recv_ts = VariableManager::Search("ross/rev_event/recv_ts");
 	shared_ptr<Variable> event_ids = VariableManager::Search("ross/rev_event/event_id");
+	shared_ptr<Variable> send_pes = VariableManager::Search("ross/rev_event/src_pe");
 	shared_ptr<Variable> ev_names = VariableManager::Search("ross/rev_event/ev_name");
-	shared_ptr<Variable> rng_count = VariableManager::Search("ross/rev_event/rng_count");
+	shared_ptr<Variable> rng_count_before = VariableManager::Search("ross/rev_event/rng_count_before");
+	shared_ptr<Variable> rng_count_end = VariableManager::Search("ross/rev_event/rng_count_end");
 
 	BlocksByIteration::iterator it;
 	BlocksByIteration::iterator end;
@@ -81,29 +83,73 @@ void rng_check(int32_t step)
 		int cur_dest_lp = *(int*)dest_lps->GetBlock(cur_source, step, cur_id)->GetDataSpace().GetData();
 		float cur_send_ts = *(float*)send_ts->GetBlock(cur_source, step, cur_id)->GetDataSpace().GetData();
 		float cur_recv_ts = *(float*)recv_ts->GetBlock(cur_source, step, cur_id)->GetDataSpace().GetData();
+		int cur_send_pe = *(int*)send_pes->GetBlock(cur_source, step, cur_id)->GetDataSpace().GetData();
 		long ev_id = *(long*)event_ids->GetBlock(cur_source, step, cur_id)->GetDataSpace().GetData();
-		long *cur_rng_counts = (long*)rng_count->GetBlock(cur_source, step, cur_id)->GetDataSpace().GetData();
+		long *cur_rng_count_before = (long*)rng_count_before->GetBlock(cur_source, step, cur_id)->GetDataSpace().GetData();
+		long *cur_rng_count_end = (long*)rng_count_end->GetBlock(cur_source, step, cur_id)->GetDataSpace().GetData();
 		string cur_name;
-	    //if (ev_names->GetBlock(cur_source, step, cur_id))
-		//	cur_name = string((char*)ev_names->GetBlock(cur_source, step, cur_id)->GetDataSpace().GetData());
+	    if (ev_names->GetBlock(cur_source, step, cur_id))
+			cur_name = string((char*)ev_names->GetBlock(cur_source, step, cur_id)->GetDataSpace().GetData());
 
-		shared_ptr<Event> fwd_event = get_event_by_id(events, cur_source, ev_id);
-		//cout << "event " << cur_src_lp << ", " << cur_dest_lp << ", " 
-		//	<< cur_send_ts << ", "<< cur_recv_ts << ", " <<  cur_rng_counts[0] << endl;
-		if (fwd_event)
-		{
-			for (int i = 0; i < num_rng; i++)
-			{
-				//cout << "seq[i] " << fwd_event->get_rng_count(i);
-				//cout << " opt[i] " << cur_rng_counts[i] << endl;;
-				if (fwd_event->get_rng_count(i) != cur_rng_counts[i])
-				{
-					cout << "RNG ERROR FOUND LP " << cur_src_lp << endl; 
-				}
-			}
-		}
-        else
-            cout << "error: didn't find a fwd event" << endl;
+        std::pair<EventsByID::iterator, EventsByID::iterator> ev_iterators = get_events_by_id(events, cur_send_pe, ev_id);
+        EventsByID::iterator evit = ev_iterators.first;
+        bool found = false;
+        //cout << "rev_event: (" << cur_send_pe << ", " << ev_id << ") (" << cur_src_lp << ", " << cur_dest_lp << ", " 
+        //    << cur_send_ts << ", "<< cur_recv_ts << ") " <<  cur_rng_counts[0] << endl;
+        while (evit != ev_iterators.second)
+        {
+            //(*evit)->print_event_data("fwd_event");
+            if (cur_src_lp == (*evit)->get_src_lp() && cur_dest_lp == (*evit)->get_dest_lp() &&
+                    cur_send_ts == (*evit)->get_send_ts() && cur_recv_ts == (*evit)->get_recv_ts())
+            {
+                // now check RNG counters
+                bool all_match = true;
+                for (int i = 0; i < num_rng; i++)
+                {
+                    if (cur_rng_count_end[i] != (*evit)->get_rng_count_before(i) ||
+                            cur_rng_count_before[i] != (*evit)->get_rng_count_end(i))
+                        all_match = false;
+                }
+                if (all_match)
+                {
+                    found = true;
+                    break;
+                }
+            }
+            //else
+            //{
+            //    cout << "possible error: fwd and rev events don't match!" << endl;
+            //    cout << "rev_event cur_send_pe " << cur_send_pe << " event id " << ev_id << ": " << cur_src_lp << ", " << cur_dest_lp << ", " 
+            //        << cur_send_ts << ", "<< cur_recv_ts << ", " <<  cur_rng_counts[0] << endl;
+            //    (*evit)->print_event_data("fwd_event");
+            //}
+            evit++;
+        }
+
+        if (!found)
+        {
+            cout << "RNG ERROR FOUND LP " << cur_dest_lp << " event: " << cur_name << endl; 
+            cout << "rev_event cur_send_pe " << cur_send_pe << " event id " << ev_id << ": " << cur_src_lp << ", " << cur_dest_lp << ", " 
+                << cur_send_ts << ", "<< cur_recv_ts << ", " <<  cur_rng_count_before[0] << endl;
+        }
+
+		//if (fwd_event)
+		//{
+		//	for (int i = 0; i < num_rng; i++)
+		//	{
+		//		//cout << "seq[i] " << fwd_event->get_rng_count(i);
+		//		//cout << " opt[i] " << cur_rng_counts[i] << endl;;
+		//		if (fwd_event->get_rng_count(i) != cur_rng_counts[i])
+		//		{
+		//			cout << "RNG ERROR FOUND LP " << cur_src_lp << endl; 
+        //            cout << "rev_event cur_send_pe " << cur_send_pe << " event id " << ev_id << ": " << cur_src_lp << ", " << cur_dest_lp << ", " 
+        //                << cur_send_ts << ", "<< cur_recv_ts << ", " <<  cur_rng_counts[0] << endl;
+        //            fwd_event->print_event_data("fwd_event");
+		//		}
+		//	}
+		//}
+        //else
+        //    cout << "error: didn't find a fwd event" << endl;
 		it++;
 	}
 

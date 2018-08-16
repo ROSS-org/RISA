@@ -33,13 +33,11 @@ shared_ptr<Event> get_event(EventIndex& events, int src_lp, int dest_lp, float s
 	return *begin;
 }
 
-shared_ptr<Event> get_event_by_id(EventIndex& events, int peid, long event_id)
+std::pair<EventsByID::iterator, EventsByID::iterator> get_events_by_id(EventIndex& events, int peid, long event_id)
 {
-	const EventsByID::iterator& end = events.get<by_event_id>().end();
-	EventsByID::iterator begin = events.get<by_event_id>().find(
+    //cout << "get_event_by_id: " << events.get<by_event_id>().count(boost::make_tuple(peid, event_id)) << endl;
+	return events.get<by_event_id>().equal_range(
 			boost::make_tuple(peid, event_id));
-	if(begin == end) return shared_ptr<Event>();
-	return *begin;
 }
 
 shared_ptr<Event> get_spec_event(EventIndex& events, int dest_lp, float recv_ts)
@@ -58,9 +56,11 @@ void save_events(int32_t step, const std::string& var_prefix, int num_rng, float
 	shared_ptr<Variable> seq_dest_lps = VariableManager::Search(var_prefix + "/dest_lp");
 	shared_ptr<Variable> seq_send_ts = VariableManager::Search(var_prefix + "/send_ts");
 	shared_ptr<Variable> seq_recv_ts = VariableManager::Search(var_prefix + "/recv_ts");
+	shared_ptr<Variable> send_pes = VariableManager::Search(var_prefix + "/src_pe");
 	shared_ptr<Variable> event_ids = VariableManager::Search(var_prefix + "/event_id");
 	shared_ptr<Variable> ev_names = VariableManager::Search(var_prefix + "/ev_name");
-	shared_ptr<Variable> rng_count = VariableManager::Search(var_prefix + "/rng_count");
+	shared_ptr<Variable> rng_count_before = VariableManager::Search(var_prefix + "/rng_count_before");
+	shared_ptr<Variable> rng_count_end = VariableManager::Search(var_prefix + "/rng_count_end");
 	
 	BlocksByIteration::iterator it;
 	BlocksByIteration::iterator end;
@@ -78,8 +78,10 @@ void save_events(int32_t step, const std::string& var_prefix, int num_rng, float
 		cur_dest_lp = *(int*)seq_dest_lps->GetBlock(cur_source, step, cur_id)->GetDataSpace().GetData();
 		cur_send_ts = *(float*)seq_send_ts->GetBlock(cur_source, step, cur_id)->GetDataSpace().GetData();
 		cur_recv_ts = *(float*)seq_recv_ts->GetBlock(cur_source, step, cur_id)->GetDataSpace().GetData();
+		int cur_source_pe = *(int*)send_pes->GetBlock(cur_source, step, cur_id)->GetDataSpace().GetData();
         long ev_id = *(long*)event_ids->GetBlock(cur_source, step, cur_id)->GetDataSpace().GetData();
-		long *cur_rng_counts = (long*)rng_count->GetBlock(cur_source, step, cur_id)->GetDataSpace().GetData();
+		long *cur_rng_count_before = (long*)rng_count_before->GetBlock(cur_source, step, cur_id)->GetDataSpace().GetData();
+		long *cur_rng_count_end = (long*)rng_count_end->GetBlock(cur_source, step, cur_id)->GetDataSpace().GetData();
 		if (ev_names->GetBlock(cur_source, step, cur_id))
 			cur_name = string((char*)ev_names->GetBlock(cur_source, step, cur_id)->GetDataSpace().GetData());
 		else
@@ -89,12 +91,13 @@ void save_events(int32_t step, const std::string& var_prefix, int num_rng, float
 		e->set_gvt(current_gvt);
 		e->set_damaris_iteration(step);
 		e->set_event_name(cur_name);
-        e->set_dest_pe(cur_source);
+        e->set_source_pe(cur_source_pe);
         e->set_event_id(ev_id);
 		//cout << "rng counts: ";
 		for (int i = 0; i < num_rng; i++)
 		{
-			e->set_rng_count(i, cur_rng_counts[i]);
+			e->set_rng_count_before(i, cur_rng_count_before[i]);
+			e->set_rng_count_end(i, cur_rng_count_end[i]);
 			//cout << cur_rng_counts[i] << " ";
 		}
 

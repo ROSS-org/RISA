@@ -15,13 +15,15 @@ class Event
     float send_ts;
     float recv_ts;
     float gvt; // gvt when this event was committed
-    long *rng_count;
-    int dest_pe;
+    long *rng_count_before;
+    long *rng_count_end;
+    int source_pe;
     long event_id;
 
     int sync_type;
     int damaris_iteration;
     std::string event_name;
+    double real_time;
 
 
     public:
@@ -49,14 +51,22 @@ class Event
     virtual void set_event_name(std::string& name) { event_name = name; }
     virtual std::string get_event_name() const { return event_name; }
 
-    virtual void set_rng_count(int pos, long count) { rng_count[pos] = count; }
-    virtual long get_rng_count(int pos) { return rng_count[pos]; }
+    virtual void set_rng_count_before(int pos, long count) { rng_count_before[pos] = count; }
+    virtual long get_rng_count_before(int pos) { return rng_count_before[pos]; }
 
-    virtual void set_dest_pe(int peid) { dest_pe = peid; }
-    virtual int get_dest_pe() const { return dest_pe; }
+    virtual void set_rng_count_end(int pos, long count) { rng_count_end[pos] = count; }
+    virtual long get_rng_count_end(int pos) { return rng_count_end[pos]; }
+
+    virtual void set_source_pe(int peid) { source_pe = peid; }
+    virtual int get_source_pe() const { return source_pe; }
 
     virtual void set_event_id(long id) { event_id = id; }
     virtual long get_event_id() const { return event_id; }
+
+    virtual void set_real_time(double rt) { real_time = rt; }
+    virtual double get_real_time() const { return real_time; }
+
+    void print_event_data(const std::string& varname);
 };
 
 
