@@ -37,9 +37,14 @@ void rng_check_event(const std::string& event, int32_t src, int32_t step, const 
 	int pe_commit_ev[num_pe];
 	step--;
 
+	shared_ptr<Variable> p = VariableManager::Search("current_gvt");
+	if (p)
+		current_gvt = *(float*)p->GetBlock(0, step, 0)->GetDataSpace().GetData();
+	else
+		cout << "current_gvt not found!" << endl;
 	cout << "*************** starting step " << step <<
-		" ***************" << endl;
-	
+		" - current GVT: " << current_gvt << " ***************" << endl;
+
 	save_events(step, "ross/fwd_event", num_rng, 0.0, events);
 	rng_check(step);
 
@@ -47,15 +52,24 @@ void rng_check_event(const std::string& event, int32_t src, int32_t step, const 
 	variable_gc(step, "ross/fwd_event/dest_lp");
 	variable_gc(step, "ross/fwd_event/send_ts");
 	variable_gc(step, "ross/fwd_event/recv_ts");
+	variable_gc(step, "ross/fwd_event/event_id");
+	variable_gc(step, "ross/fwd_event/src_pe");
 	variable_gc(step, "ross/fwd_event/ev_name");
 	variable_gc(step, "ross/fwd_event/rng_count_before");
+	variable_gc(step, "ross/fwd_event/rng_count_end");
 
 	variable_gc(step, "ross/rev_event/src_lp");
 	variable_gc(step, "ross/rev_event/dest_lp");
 	variable_gc(step, "ross/rev_event/send_ts");
 	variable_gc(step, "ross/rev_event/recv_ts");
+	variable_gc(step, "ross/rev_event/event_id");
+	variable_gc(step, "ross/rev_event/src_pe");
 	variable_gc(step, "ross/rev_event/ev_name");
 	variable_gc(step, "ross/rev_event/rng_count_before");
+	variable_gc(step, "ross/rev_event/rng_count_end");
+
+
+    remove_events_below_gvt(events, current_gvt);
 }
 
 void rng_check(int32_t step)
@@ -96,6 +110,12 @@ void rng_check(int32_t step)
         bool found = false;
         //cout << "rev_event: (" << cur_send_pe << ", " << ev_id << ") (" << cur_src_lp << ", " << cur_dest_lp << ", " 
         //    << cur_send_ts << ", "<< cur_recv_ts << ") " <<  cur_rng_counts[0] << endl;
+        if (evit == ev_iterators.second)
+        {
+            // TODO we must be losing events when deleting from MultiIndex
+            cout << "No forward events found" << endl;
+            found = true;
+        }
         while (evit != ev_iterators.second)
         {
             //(*evit)->print_event_data("fwd_event");
@@ -130,7 +150,28 @@ void rng_check(int32_t step)
         {
             cout << "RNG ERROR FOUND LP " << cur_dest_lp << " event: " << cur_name << endl; 
             cout << "rev_event cur_send_pe " << cur_send_pe << " event id " << ev_id << ": " << cur_src_lp << ", " << cur_dest_lp << ", " 
-                << cur_send_ts << ", "<< cur_recv_ts << ", " <<  cur_rng_count_before[0] << endl;
+                << cur_send_ts << ", "<< cur_recv_ts << "; ";
+            for (int i = 0; i < num_rng; i++)
+            {
+                cout << "rng_count[" << i << "] (" << cur_rng_count_before[i] << ", " << cur_rng_count_end[i] << ") ";
+            }
+            cout << endl;
+            evit = ev_iterators.first;
+            while (evit != ev_iterators.second)
+            {
+                if (cur_src_lp == (*evit)->get_src_lp() && cur_dest_lp == (*evit)->get_dest_lp() &&
+                        cur_send_ts == (*evit)->get_send_ts() && cur_recv_ts == (*evit)->get_recv_ts())
+                {
+                    for (int i = 0; i < num_rng; i++)
+                    {
+                        if (cur_rng_count_end[i] != (*evit)->get_rng_count_before(i) ||
+                                cur_rng_count_before[i] != (*evit)->get_rng_count_end(i))
+                            (*evit)->print_event_data("fwd_event");
+                    }
+                }
+
+                evit++;
+            }
         }
 
 		//if (fwd_event)

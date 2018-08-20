@@ -40,6 +40,14 @@ std::pair<EventsByID::iterator, EventsByID::iterator> get_events_by_id(EventInde
 			boost::make_tuple(peid, event_id));
 }
 
+void remove_events_below_gvt(EventIndex& events, float gvt)
+{
+    EventByRecv::iterator begin = events.get<by_recv_ts>().lower_bound(0.0);
+    EventByRecv::iterator end = events.get<by_recv_ts>().upper_bound(gvt);
+
+    events.get<by_recv_ts>().erase(begin, end);
+}
+
 shared_ptr<Event> get_spec_event(EventIndex& events, int dest_lp, float recv_ts)
 {
 	const EventsPartial::iterator& end = events.get<by_partial>().end();

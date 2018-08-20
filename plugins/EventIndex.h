@@ -20,6 +20,7 @@ namespace bmi = boost::multi_index;
 struct by_src_lp {};
 struct by_send_ts {};
 struct by_recv_ts {};
+struct by_gvt {};
 struct by_full_event {};
 struct by_partial {};
 struct by_damaris_it {};

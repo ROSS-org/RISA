@@ -11,7 +11,7 @@ MPI_Comm MPI_COMM_ROSS_FULL; // only for use with optimistic debug mode
 static int full_ross_rank = -1; // rank within MPI_COMM_ROSS_FULL
 static tw_stime current_gvt = 0.0;
 static tw_stime prev_gvt = 0.0;
-static void opt_debug_pe_data(tw_pe *pe, tw_statistics *s);
+static void opt_debug_pe_data(tw_pe *pe);
 static int first_iteration = 1;
 static int initialized = 0;
 static int event_block = 0;
@@ -198,7 +198,7 @@ void st_damaris_debug_end_iteration(tw_pe *pe)
     if (g_st_opt_debug)
         st_damaris_opt_debug_sync(pe);
     else if (g_st_rng_check)
-        st_damaris_rng_check_end_iteration();
+        st_damaris_rng_check_end_iteration(pe);
 }
 
 /**
@@ -234,9 +234,10 @@ tw_stime st_damaris_opt_debug_sync(tw_pe *pe)
 /**
  * @brief Wrap up a Damaris iteration for the RNG Check component
  */
-void st_damaris_rng_check_end_iteration()
+void st_damaris_rng_check_end_iteration(tw_pe *pe)
 {
     int err;
+    opt_debug_pe_data(pe);
     st_damaris_end_iteration();
     event_block = 0;
     if (!initialized)
@@ -287,7 +288,7 @@ void opt_debug_expose_data(tw_pe *pe)
 
     // collect data for each entity
     if (g_st_pe_data)
-        opt_debug_pe_data(pe, &s);
+        opt_debug_pe_data(pe);
     if (g_st_lp_data)
         opt_debug_lp_data();
 
@@ -296,15 +297,12 @@ void opt_debug_expose_data(tw_pe *pe)
 /**
  * @brief Expose PE opt debugging data
  */
-static void opt_debug_pe_data(tw_pe *pe, tw_statistics *s)
+static void opt_debug_pe_data(tw_pe *pe)
 {
-    int err, i, block = 0;
-    int committed_ev = (int)pe->stats.s_committed_events;
+    int err, block = 0;
     float gvt = (float)pe->GVT;
 
     // let damaris know we're done updating data
-    if ((err = damaris_write_block("ross/pes/gvt_inst/committed_events", block, &committed_ev)) != DAMARIS_OK)
-        st_damaris_error(TW_LOC, err, "ross/pes/gvt_inst/committed_events");
     if ((err = damaris_write_block("current_gvt", block, &gvt)) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, "current_gvt");
 }
@@ -334,10 +332,10 @@ static void opt_debug_lp_data()
  */
 void st_damaris_call_event(tw_event *cev, tw_lp *clp)
 {
-    if (!cev->rng_count_before)
-        cev->rng_count_before = tw_calloc(TW_LOC, "damaris", sizeof(unsigned long), g_tw_nRNG_per_lp);
-    if (!cev->rng_count_end)
-        cev->rng_count_end = tw_calloc(TW_LOC, "damaris", sizeof(unsigned long), g_tw_nRNG_per_lp);
+    //if (!cev->rng_count_before)
+    //    cev->rng_count_before = tw_calloc(TW_LOC, "damaris", sizeof(unsigned long), g_tw_nRNG_per_lp);
+    //if (!cev->rng_count_end)
+    //    cev->rng_count_end = tw_calloc(TW_LOC, "damaris", sizeof(unsigned long), g_tw_nRNG_per_lp);
     
     int i;
     for (i = 0; i < g_tw_nRNG_per_lp; i++)

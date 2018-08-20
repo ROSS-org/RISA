@@ -18,8 +18,9 @@ Event::Event(int src, int dest, float send, float recv, int num_rng)
 void Event::print_event_data(const std::string& varname)
 {
     cout << varname << ": (" << source_pe << ", " <<event_id << ") ("
-        << src_lp << ", " << dest_lp << ", " << send_ts << ", " << recv_ts << ") "
-        << rng_count_before[0] << ", " << rng_count_end[0] << " event_name: " << event_name << endl;
+        << src_lp << ", " << dest_lp << ", " << send_ts << ", " << recv_ts << ") rng[0]("
+        << rng_count_before[0] << ", " << rng_count_end[0] << "), rng[1](" <<
+        rng_count_before[1] << ", " << rng_count_end[1] << ") event_name: " << event_name << endl;
 }
 
 }

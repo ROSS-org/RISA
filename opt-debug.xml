@@ -86,7 +86,7 @@
                 <variable name="rng_count_before" layout="rng_layout" visualizable="false" time-varying="true" />
                 <variable name="rng_count_end" layout="rng_layout" visualizable="false" time-varying="true" />
             </group>
-            <group name="opt_event">
+            <!--<group name="opt_event">
                 <variable name="src_lp" layout="int" visualizable="false" time-varying="true" />
                 <variable name="dest_lp" layout="int" visualizable="false" time-varying="true" />
                 <variable name="send_ts" layout="float" visualizable="false" time-varying="true" />
@@ -118,7 +118,7 @@
                 <group name="gvt_inst">
                     <variable name="committed_events" layout="lp_int_layout" visualizable="true" time-varying="true" type="scalar" mesh="mesh2d_lp" centering="zonal" />
                 </group>
-            </group>
+            </group>-->
         </group>
     </data>
     <actions>
