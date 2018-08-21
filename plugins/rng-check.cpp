@@ -10,6 +10,7 @@
 
 using namespace damaris;
 using namespace opt_debug;
+using namespace std;
 
 extern "C" {
 
@@ -28,6 +29,7 @@ static char **event_handlers;
 static int num_types;
 static EventIndex events;
 static EventIndex spec_events;
+static set<string> error_set;
 
 void rng_check(int32_t step);
 
@@ -148,6 +150,7 @@ void rng_check(int32_t step)
 
         if (!found)
         {
+            error_set.insert(cur_name);
             cout << "RNG ERROR FOUND LP " << cur_dest_lp << " event: " << cur_name << endl; 
             cout << "rev_event cur_send_pe " << cur_send_pe << " event id " << ev_id << ": " << cur_src_lp << ", " << cur_dest_lp << ", " 
                 << cur_send_ts << ", "<< cur_recv_ts << "; ";
@@ -236,6 +239,17 @@ void rng_check_setup(const std::string& event, int32_t src, int32_t step, const 
 void rng_check_finalize(const std::string& event, int32_t src, int32_t step, const char* args)
 {
 	cout << "\n*************** DAMARIS OPTIMISTIC RNG DEBUG FINAL OUTPUT ***************" << endl;
+    if (error_set.empty())
+    {
+        cout << "\nNo RNG Errors were detected!" << endl;
+    }
+    else
+    {
+        cout << "\nRNG Errors were detected! Inspect the following event handlers:" << endl;
+        for (set<string>::iterator it = error_set.begin(); it != error_set.end(); ++it)
+            cout << *it << endl;
+
+    }
 	//if (errors_found)
 	//{
 	//	cout << "\nOptimistic Errors were found!" << endl; 
