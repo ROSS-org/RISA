@@ -3,9 +3,12 @@ PROJECT(ROSS_Damaris)
 SET(DAMARIS_DIR $ENV{DAMARIS_DIR} CACHE STRING "Path to Damaris install")
 OPTION(USE_VISIT "Use VisIt (requires Damaris)" OFF)
 
+SET(FLATBUF_DIR $ENV{FLATBUF_DIR} CACHE STRING "Path to Flatbuffers install")
+
 ## set some internal cache vars that can be used in ROSS and model builds
 SET(DAMARIS_INCLUDE ${DAMARIS_DIR}/include CACHE INTERNAL "")
 SET(DAMARIS_LIBRARY ${DAMARIS_DIR}/lib CACHE INTERNAL "")
+SET(FLATBUF_INCLUDE ${FLATBUF_DIR}/include CACHE INTERNAL "")
 
 SET(LINKER_STR "-rdynamic -L${DAMARIS_LIBRARY} -Wl,--whole-archive,-ldamaris,--no-whole-archive -lxerces-c -lboost_log -lboost_log_setup -lboost_filesystem -lboost_system -lboost_date_time -lboost_thread -lstdc++ -lmpi_cxx -lrt -ldl -lpthread")
 IF (USE_VISIT)

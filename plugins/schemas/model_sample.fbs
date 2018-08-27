@@ -1,0 +1,11 @@
+// IDL file for schema for Damaris collected data
+
+namespace ross_damaris.sample;
+
+table ModelData {
+    model_ref:int (hash: "fnv1_32");
+
+    // other model tables go here
+}
+
+root_type ModelData;

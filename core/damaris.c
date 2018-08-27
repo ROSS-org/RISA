@@ -169,6 +169,67 @@ static void set_parameters()
 
     if ((err = damaris_parameter_set("num_kp", &num_kp, sizeof(num_kp))) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, "num_kp");
+
+    if ((err = damaris_write("ross/nlp", &num_lp)) != DAMARIS_OK)
+        st_damaris_error(TW_LOC, err, "num_lp");
+
+    if ((err = damaris_write("ross/nkp", &num_kp)) != DAMARIS_OK)
+        st_damaris_error(TW_LOC, err, "num_kp");
+
+    int inst_modes_sim[4];
+    int inst_modes_model[4];
+    switch (g_st_engine_stats)
+    {
+        case NO_STATS:
+            break;
+        case GVT_STATS:
+            inst_modes_sim[0] = 1;
+            break;
+        case RT_STATS:
+            inst_modes_sim[1] = 1;
+            break;
+        case VT_STATS:
+            inst_modes_sim[2] = 1;
+            break;
+        case ALL_STATS:
+            inst_modes_sim[0] = 1;
+            inst_modes_sim[1] = 1;
+            inst_modes_sim[2] = 1;
+            break;
+        default:
+            break;
+    }
+    switch (g_st_model_stats)
+    {
+        case NO_STATS:
+            break;
+        case GVT_STATS:
+            inst_modes_model[0] = 1;
+            break;
+        case RT_STATS:
+            inst_modes_model[1] = 1;
+            break;
+        case VT_STATS:
+            inst_modes_model[2] = 1;
+            break;
+        case ALL_STATS:
+            inst_modes_model[0] = 1;
+            inst_modes_model[1] = 1;
+            inst_modes_model[2] = 1;
+            break;
+        default:
+            break;
+    }
+    if (g_st_ev_trace)
+    {
+        inst_modes_sim[3] = 1;
+        inst_modes_model[3] = 1;
+    }
+
+    if ((err = damaris_write("ross/inst_modes_sim", &inst_modes_sim[0])) != DAMARIS_OK)
+        st_damaris_error(TW_LOC, err, "ross/inst_modes_sim");
+    if ((err = damaris_write("ross/inst_modes_model", &inst_modes_model[0])) != DAMARIS_OK)
+        st_damaris_error(TW_LOC, err, "ross/inst_modes_model");
 }
 
 /**
@@ -346,11 +407,25 @@ void st_damaris_ross_finalize()
  */
 void st_damaris_expose_data(tw_pe *me, tw_stime gvt, int inst_type)
 {
+    if (g_tw_gvt_done % g_st_num_gvt != 0)
+        return;
+
     int err, i;
 
     tw_statistics s;
     bzero(&s, sizeof(s));
     tw_get_stats(me, &s);
+
+    printf("%ld: damaris_expose_data\n", g_tw_mynode);
+
+    double real_ts = (double)tw_clock_read() / g_tw_clock_rate;
+    if (g_tw_mynode == g_tw_masternode)
+    {
+        if ((err = damaris_write_block("ross/real_time", 0, &real_ts)) != DAMARIS_OK)
+            st_damaris_error(TW_LOC, err, "ross/real_time");
+        if ((err = damaris_write_block("ross/last_gvt", 0, &gvt)) != DAMARIS_OK)
+            st_damaris_error(TW_LOC, err, "ross/last_gvt");
+    }
 
     // collect data for each entity
     if (g_st_pe_data)
@@ -533,15 +608,30 @@ static void reset_block_counter(int *counter)
  * Iterations should always end at GVT (though it doesn't have to be every GVT), because
  * the call to damaris_end_iteration() contains a collective call.
  */
+static int streaming_init = 0;
 void st_damaris_end_iteration()
 {
     int err;
-
     if ((err = damaris_signal("damaris_gc")) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, "damaris_gc");
 
-    if ((err = damaris_end_iteration()) != DAMARIS_OK)
-        st_damaris_error(TW_LOC, err, "end iteration");
+    if (!streaming_init)
+    {
+        printf("rank %ld signaling setup_simulation_config\n", g_tw_mynode);
+        if ((err = damaris_signal("setup_simulation_config")) != DAMARIS_OK)
+            st_damaris_error(TW_LOC, err, "setup_simulation_config");
+
+        streaming_init = 1;
+    }
+
+    if (g_tw_gvt_done % g_st_num_gvt == 0)
+    {
+        if ((err = damaris_end_iteration()) != DAMARIS_OK)
+            st_damaris_error(TW_LOC, err, "end iteration");
+        if ((err = damaris_signal("write_data")) != DAMARIS_OK)
+            st_damaris_error(TW_LOC, err, "write_data");
+    }
+
     iterations++;
     //if (vt_block_counter > 0)
     //    printf("PE %ld end iteration #%d vt_block_counter = %d\n", g_tw_mynode, iterations, vt_block_counter);

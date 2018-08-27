@@ -15,6 +15,7 @@
         <parameter name="num_lp" type="int" value="0" />
         <parameter name="num_pe" type="int" value="0" />
         <parameter name="num_kp" type="int" value="0" />
+        <parameter name="num_modes" type="int" value="4" />
 
         <layout name="pe_id_layout" type="double" dimensions="2" /> 
         <layout name="pe_int_layout" type="int" dimensions="num_pe, 1" />
@@ -30,6 +31,8 @@
         <layout name="kp_id_layout" type="double" dimensions="num_kp+1" /> 
         <layout name="kp_int_layout" type="int" dimensions="num_kp" />
         <layout name="kp_float_layout" type="float" dimensions="num_kp" />
+
+        <layout name="inst_mode_layout" type="int" dimensions="num_modes" />
 
         <mesh name="mesh2d_lp" type="rectilinear" topology="2">
             <coord name="ross/lp_id" unit="lp_id" label="LP ID" />
@@ -53,6 +56,15 @@
             <variable name="kp_id" layout="kp_id_layout" visualizable="false" time-varying="false" />
             <variable name="lp_id" layout="lp_id_layout" visualizable="false" time-varying="false" />
             <variable name="dummy" layout="dummy_layout" visualizable="false" time-varying="false" />
+
+            <variable name="inst_modes_sim" layout="inst_mode_layout" visualizable="false" time-varying="false" />
+            <variable name="inst_modes_model" layout="inst_mode_layout" visualizable="false" time-varying="false" />
+            <variable name="nlp" layout="int" visualizable="false" time-varying="false" />
+            <variable name="nkp" layout="int" visualizable="false" time-varying="false" />
+
+            <variable name="virtual_time" layout="double" visualizable="false" time-varying="true" />
+            <variable name="last_gvt" layout="double" visualizable="false" time-varying="true" />
+            <variable name="real_time" layout="double" visualizable="false" time-varying="true" />
 
             <group name = "pes">
                 <group name = "gvt_inst">
@@ -201,6 +213,8 @@
     </data>
     <actions>
         <event name="damaris_gc" action="damaris_gc" library="librdplugins.so" scope="group"/>
+        <event name="setup_simulation_config" action="setup_simulation_config" library="librdplugins.so" scope="group"/>
+        <event name="write_data" action="write_data" library="librdplugins.so" scope="group"/>
         <!-- <error event="damaris_gc"/> -->
         <!--<event name="test" action="aggregate_data" library="libROSS_Damaris.so" scope="group" />-->
     </actions>

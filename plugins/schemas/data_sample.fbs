@@ -1,0 +1,73 @@
+// IDL file for schema for Damaris collected data
+
+include "model_sample.fbs";
+
+namespace ross_damaris.sample;
+
+/// To identify what instrumentation mode the data comes from
+enum InstMode:int {
+    GVT,
+    VT,
+    RT,
+    ET
+}
+
+/// Sim engine metrics that are collected by Damaris
+/// These should have the same variable names as supplied in Damaris XML file!
+table SimEngineMetrics {
+    nevent_processed:int;
+    nevent_abort:int;
+    nevent_rb:int;
+    rb_total:int;
+    rb_prim:int;
+    rb_sec:int;
+    fc_attempts:int;
+    pq_qsize:int;
+    network_send:int;
+    network_recv:int;
+    num_gvt:int;
+    event_ties:int;
+    efficiency:float;
+    net_read_time:float;
+    net_other_time:float;
+    gvt_time:float;
+    fc_time:float;
+    event_abort_time:float;
+    event_proc_time:float;
+    pq_time:float;
+    rb_time:float;
+    cancel_q_time:float;
+    avl_time:float;
+    virtual_time_diff:float;
+}
+
+table LPData {
+    peid:int;
+    kpid:int;
+    lpid:int;
+    data:SimEngineMetrics;
+}
+
+table KPData {
+    peid:int;
+    kpid:int;
+    data:SimEngineMetrics;
+}
+
+table PEData {
+    peid:int;
+    data:SimEngineMetrics;
+}
+
+table DamarisDataSample {
+    virtual_ts:double;
+    real_ts:double;
+    last_gvt:double;
+    mode:InstMode;
+    pe_data:[PEData];
+    kp_data:[KPData];
+    lp_data:[LPData];
+    model_data:int (hash: "fnv1_32", cpp_type: "ModelData");
+}
+
+root_type DamarisDataSample;
