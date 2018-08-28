@@ -17,7 +17,7 @@ T *get_value_from_damaris(const std::string& varname, int32_t src, int32_t step,
         return (T*)v->GetBlock(src, step, block_id)->GetDataSpace().GetData();
     else
     {
-        cout << "ERROR in get_value_from_damaris() for variable " << varname << endl;
+        //cout << "ERROR in get_value_from_damaris() for variable " << varname << endl;
         return nullptr;
     }
 }
@@ -118,7 +118,9 @@ SimConfig sim_config;
 extern "C" {
 
 std::vector<flatbuffers::Offset<PEData>> pe_data_to_fb(
-        flatbuffers::FlatBufferBuilder& builder, int32_t src, int32_t step, const std::string& var_prefix);
+        flatbuffers::FlatBufferBuilder& builder, int32_t src, int32_t step);
+std::vector<flatbuffers::Offset<KPData>> kp_data_to_fb(
+        flatbuffers::FlatBufferBuilder& builder, int32_t src, int32_t step);
 
 ofstream data_file;
 // only call once, not per source
@@ -149,10 +151,10 @@ void write_data(const std::string& event, int32_t src, int32_t step, const char*
     step--;
     cout << "write_data() rank " << src << " step " << step << endl;
     flatbuffers::FlatBufferBuilder builder;
-    std::string var_prefix = "ross/pes/gvt_inst/";
 
     // setup sim engine data tables and model tables as needed
-    auto pe_data = pe_data_to_fb(builder, src, step, var_prefix);
+    auto pe_data = pe_data_to_fb(builder, src, step);
+    auto kp_data = kp_data_to_fb(builder, src, step);
 
     // then setup the DamarisDataSample table
     //DamarisDataSampleT data_sample;
@@ -160,18 +162,18 @@ void write_data(const std::string& event, int32_t src, int32_t step, const char*
     double virtual_ts = 0.0; // placeholder for now
     double real_ts = *get_value_from_damaris<double>("ross/real_time", 0, step, 0);
     double last_gvt = *get_value_from_damaris<double>("ross/last_gvt", 0, step, 0);
-    auto data_sample = CreateDamarisDataSampleDirect(builder, virtual_ts, real_ts, last_gvt, InstMode_GVT, &pe_data);
+    auto data_sample = CreateDamarisDataSampleDirect(builder, virtual_ts, real_ts, last_gvt, InstMode_GVT, &pe_data, &kp_data);
     
     builder.Finish(data_sample);
 
-	//auto s = flatbuffers::FlatBufferToString(builder.GetBufferPointer(), DamarisDataSampleTypeTable());
-	//cout << "current sample:\n" << s << endl;
+	auto s = flatbuffers::FlatBufferToString(builder.GetBufferPointer(), DamarisDataSampleTypeTable(), true);
+	cout << "current sample:\n" << s << endl;
     // Get pointer to the buffer and the size for writing to file
     uint8_t *buf = builder.GetBufferPointer();
     int size = builder.GetSize();
 	data_file.write(reinterpret_cast<const char*>(&size), sizeof(size));
     data_file.write(reinterpret_cast<const char*>(buf), size);
-	//cout << "wrote " << size + sizeof(size) << " bytes to file" << endl;
+	cout << "wrote " << size << " bytes to file" << endl;
 }
 
 void streaming_finalize(const std::string& event, int32_t src, int32_t step, const char* args)
@@ -179,36 +181,58 @@ void streaming_finalize(const std::string& event, int32_t src, int32_t step, con
     data_file.close();
 }
 
-flatbuffers::Offset<SimEngineMetrics> sim_engine_metrics_to_fb(flatbuffers::FlatBufferBuilder& builder,
-        int32_t src, int32_t step, const std::string& var_prefix)
+std::vector<flatbuffers::Offset<SimEngineMetrics>> sim_engine_metrics_to_fb(flatbuffers::FlatBufferBuilder& builder,
+        int32_t src, int32_t step, int32_t num_entities, const std::string& var_prefix)
 {
-    SimEngineMetricsBuilder metric_builder(builder);
-    const flatbuffers::TypeTable *tt = SimEngineMetricsTypeTable();
-    for (int i = 0; i < tt->num_elems; i++)
-        put_metric_in_buffer(metric_builder, static_cast<flatbuffers::ElementaryType>(tt->type_codes[i].base_type),
-                tt->names[i], var_prefix, src, step, 0);
-    return metric_builder.Finish();
+    std::vector<flatbuffers::Offset<SimEngineMetrics>> data;
+    for (int id = 0; id < num_entities; id++)
+    {
+        SimEngineMetricsBuilder metric_builder(builder);
+        const flatbuffers::TypeTable *tt = SimEngineMetricsTypeTable();
+        for (int i = 0; i < tt->num_elems; i++)
+            put_metric_in_buffer(metric_builder, static_cast<flatbuffers::ElementaryType>(tt->type_codes[i].base_type),
+                    tt->names[i], var_prefix, src, step, 0);
+
+        auto metrics = metric_builder.Finish();
+        data.push_back(metrics);
+    }
+    return data;
 }
 
 std::vector<flatbuffers::Offset<PEData>> pe_data_to_fb(
-        flatbuffers::FlatBufferBuilder& builder, int32_t src, int32_t step, const std::string& var_prefix)
+        flatbuffers::FlatBufferBuilder& builder, int32_t src, int32_t step)
 {
+    std::string var_prefix = "ross/pes/gvt_inst/";
     std::vector<flatbuffers::Offset<PEData>> pe_data;
     std::vector<flatbuffers::Offset<SimEngineMetrics>> engine_data;
     for (int i = 0; i < sim_config.num_pe; i++)
     {
-        auto metrics = sim_engine_metrics_to_fb(builder, src, step, var_prefix);
-        pe_data.push_back(CreatePEData(builder, i, metrics));
+        auto metrics = sim_engine_metrics_to_fb(builder, i, step, 1, var_prefix);
+        pe_data.push_back(CreatePEData(builder, i, metrics[0])); // for PEs, it will always be metrics[0]
     }
 
     return pe_data;
 }
 
-//flatbuffers::Offset<SimEngineKP> kp_data_to_fb(flatbuffers::FlatBufferBuilder& builder, int32_t src, int32_t step, const std::string& var_prefix)
-//{
-//
-//}
-//
+std::vector<flatbuffers::Offset<KPData>> kp_data_to_fb(
+        flatbuffers::FlatBufferBuilder& builder, int32_t src, int32_t step)
+{
+    std::string var_prefix = "ross/kps/gvt_inst/";
+    std::vector<flatbuffers::Offset<KPData>> kp_data;
+    std::vector<flatbuffers::Offset<SimEngineMetrics>> engine_data;
+    for (int i = 0; i < sim_config.num_pe; i++)
+    {
+        auto metrics = sim_engine_metrics_to_fb(builder, i, step, sim_config.kp_per_pe, var_prefix);
+        for (int j = 0; j < sim_config.kp_per_pe; j++)
+        {
+            int kp_gid = (i * sim_config.kp_per_pe) + j;
+            kp_data.push_back(CreateKPData(builder, i, j, kp_gid, metrics[j]));
+
+        }
+    }
+    return kp_data;
+}
+
 //flatbuffers::Offset<SimEngineLP> lp_data_to_fb(flatbuffers::FlatBufferBuilder& builder, int32_t src, int32_t step, const std::string& var_prefix)
 //{
 //

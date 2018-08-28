@@ -44,13 +44,16 @@ table SimEngineMetrics {
 table LPData {
     peid:int;
     kpid:int;
+    kp_gid:int;
     lpid:int;
+    lp_gid:int;
     data:SimEngineMetrics;
 }
 
 table KPData {
     peid:int;
     kpid:int;
+    kp_gid:int;
     data:SimEngineMetrics;
 }
 

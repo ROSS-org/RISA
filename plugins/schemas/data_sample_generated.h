@@ -411,12 +411,16 @@ struct LPDataT : public flatbuffers::NativeTable {
   typedef LPData TableType;
   int32_t peid;
   int32_t kpid;
+  int32_t kp_gid;
   int32_t lpid;
+  int32_t lp_gid;
   std::unique_ptr<SimEngineMetricsT> data;
   LPDataT()
       : peid(0),
         kpid(0),
-        lpid(0) {
+        kp_gid(0),
+        lpid(0),
+        lp_gid(0) {
   }
 };
 
@@ -428,8 +432,10 @@ struct LPData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum {
     VT_PEID = 4,
     VT_KPID = 6,
-    VT_LPID = 8,
-    VT_DATA = 10
+    VT_KP_GID = 8,
+    VT_LPID = 10,
+    VT_LP_GID = 12,
+    VT_DATA = 14
   };
   int32_t peid() const {
     return GetField<int32_t>(VT_PEID, 0);
@@ -437,8 +443,14 @@ struct LPData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   int32_t kpid() const {
     return GetField<int32_t>(VT_KPID, 0);
   }
+  int32_t kp_gid() const {
+    return GetField<int32_t>(VT_KP_GID, 0);
+  }
   int32_t lpid() const {
     return GetField<int32_t>(VT_LPID, 0);
+  }
+  int32_t lp_gid() const {
+    return GetField<int32_t>(VT_LP_GID, 0);
   }
   const SimEngineMetrics *data() const {
     return GetPointer<const SimEngineMetrics *>(VT_DATA);
@@ -447,7 +459,9 @@ struct LPData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     return VerifyTableStart(verifier) &&
            VerifyField<int32_t>(verifier, VT_PEID) &&
            VerifyField<int32_t>(verifier, VT_KPID) &&
+           VerifyField<int32_t>(verifier, VT_KP_GID) &&
            VerifyField<int32_t>(verifier, VT_LPID) &&
+           VerifyField<int32_t>(verifier, VT_LP_GID) &&
            VerifyOffset(verifier, VT_DATA) &&
            verifier.VerifyTable(data()) &&
            verifier.EndTable();
@@ -466,8 +480,14 @@ struct LPDataBuilder {
   void add_kpid(int32_t kpid) {
     fbb_.AddElement<int32_t>(LPData::VT_KPID, kpid, 0);
   }
+  void add_kp_gid(int32_t kp_gid) {
+    fbb_.AddElement<int32_t>(LPData::VT_KP_GID, kp_gid, 0);
+  }
   void add_lpid(int32_t lpid) {
     fbb_.AddElement<int32_t>(LPData::VT_LPID, lpid, 0);
+  }
+  void add_lp_gid(int32_t lp_gid) {
+    fbb_.AddElement<int32_t>(LPData::VT_LP_GID, lp_gid, 0);
   }
   void add_data(flatbuffers::Offset<SimEngineMetrics> data) {
     fbb_.AddOffset(LPData::VT_DATA, data);
@@ -488,11 +508,15 @@ inline flatbuffers::Offset<LPData> CreateLPData(
     flatbuffers::FlatBufferBuilder &_fbb,
     int32_t peid = 0,
     int32_t kpid = 0,
+    int32_t kp_gid = 0,
     int32_t lpid = 0,
+    int32_t lp_gid = 0,
     flatbuffers::Offset<SimEngineMetrics> data = 0) {
   LPDataBuilder builder_(_fbb);
   builder_.add_data(data);
+  builder_.add_lp_gid(lp_gid);
   builder_.add_lpid(lpid);
+  builder_.add_kp_gid(kp_gid);
   builder_.add_kpid(kpid);
   builder_.add_peid(peid);
   return builder_.Finish();
@@ -504,10 +528,12 @@ struct KPDataT : public flatbuffers::NativeTable {
   typedef KPData TableType;
   int32_t peid;
   int32_t kpid;
+  int32_t kp_gid;
   std::unique_ptr<SimEngineMetricsT> data;
   KPDataT()
       : peid(0),
-        kpid(0) {
+        kpid(0),
+        kp_gid(0) {
   }
 };
 
@@ -519,13 +545,17 @@ struct KPData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum {
     VT_PEID = 4,
     VT_KPID = 6,
-    VT_DATA = 8
+    VT_KP_GID = 8,
+    VT_DATA = 10
   };
   int32_t peid() const {
     return GetField<int32_t>(VT_PEID, 0);
   }
   int32_t kpid() const {
     return GetField<int32_t>(VT_KPID, 0);
+  }
+  int32_t kp_gid() const {
+    return GetField<int32_t>(VT_KP_GID, 0);
   }
   const SimEngineMetrics *data() const {
     return GetPointer<const SimEngineMetrics *>(VT_DATA);
@@ -534,6 +564,7 @@ struct KPData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     return VerifyTableStart(verifier) &&
            VerifyField<int32_t>(verifier, VT_PEID) &&
            VerifyField<int32_t>(verifier, VT_KPID) &&
+           VerifyField<int32_t>(verifier, VT_KP_GID) &&
            VerifyOffset(verifier, VT_DATA) &&
            verifier.VerifyTable(data()) &&
            verifier.EndTable();
@@ -551,6 +582,9 @@ struct KPDataBuilder {
   }
   void add_kpid(int32_t kpid) {
     fbb_.AddElement<int32_t>(KPData::VT_KPID, kpid, 0);
+  }
+  void add_kp_gid(int32_t kp_gid) {
+    fbb_.AddElement<int32_t>(KPData::VT_KP_GID, kp_gid, 0);
   }
   void add_data(flatbuffers::Offset<SimEngineMetrics> data) {
     fbb_.AddOffset(KPData::VT_DATA, data);
@@ -571,9 +605,11 @@ inline flatbuffers::Offset<KPData> CreateKPData(
     flatbuffers::FlatBufferBuilder &_fbb,
     int32_t peid = 0,
     int32_t kpid = 0,
+    int32_t kp_gid = 0,
     flatbuffers::Offset<SimEngineMetrics> data = 0) {
   KPDataBuilder builder_(_fbb);
   builder_.add_data(data);
+  builder_.add_kp_gid(kp_gid);
   builder_.add_kpid(kpid);
   builder_.add_peid(peid);
   return builder_.Finish();
@@ -922,7 +958,9 @@ inline void LPData::UnPackTo(LPDataT *_o, const flatbuffers::resolver_function_t
   (void)_resolver;
   { auto _e = peid(); _o->peid = _e; };
   { auto _e = kpid(); _o->kpid = _e; };
+  { auto _e = kp_gid(); _o->kp_gid = _e; };
   { auto _e = lpid(); _o->lpid = _e; };
+  { auto _e = lp_gid(); _o->lp_gid = _e; };
   { auto _e = data(); if (_e) _o->data = std::unique_ptr<SimEngineMetricsT>(_e->UnPack(_resolver)); };
 }
 
@@ -936,13 +974,17 @@ inline flatbuffers::Offset<LPData> CreateLPData(flatbuffers::FlatBufferBuilder &
   struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const LPDataT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _peid = _o->peid;
   auto _kpid = _o->kpid;
+  auto _kp_gid = _o->kp_gid;
   auto _lpid = _o->lpid;
+  auto _lp_gid = _o->lp_gid;
   auto _data = _o->data ? CreateSimEngineMetrics(_fbb, _o->data.get(), _rehasher) : 0;
   return ross_damaris::sample::CreateLPData(
       _fbb,
       _peid,
       _kpid,
+      _kp_gid,
       _lpid,
+      _lp_gid,
       _data);
 }
 
@@ -957,6 +999,7 @@ inline void KPData::UnPackTo(KPDataT *_o, const flatbuffers::resolver_function_t
   (void)_resolver;
   { auto _e = peid(); _o->peid = _e; };
   { auto _e = kpid(); _o->kpid = _e; };
+  { auto _e = kp_gid(); _o->kp_gid = _e; };
   { auto _e = data(); if (_e) _o->data = std::unique_ptr<SimEngineMetricsT>(_e->UnPack(_resolver)); };
 }
 
@@ -970,11 +1013,13 @@ inline flatbuffers::Offset<KPData> CreateKPData(flatbuffers::FlatBufferBuilder &
   struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const KPDataT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _peid = _o->peid;
   auto _kpid = _o->kpid;
+  auto _kp_gid = _o->kp_gid;
   auto _data = _o->data ? CreateSimEngineMetrics(_fbb, _o->data.get(), _rehasher) : 0;
   return ross_damaris::sample::CreateKPData(
       _fbb,
       _peid,
       _kpid,
+      _kp_gid,
       _data);
 }
 
@@ -1141,6 +1186,8 @@ inline const flatbuffers::TypeTable *LPDataTypeTable() {
     { flatbuffers::ET_INT, 0, -1 },
     { flatbuffers::ET_INT, 0, -1 },
     { flatbuffers::ET_INT, 0, -1 },
+    { flatbuffers::ET_INT, 0, -1 },
+    { flatbuffers::ET_INT, 0, -1 },
     { flatbuffers::ET_SEQUENCE, 0, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
@@ -1149,11 +1196,13 @@ inline const flatbuffers::TypeTable *LPDataTypeTable() {
   static const char * const names[] = {
     "peid",
     "kpid",
+    "kp_gid",
     "lpid",
+    "lp_gid",
     "data"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_TABLE, 4, type_codes, type_refs, nullptr, names
+    flatbuffers::ST_TABLE, 6, type_codes, type_refs, nullptr, names
   };
   return &tt;
 }
@@ -1162,6 +1211,7 @@ inline const flatbuffers::TypeTable *KPDataTypeTable() {
   static const flatbuffers::TypeCode type_codes[] = {
     { flatbuffers::ET_INT, 0, -1 },
     { flatbuffers::ET_INT, 0, -1 },
+    { flatbuffers::ET_INT, 0, -1 },
     { flatbuffers::ET_SEQUENCE, 0, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
@@ -1170,10 +1220,11 @@ inline const flatbuffers::TypeTable *KPDataTypeTable() {
   static const char * const names[] = {
     "peid",
     "kpid",
+    "kp_gid",
     "data"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_TABLE, 3, type_codes, type_refs, nullptr, names
+    flatbuffers::ST_TABLE, 4, type_codes, type_refs, nullptr, names
   };
   return &tt;
 }
