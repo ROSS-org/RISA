@@ -1,23 +1,12 @@
-//#include "schemas/data_sample_generated.h"
 #include "sim-config.h"
 #include "flatbuffers/minireflect.h"
 #include "damaris/data/VariableManager.hpp"
-//#include "data-def.h"
+#include <iostream>
+#include <fstream>
 
 using namespace ross_damaris;
 using namespace ross_damaris::sample;
 using namespace damaris;
-
-template <typename AddFn>
-void add_data(AddFn& add_fn, const std::string& varname, int32_t src, int32_t step, int32_t block_id)
-{
-    boost::shared_ptr<Variable> v = VariableManager::Search(varname);
-    if (v && v->GetBlock(src, step, block_id))
-    {
-        auto value = v->GetBlock(src, step, block_id)->GetDataSpace().GetData();
-        add_fn(value);
-    }
-}
 
 // return the pointer to the variable, because it may be a single value or an array
 template <typename T>
@@ -131,6 +120,7 @@ extern "C" {
 std::vector<flatbuffers::Offset<PEData>> pe_data_to_fb(
         flatbuffers::FlatBufferBuilder& builder, int32_t src, int32_t step, const std::string& var_prefix);
 
+ofstream data_file;
 // only call once, not per source
 void setup_simulation_config(const std::string& event, int32_t src, int32_t step, const char* args)
 {
@@ -151,6 +141,7 @@ void setup_simulation_config(const std::string& event, int32_t src, int32_t step
         sim_config.inst_mode_sim[i] = inst_modes_sim[i];
         sim_config.inst_mode_model[i] = inst_modes_model[i];
     }
+    data_file.open("test-fb.bin", ios::out | ios::trunc | ios::binary);
 }
 
 void write_data(const std::string& event, int32_t src, int32_t step, const char* args)
@@ -173,9 +164,19 @@ void write_data(const std::string& event, int32_t src, int32_t step, const char*
     
     builder.Finish(data_sample);
 
+	//auto s = flatbuffers::FlatBufferToString(builder.GetBufferPointer(), DamarisDataSampleTypeTable());
+	//cout << "current sample:\n" << s << endl;
     // Get pointer to the buffer and the size for writing to file
     uint8_t *buf = builder.GetBufferPointer();
     int size = builder.GetSize();
+	data_file.write(reinterpret_cast<const char*>(&size), sizeof(size));
+    data_file.write(reinterpret_cast<const char*>(buf), size);
+	//cout << "wrote " << size + sizeof(size) << " bytes to file" << endl;
+}
+
+void streaming_finalize(const std::string& event, int32_t src, int32_t step, const char* args)
+{
+    data_file.close();
 }
 
 flatbuffers::Offset<SimEngineMetrics> sim_engine_metrics_to_fb(flatbuffers::FlatBufferBuilder& builder,
