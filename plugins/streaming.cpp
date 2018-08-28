@@ -9,12 +9,11 @@ using namespace ross_damaris::sample;
 using namespace damaris;
 
 // return the pointer to the variable, because it may be a single value or an array
-template <typename T>
-T *get_value_from_damaris(const std::string& varname, int32_t src, int32_t step, int32_t block_id)
+void *get_value_from_damaris(const std::string& varname, int32_t src, int32_t step, int32_t block_id)
 {
     boost::shared_ptr<Variable> v = VariableManager::Search(varname);
     if (v && v->GetBlock(src, step, block_id))
-        return (T*)v->GetBlock(src, step, block_id)->GetDataSpace().GetData();
+        return v->GetBlock(src, step, block_id)->GetDataSpace().GetData();
     else
     {
         //cout << "ERROR in get_value_from_damaris() for variable " << varname << endl;
@@ -23,93 +22,106 @@ T *get_value_from_damaris(const std::string& varname, int32_t src, int32_t step,
 }
 
 template <typename T>
-void add_metric(SimEngineMetricsBuilder& metric_builder, const std::string& var_name, T value)
+void add_metric(SimEngineMetricsT *obj, const std::string& var_name, T value)
 {
     if (var_name.compare("nevent_processed") == 0)
-        metric_builder.add_nevent_processed(value);
+        obj->nevent_processed = value;
     else if (var_name.compare("nevent_abort") == 0)
-        metric_builder.add_nevent_abort(value);
+        obj->nevent_abort = value;
     else if (var_name.compare("nevent_rb") == 0)
-        metric_builder.add_nevent_rb(value);
+        obj->nevent_rb = value;
     else if (var_name.compare("rb_total") == 0)
-        metric_builder.add_rb_total(value);
+        obj->rb_total = value;
     else if (var_name.compare("rb_prim") == 0)
-        metric_builder.add_rb_prim(value);
+        obj->rb_prim = value;
     else if (var_name.compare("rb_sec") == 0)
-        metric_builder.add_rb_sec(value);
+        obj->rb_sec = value;
     else if (var_name.compare("fc_attempts") == 0)
-        metric_builder.add_fc_attempts(value);
+        obj->fc_attempts = value;
     else if (var_name.compare("pq_qsize") == 0)
-        metric_builder.add_pq_qsize(value);
+        obj->pq_qsize = value;
     else if (var_name.compare("network_send") == 0)
-        metric_builder.add_network_send(value);
+        obj->network_send = value;
     else if (var_name.compare("network_recv") == 0)
-        metric_builder.add_network_recv(value);
+        obj->network_recv = value;
     else if (var_name.compare("num_gvt") == 0)
-        metric_builder.add_num_gvt(value);
+        obj->num_gvt = value;
     else if (var_name.compare("event_ties") == 0)
-        metric_builder.add_event_ties(value);
+        obj->event_ties = value;
     else if (var_name.compare("efficiency") == 0)
-        metric_builder.add_efficiency(value);
+        obj->efficiency = value;
     else if (var_name.compare("net_read_time") == 0)
-        metric_builder.add_net_read_time(value);
+        obj->net_read_time = value;
     else if (var_name.compare("net_other_time") == 0)
-        metric_builder.add_net_other_time(value);
+        obj->net_other_time = value;
     else if (var_name.compare("gvt_time") == 0)
-        metric_builder.add_gvt_time(value);
+        obj->gvt_time = value;
     else if (var_name.compare("fc_time") == 0)
-        metric_builder.add_fc_time(value);
+        obj->fc_time = value;
     else if (var_name.compare("event_abort_time") == 0)
-        metric_builder.add_event_abort_time(value);
+        obj->event_abort_time = value;
     else if (var_name.compare("event_proc_time") == 0)
-        metric_builder.add_event_proc_time(value);
+        obj->event_proc_time = value;
     else if (var_name.compare("pq_time") == 0)
-        metric_builder.add_pq_time(value);
+        obj->pq_time = value;
     else if (var_name.compare("rb_time") == 0)
-        metric_builder.add_rb_time(value);
+        obj->rb_time = value;
     else if (var_name.compare("cancel_q_time") == 0)
-        metric_builder.add_cancel_q_time(value);
+        obj->cancel_q_time = value;
     else if (var_name.compare("avl_time") == 0)
-        metric_builder.add_avl_time(value);
+        obj->avl_time = value;
     else if (var_name.compare("virtual_time_diff") == 0)
-        metric_builder.add_virtual_time_diff(value);
+        obj->virtual_time_diff = value;
     else
         cout << "ERROR in get_metric_fn_ptr() var " << var_name << "not found!" << endl;
 }
 
-void put_metric_in_buffer(SimEngineMetricsBuilder& metric_builder, flatbuffers::ElementaryType type,
-        const std::string& var_name, const std::string& var_prefix, int32_t src, int32_t step, int32_t block_id)
+void collect_metrics(SimEngineMetricsT *metrics_objects, const std::string& var_prefix,
+        int32_t src, int32_t step, int32_t block_id, int32_t num_entities)
 {
-    switch (type)
+    const flatbuffers::TypeTable *tt = SimEngineMetricsTypeTable();
+    for (int i = 0; i < tt->num_elems; i++)
     {
-        case flatbuffers::ET_INT:
+        flatbuffers::ElementaryType type = static_cast<flatbuffers::ElementaryType>(tt->type_codes[i].base_type);
+        switch (type)
         {
-            auto *val = get_value_from_damaris<int>(var_prefix + var_name, src, step, 0);
-            if (val)
-                add_metric(metric_builder, var_name, *val);
-            break;
-        }
-        case flatbuffers::ET_FLOAT:
-        {
-            auto *val = get_value_from_damaris<float>(var_prefix + var_name, src, step, 0);
-            if (val)
-                add_metric(metric_builder, var_name, *val);
-            break;
-        }
-        case flatbuffers::ET_DOUBLE:
-        {
-            auto *val = get_value_from_damaris<double>(var_prefix + var_name, src, step, 0);
-            if (val)
-                add_metric(metric_builder, var_name, *val);
-            break;
-        }
-        default:
-        {
-            cout << "put_metric_in_buffer(): this type hasn't been implemented!" << endl;
-            break;
+            case flatbuffers::ET_INT:
+            {
+                auto *val = static_cast<int*>(get_value_from_damaris(var_prefix + tt->names[i], src, step, 0));
+                if (val)
+                {
+                    for (int j = 0; j < num_entities; j++)
+                        add_metric(&metrics_objects[j], tt->names[i], val[j]);
+                }
+                break;
+            }
+            case flatbuffers::ET_FLOAT:
+            {
+                auto *val = static_cast<float*>(get_value_from_damaris(var_prefix + tt->names[i], src, step, 0));
+                if (val)
+                {
+                    for (int j = 0; j < num_entities; j++)
+                        add_metric(&metrics_objects[j], tt->names[i], val[j]);
+                }
+                break;
+            }
+            case flatbuffers::ET_DOUBLE:
+            {
+                auto *val = static_cast<double*>(get_value_from_damaris(var_prefix + tt->names[i], src, step, 0));
+                if (val)
+                {
+                    for (int j = 0; j < num_entities; j++)
+                        add_metric(&metrics_objects[j], tt->names[i], val[j]);
+                }
+                break;
+            }
+            default:
+            {
+                cout << "collect_metrics(): this type hasn't been implemented!" << endl;
+                break;
+            }
         }
     }
-
 }
 
 // TODO need setup event to get sim configuration options
@@ -131,13 +143,13 @@ void setup_simulation_config(const std::string& event, int32_t src, int32_t step
     sim_config.num_pe = Environment::CountTotalClients();
     for (int i = 0; i < sim_config.num_pe; i++)
     {
-        auto val = *get_value_from_damaris<int>("ross/nlp", i, 0, 0);
+        auto val = *(static_cast<int*>(get_value_from_damaris("ross/nlp", i, 0, 0)));
         sim_config.num_lp.push_back(val);
     }
-    sim_config.kp_per_pe = *get_value_from_damaris<int>("ross/nkp", 0, 0, 0);
+    sim_config.kp_per_pe = *(static_cast<int*>(get_value_from_damaris("ross/nkp", 0, 0, 0)));
 
-    int *inst_modes_sim = get_value_from_damaris<int>("ross/inst_modes_sim", 0, 0, 0);
-    int *inst_modes_model = get_value_from_damaris<int>("ross/inst_modes_model", 0, 0, 0);
+    int *inst_modes_sim = static_cast<int*>(get_value_from_damaris("ross/inst_modes_sim", 0, 0, 0));
+    int *inst_modes_model = static_cast<int*>(get_value_from_damaris("ross/inst_modes_model", 0, 0, 0));
     for (int i = 0; i < InstMode_MAX; i++)
     {
         sim_config.inst_mode_sim[i] = inst_modes_sim[i];
@@ -158,10 +170,10 @@ void write_data(const std::string& event, int32_t src, int32_t step, const char*
 
     // then setup the DamarisDataSample table
     //DamarisDataSampleT data_sample;
-    //double virtual_ts = *get_value_from_damaris<double>("ross/virtual_ts", 0, step, 0);
+    //double virtual_ts = *get_value_from_damaris("ross/virtual_ts", 0, step, 0);
     double virtual_ts = 0.0; // placeholder for now
-    double real_ts = *get_value_from_damaris<double>("ross/real_time", 0, step, 0);
-    double last_gvt = *get_value_from_damaris<double>("ross/last_gvt", 0, step, 0);
+    double real_ts =*(static_cast<double*>(get_value_from_damaris("ross/real_time", 0, step, 0)));
+    double last_gvt = *(static_cast<double*>(get_value_from_damaris("ross/last_gvt", 0, step, 0)));
     auto data_sample = CreateDamarisDataSampleDirect(builder, virtual_ts, real_ts, last_gvt, InstMode_GVT, &pe_data, &kp_data);
     
     builder.Finish(data_sample);
@@ -185,15 +197,11 @@ std::vector<flatbuffers::Offset<SimEngineMetrics>> sim_engine_metrics_to_fb(flat
         int32_t src, int32_t step, int32_t num_entities, const std::string& var_prefix)
 {
     std::vector<flatbuffers::Offset<SimEngineMetrics>> data;
+    SimEngineMetricsT metrics_objects[num_entities];
+    collect_metrics(&metrics_objects[0], var_prefix, src, step, 0, num_entities);
     for (int id = 0; id < num_entities; id++)
     {
-        SimEngineMetricsBuilder metric_builder(builder);
-        const flatbuffers::TypeTable *tt = SimEngineMetricsTypeTable();
-        for (int i = 0; i < tt->num_elems; i++)
-            put_metric_in_buffer(metric_builder, static_cast<flatbuffers::ElementaryType>(tt->type_codes[i].base_type),
-                    tt->names[i], var_prefix, src, step, 0);
-
-        auto metrics = metric_builder.Finish();
+        auto metrics = CreateSimEngineMetrics(builder, &metrics_objects[id]);
         data.push_back(metrics);
     }
     return data;
