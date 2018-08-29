@@ -133,6 +133,8 @@ std::vector<flatbuffers::Offset<PEData>> pe_data_to_fb(
         flatbuffers::FlatBufferBuilder& builder, int32_t src, int32_t step);
 std::vector<flatbuffers::Offset<KPData>> kp_data_to_fb(
         flatbuffers::FlatBufferBuilder& builder, int32_t src, int32_t step);
+std::vector<flatbuffers::Offset<LPData>> lp_data_to_fb(
+        flatbuffers::FlatBufferBuilder& builder, int32_t src, int32_t step);
 
 ofstream data_file;
 // only call once, not per source
@@ -167,6 +169,7 @@ void write_data(const std::string& event, int32_t src, int32_t step, const char*
     // setup sim engine data tables and model tables as needed
     auto pe_data = pe_data_to_fb(builder, src, step);
     auto kp_data = kp_data_to_fb(builder, src, step);
+    auto lp_data = lp_data_to_fb(builder, src, step);
 
     // then setup the DamarisDataSample table
     //DamarisDataSampleT data_sample;
@@ -174,7 +177,7 @@ void write_data(const std::string& event, int32_t src, int32_t step, const char*
     double virtual_ts = 0.0; // placeholder for now
     double real_ts =*(static_cast<double*>(get_value_from_damaris("ross/real_time", 0, step, 0)));
     double last_gvt = *(static_cast<double*>(get_value_from_damaris("ross/last_gvt", 0, step, 0)));
-    auto data_sample = CreateDamarisDataSampleDirect(builder, virtual_ts, real_ts, last_gvt, InstMode_GVT, &pe_data, &kp_data);
+    auto data_sample = CreateDamarisDataSampleDirect(builder, virtual_ts, real_ts, last_gvt, InstMode_GVT, &pe_data, &kp_data, &lp_data);
     
     builder.Finish(data_sample);
 
@@ -212,11 +215,10 @@ std::vector<flatbuffers::Offset<PEData>> pe_data_to_fb(
 {
     std::string var_prefix = "ross/pes/gvt_inst/";
     std::vector<flatbuffers::Offset<PEData>> pe_data;
-    std::vector<flatbuffers::Offset<SimEngineMetrics>> engine_data;
-    for (int i = 0; i < sim_config.num_pe; i++)
+    for (int peid = 0; peid < sim_config.num_pe; peid++)
     {
-        auto metrics = sim_engine_metrics_to_fb(builder, i, step, 1, var_prefix);
-        pe_data.push_back(CreatePEData(builder, i, metrics[0])); // for PEs, it will always be metrics[0]
+        auto metrics = sim_engine_metrics_to_fb(builder, peid, step, 1, var_prefix);
+        pe_data.push_back(CreatePEData(builder, peid, metrics[0])); // for PEs, it will always be metrics[0]
     }
 
     return pe_data;
@@ -227,23 +229,40 @@ std::vector<flatbuffers::Offset<KPData>> kp_data_to_fb(
 {
     std::string var_prefix = "ross/kps/gvt_inst/";
     std::vector<flatbuffers::Offset<KPData>> kp_data;
-    std::vector<flatbuffers::Offset<SimEngineMetrics>> engine_data;
-    for (int i = 0; i < sim_config.num_pe; i++)
+    for (int peid = 0; peid < sim_config.num_pe; peid++)
     {
-        auto metrics = sim_engine_metrics_to_fb(builder, i, step, sim_config.kp_per_pe, var_prefix);
-        for (int j = 0; j < sim_config.kp_per_pe; j++)
+        auto metrics = sim_engine_metrics_to_fb(builder, peid, step, sim_config.kp_per_pe, var_prefix);
+        for (int kpid = 0; kpid < sim_config.kp_per_pe; kpid++)
         {
-            int kp_gid = (i * sim_config.kp_per_pe) + j;
-            kp_data.push_back(CreateKPData(builder, i, j, kp_gid, metrics[j]));
+            int kp_gid = (peid * sim_config.kp_per_pe) + kpid;
+            kp_data.push_back(CreateKPData(builder, peid, kpid, kp_gid, metrics[kpid]));
 
         }
     }
     return kp_data;
 }
 
-//flatbuffers::Offset<SimEngineLP> lp_data_to_fb(flatbuffers::FlatBufferBuilder& builder, int32_t src, int32_t step, const std::string& var_prefix)
-//{
-//
-//}
+std::vector<flatbuffers::Offset<LPData>> lp_data_to_fb(
+        flatbuffers::FlatBufferBuilder& builder, int32_t src, int32_t step)
+{
+    std::string var_prefix = "ross/lps/gvt_inst/";
+    std::vector<flatbuffers::Offset<LPData>> lp_data;
+    int total_lp = 0;
+    for (int peid = 0; peid < sim_config.num_pe; peid++)
+    {
+        auto metrics = sim_engine_metrics_to_fb(builder, peid, step, sim_config.num_lp[peid], var_prefix);
+        for (int lpid = 0; lpid < sim_config.num_lp[peid]; lpid++)
+        {
+            int kpid = lpid % sim_config.kp_per_pe;
+            int kp_gid = (peid * sim_config.kp_per_pe) + kpid;
+            int lp_gid = total_lp + lpid;
+            lp_data.push_back(CreateLPData(builder, peid, kpid, kp_gid, lpid, lp_gid, metrics[lpid]));
+
+        }
+        total_lp += sim_config.num_lp[peid];
+    }
+    return lp_data;
+
+}
 
 }
