@@ -138,7 +138,7 @@ ofstream data_file;
 // only call once, not per source
 void setup_simulation_config(const std::string& event, int32_t src, int32_t step, const char* args)
 {
-    cout << "setup_simulation_config() step " << step << endl;
+    //cout << "setup_simulation_config() step " << step << endl;
 
     sim_config.num_pe = Environment::CountTotalClients();
     for (int i = 0; i < sim_config.num_pe; i++)
@@ -161,7 +161,7 @@ void setup_simulation_config(const std::string& event, int32_t src, int32_t step
 void write_data(const std::string& event, int32_t src, int32_t step, const char* args)
 {
     step--;
-    cout << "write_data() rank " << src << " step " << step << endl;
+    //cout << "write_data() rank " << src << " step " << step << endl;
     flatbuffers::FlatBufferBuilder builder;
 
     // setup sim engine data tables and model tables as needed
@@ -178,14 +178,14 @@ void write_data(const std::string& event, int32_t src, int32_t step, const char*
     
     builder.Finish(data_sample);
 
-	auto s = flatbuffers::FlatBufferToString(builder.GetBufferPointer(), DamarisDataSampleTypeTable(), true);
-	cout << "current sample:\n" << s << endl;
+	//auto s = flatbuffers::FlatBufferToString(builder.GetBufferPointer(), DamarisDataSampleTypeTable(), true);
+	//cout << "current sample:\n" << s << endl;
     // Get pointer to the buffer and the size for writing to file
     uint8_t *buf = builder.GetBufferPointer();
     int size = builder.GetSize();
 	data_file.write(reinterpret_cast<const char*>(&size), sizeof(size));
     data_file.write(reinterpret_cast<const char*>(buf), size);
-	cout << "wrote " << size << " bytes to file" << endl;
+	//cout << "wrote " << size << " bytes to file" << endl;
 }
 
 void streaming_finalize(const std::string& event, int32_t src, int32_t step, const char* args)

@@ -27,7 +27,7 @@ static void expose_kp_data(tw_pe *pe, int inst_type);
 static void expose_lp_data(int inst_type);
 
 typedef struct {
-    void **data_ptr;
+    void *data_ptr;
     char *var_path;
 } damaris_variable;
 
@@ -340,11 +340,10 @@ void st_damaris_inst_init()
         for (i = 0; i <  NUM_PE_VARS; i++)
         {
             pe_data[i].var_path = tw_calloc(TW_LOC, "damaris", sizeof(char), 1024);
-            pe_data[i].data_ptr = tw_calloc(TW_LOC, "damaris", sizeof(void *), 1);
             if (i < DPE_EFF)
-                pe_data[i].data_ptr[0] = tw_calloc(TW_LOC, "damaris", sizeof(int), 1);
+                pe_data[i].data_ptr = tw_calloc(TW_LOC, "damaris", sizeof(int), 1);
             else
-                pe_data[i].data_ptr[0] = tw_calloc(TW_LOC, "damaris", sizeof(float), 1);
+                pe_data[i].data_ptr = tw_calloc(TW_LOC, "damaris", sizeof(float), 1);
         }
     }
 
@@ -353,13 +352,12 @@ void st_damaris_inst_init()
         for (i = 0; i <  NUM_KP_VARS; i++)
         {
             kp_data[i].var_path = tw_calloc(TW_LOC, "damaris", sizeof(char), 1024);
-            kp_data[i].data_ptr = tw_calloc(TW_LOC, "damaris", sizeof(void *), g_tw_nkp);
             for (j = 0; j < g_tw_nkp; j++)
             {
                 if (i < DKP_VT_DIFF)
-                    kp_data[i].data_ptr[j] = tw_calloc(TW_LOC, "damaris", sizeof(int), 1);
+                    kp_data[i].data_ptr = tw_calloc(TW_LOC, "damaris", sizeof(int), g_tw_nkp);
                 else
-                    kp_data[i].data_ptr[j] = tw_calloc(TW_LOC, "damaris", sizeof(float), 1);
+                    kp_data[i].data_ptr = tw_calloc(TW_LOC, "damaris", sizeof(float), g_tw_nkp);
             }
         }
     }
@@ -369,13 +367,12 @@ void st_damaris_inst_init()
         for (i = 0; i <  NUM_LP_VARS; i++)
         {
             lp_data[i].var_path = tw_calloc(TW_LOC, "damaris", sizeof(char), 1024);
-            lp_data[i].data_ptr = tw_calloc(TW_LOC, "damaris", sizeof(void *), g_tw_nlp);
             for (j = 0; j < g_tw_nlp; j++)
             {
                 if (i < DLP_EFF)
-                    lp_data[i].data_ptr[j] = tw_calloc(TW_LOC, "damaris", sizeof(int), 1);
+                    lp_data[i].data_ptr = tw_calloc(TW_LOC, "damaris", sizeof(int), g_tw_nlp);
                 else
-                    lp_data[i].data_ptr[j] = tw_calloc(TW_LOC, "damaris", sizeof(float), 1);
+                    lp_data[i].data_ptr = tw_calloc(TW_LOC, "damaris", sizeof(float), g_tw_nlp);
             }
         }
     }
@@ -420,7 +417,7 @@ void st_damaris_expose_data(tw_pe *me, tw_stime gvt, int inst_type)
     bzero(&s, sizeof(s));
     tw_get_stats(me, &s);
 
-    printf("%ld: damaris_expose_data\n", g_tw_mynode);
+    //printf("%ld: damaris_expose_data\n", g_tw_mynode);
 
     double real_ts = (double)tw_clock_read() / g_tw_clock_rate;
     if (g_tw_mynode == g_tw_masternode)
@@ -518,22 +515,21 @@ static void expose_kp_data(tw_pe *pe, int inst_type)
     for (i = 0; i < g_tw_nkp; i++)
     {
         kp = tw_getkp(i);
+        ((int*)kp_data[DKP_EVENT_PROC].data_ptr)[i] = (int)(kp->kp_stats->s_nevent_processed - kp->last_stats[inst_type]->s_nevent_processed);
+        ((int*)kp_data[DKP_EVENT_ABORT].data_ptr)[i] = (int)(kp->kp_stats->s_nevent_abort - kp->last_stats[inst_type]->s_nevent_abort);
+        ((int*)kp_data[DKP_E_RBS].data_ptr)[i] = (int)(kp->kp_stats->s_e_rbs - kp->last_stats[inst_type]->s_e_rbs);
+        ((int*)kp_data[DKP_RB_TOTAL].data_ptr)[i] = (int)(kp->kp_stats->s_rb_total - kp->last_stats[inst_type]->s_rb_total);
+        ((int*)kp_data[DKP_RB_SEC].data_ptr)[i] = (int)(kp->kp_stats->s_rb_secondary - kp->last_stats[inst_type]->s_rb_secondary);
+        ((int*)kp_data[DKP_RB_PRIM].data_ptr)[i] = ((int*)kp_data[DKP_RB_TOTAL].data_ptr)[i] - ((int*)kp_data[DKP_RB_SEC].data_ptr)[i];
+        ((int*)kp_data[DKP_NET_SEND].data_ptr)[i] = (int)(kp->kp_stats->s_nsend_network - kp->last_stats[inst_type]->s_nsend_network);
+        ((int*)kp_data[DKP_NET_RECV].data_ptr)[i] = (int)(kp->kp_stats->s_nread_network - kp->last_stats[inst_type]->s_nread_network);
+        ((float*)kp_data[DKP_VT_DIFF].data_ptr)[i] = (float)(kp->last_time - pe->GVT);
 
-        *((int*)kp_data[DKP_EVENT_PROC].data_ptr[i]) = (int)(kp->kp_stats->s_nevent_processed - kp->last_stats[inst_type]->s_nevent_processed);
-        *((int*)kp_data[DKP_EVENT_ABORT].data_ptr[i]) = (int)(kp->kp_stats->s_nevent_abort - kp->last_stats[inst_type]->s_nevent_abort);
-        *((int*)kp_data[DKP_E_RBS].data_ptr[i]) = (int)(kp->kp_stats->s_e_rbs - kp->last_stats[inst_type]->s_e_rbs);
-        *((int*)kp_data[DKP_RB_TOTAL].data_ptr[i]) = (int)(kp->kp_stats->s_rb_total - kp->last_stats[inst_type]->s_rb_total);
-        *((int*)kp_data[DKP_RB_SEC].data_ptr[i]) = (int)(kp->kp_stats->s_rb_secondary - kp->last_stats[inst_type]->s_rb_secondary);
-        *((int*)kp_data[DKP_RB_PRIM].data_ptr[i]) = *((int*)kp_data[DKP_RB_TOTAL].data_ptr[i]) - *((int*)kp_data[DKP_RB_SEC].data_ptr[i]);
-        *((int*)kp_data[DKP_NET_SEND].data_ptr[i]) = (int)(kp->kp_stats->s_nsend_network - kp->last_stats[inst_type]->s_nsend_network);
-        *((int*)kp_data[DKP_NET_RECV].data_ptr[i]) = (int)(kp->kp_stats->s_nread_network - kp->last_stats[inst_type]->s_nread_network);
-        *((float*)kp_data[DKP_VT_DIFF].data_ptr[i]) = (float)(kp->last_time - pe->GVT);
-
-        int net_events = *((int*)kp_data[DKP_EVENT_PROC].data_ptr[i]) - *((int*)kp_data[DKP_E_RBS].data_ptr[i]);
+        int net_events = ((int*)kp_data[DKP_EVENT_PROC].data_ptr)[i] - ((int*)kp_data[DKP_E_RBS].data_ptr)[i];
         if (net_events > 0)
-            *((float*)kp_data[DKP_EFF].data_ptr[i]) = (float) 100.0 * (1.0 - ((float) *((int*)kp_data[DKP_E_RBS].data_ptr[i]) / (float) net_events));
+            ((float*)kp_data[DKP_EFF].data_ptr)[i] = (float) 100.0 * (1.0 - ((float) ((int*)kp_data[DKP_E_RBS].data_ptr)[i] / (float) net_events));
         else
-            *((float*)kp_data[DKP_EFF].data_ptr[i]) = 0;
+            ((float*)kp_data[DKP_EFF].data_ptr)[i] = 0;
 
         memcpy(kp->last_stats[inst_type], kp->kp_stats, sizeof(st_kp_stats));
     }
@@ -546,7 +542,7 @@ static void expose_kp_data(tw_pe *pe, int inst_type)
     for (i = 0; i < NUM_KP_VARS; i++)
     {
         sprintf(kp_data[i].var_path, "ross/kps/%s/%s", inst_path[inst_type], kp_var_names[i]);
-        if ((err = damaris_write_block(kp_data[i].var_path, block, kp_data[i].data_ptr[0])) != DAMARIS_OK)
+        if ((err = damaris_write_block(kp_data[i].var_path, block, kp_data[i].data_ptr)) != DAMARIS_OK)
             st_damaris_error(TW_LOC, err, kp_data[i].var_path);
     }
 }
@@ -563,17 +559,17 @@ static void expose_lp_data(int inst_type)
     {
         lp = tw_getlp(i);
 
-        *((int*)lp_data[DLP_EVENT_PROC].data_ptr[i]) = (int)(lp->lp_stats->s_nevent_processed - lp->last_stats[inst_type]->s_nevent_processed);
-        *((int*)lp_data[DLP_EVENT_ABORT].data_ptr[i]) = (int)(lp->lp_stats->s_nevent_abort - lp->last_stats[inst_type]->s_nevent_abort);
-        *((int*)lp_data[DLP_E_RBS].data_ptr[i]) = (int)(lp->lp_stats->s_e_rbs - lp->last_stats[inst_type]->s_e_rbs);
-        *((int*)lp_data[DLP_NET_SEND].data_ptr[i]) = (int)(lp->lp_stats->s_nsend_network - lp->last_stats[inst_type]->s_nsend_network);
-        *((int*)lp_data[DLP_NET_RECV].data_ptr[i]) = (int)(lp->lp_stats->s_nread_network - lp->last_stats[inst_type]->s_nread_network);
+        ((int*)lp_data[DLP_EVENT_PROC].data_ptr)[i] = (int)(lp->lp_stats->s_nevent_processed - lp->last_stats[inst_type]->s_nevent_processed);
+        ((int*)lp_data[DLP_EVENT_ABORT].data_ptr)[i] = (int)(lp->lp_stats->s_nevent_abort - lp->last_stats[inst_type]->s_nevent_abort);
+        ((int*)lp_data[DLP_E_RBS].data_ptr)[i] = (int)(lp->lp_stats->s_e_rbs - lp->last_stats[inst_type]->s_e_rbs);
+        ((int*)lp_data[DLP_NET_SEND].data_ptr)[i] = (int)(lp->lp_stats->s_nsend_network - lp->last_stats[inst_type]->s_nsend_network);
+        ((int*)lp_data[DLP_NET_RECV].data_ptr)[i] = (int)(lp->lp_stats->s_nread_network - lp->last_stats[inst_type]->s_nread_network);
 
-        int net_events = *((int*)lp_data[DLP_EVENT_PROC].data_ptr[i]) - *((int*)lp_data[DLP_E_RBS].data_ptr[i]);
+        int net_events = ((int*)lp_data[DLP_EVENT_PROC].data_ptr)[i] - ((int*)lp_data[DLP_E_RBS].data_ptr)[i];
         if (net_events > 0)
-            *((float*)lp_data[DLP_EFF].data_ptr[i]) = (float) 100.0 * (1.0 - ((float) *((int*)lp_data[DLP_E_RBS].data_ptr[i]) / (float) net_events));
+            ((float*)lp_data[DLP_EFF].data_ptr)[i] = (float) 100.0 * (1.0 - ((float) ((int*)lp_data[DLP_E_RBS].data_ptr)[i] / (float) net_events));
         else
-            *((float*)lp_data[DLP_EFF].data_ptr[i]) = 0;
+            ((float*)lp_data[DLP_EFF].data_ptr)[i] = 0;
 
         memcpy(lp->last_stats[inst_type], lp->lp_stats, sizeof(st_lp_stats));
     }
@@ -586,7 +582,7 @@ static void expose_lp_data(int inst_type)
     for (i = 0; i < NUM_LP_VARS; i++)
     {
         sprintf(lp_data[i].var_path, "ross/lps/%s/%s", inst_path[inst_type], lp_var_names[i]);
-        if ((err = damaris_write_block(lp_data[i].var_path, block, lp_data[i].data_ptr[0])) != DAMARIS_OK)
+        if ((err = damaris_write_block(lp_data[i].var_path, block, lp_data[i].data_ptr)) != DAMARIS_OK)
             st_damaris_error(TW_LOC, err, lp_data[i].var_path);
     }
 }
@@ -621,7 +617,7 @@ void st_damaris_end_iteration()
 
     if (!streaming_init)
     {
-        printf("rank %ld signaling setup_simulation_config\n", g_tw_mynode);
+        //printf("rank %ld signaling setup_simulation_config\n", g_tw_mynode);
         if ((err = damaris_signal("setup_simulation_config")) != DAMARIS_OK)
             st_damaris_error(TW_LOC, err, "setup_simulation_config");
 
