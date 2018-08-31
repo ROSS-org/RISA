@@ -4,7 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include <boost/asio.hpp>
-#include "streaming/stream-client.h"
+#include "stream-client.h"
 
 using namespace ross_damaris;
 using namespace ross_damaris::sample;

@@ -13,7 +13,7 @@
 #include <iostream>
 #include <thread>
 #include <boost/asio.hpp>
-#include "../schemas/data_sample_generated.h"
+#include "schemas/data_sample_generated.h"
 
 
 namespace damaris_streaming {
