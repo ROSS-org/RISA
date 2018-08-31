@@ -170,8 +170,8 @@ void setup_simulation_config(const std::string& event, int32_t src, int32_t step
     tcp::resolver::query q("localhost", "8000");
     auto it = resolver.resolve(q);
     client = new StreamClient(service, it);
-    service.run();
-    //t = new std::thread([](){ service.run(); });
+    //service.run();
+    t = new std::thread([](){ service.run(); });
 }
 
 void write_data(const std::string& event, int32_t src, int32_t step, const char* args)
@@ -210,7 +210,7 @@ void streaming_finalize(const std::string& event, int32_t src, int32_t step, con
 {
     data_file.close();
     client->close();
-    //t->join();
+    t->join();
 }
 
 std::vector<flatbuffers::Offset<SimEngineMetrics>> sim_engine_metrics_to_fb(flatbuffers::FlatBufferBuilder& builder,

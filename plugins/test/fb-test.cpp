@@ -1,4 +1,4 @@
-#include "schemas/data_sample_generated.h"
+#include "../include/schemas/data_sample_generated.h"
 #include "flatbuffers/minireflect.h"
 #include <cstdio>
 #include <iostream>
@@ -17,7 +17,7 @@ int main()
     streampos pos = 0;
 	
 	ifstream file("/home/rossc3/rv-build/models/phold/test-fb.bin", ios::in | ios::binary | ios::ate);
-	//ifstream file("streaming/net-file.txt", ios::in | ios::binary | ios::ate);
+	//ifstream file("../nettest.bin", ios::in | ios::binary | ios::ate);
 	if (file.is_open())
 	{
         total_size = file.tellg();

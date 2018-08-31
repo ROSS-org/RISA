@@ -12,14 +12,13 @@ using namespace std;
 sample_msg msg;
 void StreamClient::write(const flatbuffers::FlatBufferBuilder& data)
 {
-    cout << "StreamClient write()" << endl;
     msg.size = data.GetSize();
     msg.buffer = data.GetBufferPointer();
     cout << "StreamClient write() msg size = " << msg.size << endl;
-    bool write_in_progress = !write_msgs_.empty();
+    //bool write_in_progress = !write_msgs_.empty();
     write_msgs_.push_back(msg);
-    if (!write_in_progress)
-        do_write();
+    //if (!write_in_progress)
+    //    do_write();
 
     //service_.post([this](){
     //        cout << "StreamClient write() lambda" << endl;
@@ -49,13 +48,20 @@ void StreamClient::do_connect(tcp::resolver::iterator it)
                     cout << "Error do_connect() closing socket" << endl;
                 }
                 else
+                {
                     cout << "Stream client successfully connected" << endl;
+                    do_read();
+                }
             });
 }
 
 void StreamClient::do_write()
 {
     cout << "StreamClient do_write()\n";
+    if (write_msgs_.empty())
+    {
+        return;
+    }
     std::vector<const_buffer> buf;
     buf.push_back(boost::asio::buffer(&write_msgs_.front().size, sizeof(flatbuffers::uoffset_t)));
     buf.push_back(boost::asio::buffer(write_msgs_.front().buffer, write_msgs_.front().size));
@@ -72,11 +78,33 @@ void StreamClient::do_write()
                         cout << "StreamClient initiating another write" << endl;
                         do_write();
                     }
+                    else
+                        do_read();
                 }
                 else
                 {
                     socket_.close();
                     cout << "Error do_write() closing socket" << endl;
+                }
+            });
+}
+
+void StreamClient::do_read()
+{
+    boost::asio::async_read(socket_, 
+            boost::asio::buffer(dummy_buf_, 0),
+            [this](boost::system::error_code ec, std::size_t /*len*/)
+            {
+                if (!ec)
+                {
+                    if (!write_msgs_.empty())
+                        do_write();
+                    else
+                        do_read();
+                }
+                else
+                {
+                    socket_.close();
                 }
             });
 }

@@ -32,16 +32,6 @@ struct sample_msg
     {  }
 };
 
-class session
-{
-    private:
-    tcp::socket socket_;
-
-    public:
-
-
-};
-
 class StreamClient
 {
     private:
@@ -50,9 +40,11 @@ class StreamClient
     boost::asio::io_service& service_;
     tcp::socket socket_;
     sample_queue write_msgs_;
+    std::array<char, 128> dummy_buf_;
 	
     void do_connect(tcp::resolver::iterator it);
     void do_write();
+    void do_read();
 
     public:
     StreamClient(boost::asio::io_service& service, tcp::resolver::iterator it)
