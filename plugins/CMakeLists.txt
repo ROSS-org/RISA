@@ -5,7 +5,8 @@ ADD_DEFINITIONS(-std=gnu++11)
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
 SET(plugin_srcs
     garbage_collection.cpp
-    streaming.cpp)
+    streaming.cpp
+    streaming/stream-client.cpp)
 
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR})
 ADD_LIBRARY(rdplugins SHARED ${plugin_srcs})

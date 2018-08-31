@@ -3,9 +3,12 @@
 #include "damaris/data/VariableManager.hpp"
 #include <iostream>
 #include <fstream>
+#include <boost/asio.hpp>
+#include "streaming/stream-client.h"
 
 using namespace ross_damaris;
 using namespace ross_damaris::sample;
+using namespace damaris_streaming;
 using namespace damaris;
 
 // return the pointer to the variable, because it may be a single value or an array
@@ -137,6 +140,11 @@ std::vector<flatbuffers::Offset<LPData>> lp_data_to_fb(
         flatbuffers::FlatBufferBuilder& builder, int32_t src, int32_t step);
 
 ofstream data_file;
+boost::asio::io_service service;
+tcp::resolver resolver(service);
+StreamClient *client;
+std::thread *t;
+
 // only call once, not per source
 void setup_simulation_config(const std::string& event, int32_t src, int32_t step, const char* args)
 {
@@ -158,6 +166,12 @@ void setup_simulation_config(const std::string& event, int32_t src, int32_t step
         sim_config.inst_mode_model[i] = inst_modes_model[i];
     }
     data_file.open("test-fb.bin", ios::out | ios::trunc | ios::binary);
+
+    tcp::resolver::query q("localhost", "8000");
+    auto it = resolver.resolve(q);
+    client = new StreamClient(service, it);
+    service.run();
+    //t = new std::thread([](){ service.run(); });
 }
 
 void write_data(const std::string& event, int32_t src, int32_t step, const char* args)
@@ -188,12 +202,15 @@ void write_data(const std::string& event, int32_t src, int32_t step, const char*
     int size = builder.GetSize();
 	data_file.write(reinterpret_cast<const char*>(&size), sizeof(size));
     data_file.write(reinterpret_cast<const char*>(buf), size);
+    client->write(builder);
 	//cout << "wrote " << size << " bytes to file" << endl;
 }
 
 void streaming_finalize(const std::string& event, int32_t src, int32_t step, const char* args)
 {
     data_file.close();
+    client->close();
+    //t->join();
 }
 
 std::vector<flatbuffers::Offset<SimEngineMetrics>> sim_engine_metrics_to_fb(flatbuffers::FlatBufferBuilder& builder,
