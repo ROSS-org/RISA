@@ -214,7 +214,7 @@
     <actions>
         <event name="damaris_gc" action="damaris_gc" library="librdplugins.so" scope="group"/>
         <event name="setup_simulation_config" action="setup_simulation_config" library="librdplugins.so" scope="group"/>
-        <event name="write_data" action="write_data" library="librdplugins.so" scope="group"/>
+        <event name="handle_data" action="handle_data" library="librdplugins.so" scope="group"/>
         <event name="streaming_finalize" action="streaming_finalize" library="librdplugins.so" scope="group"/>
         <!-- <error event="damaris_gc"/> -->
         <!--<event name="test" action="aggregate_data" library="libROSS_Damaris.so" scope="group" />-->

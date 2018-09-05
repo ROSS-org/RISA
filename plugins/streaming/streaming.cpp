@@ -1,9 +1,8 @@
-#include "sim-config.h"
-#include "flatbuffers/minireflect.h"
-#include "damaris/data/VariableManager.hpp"
+//#include "damaris/data/VariableManager.hpp"
 #include <iostream>
 #include <fstream>
 #include <boost/asio.hpp>
+
 #include "stream-client.h"
 #include "fb-util.h"
 #include "damaris-util.h"
@@ -12,10 +11,7 @@ using namespace ross_damaris;
 using namespace ross_damaris::sample;
 using namespace ross_damaris::streaming;
 using namespace ross_damaris::util;
-using namespace damaris;
 
-// TODO need setup event to get sim configuration options
-SimConfig sim_config;
 
 extern "C" {
 
@@ -26,18 +22,21 @@ std::vector<flatbuffers::Offset<KPData>> kp_data_to_fb(
 std::vector<flatbuffers::Offset<LPData>> lp_data_to_fb(
         flatbuffers::FlatBufferBuilder& builder, int32_t src, int32_t step);
 
+SimConfig sim_config;
 ofstream data_file;
 boost::asio::io_service service;
 tcp::resolver resolver(service);
 StreamClient *client;
 std::thread *t; // thread is to handle boost async operations
+static bool write_data = true;
+static bool stream_data = true;
 
 // only call once, not per source
 void setup_simulation_config(const std::string& event, int32_t src, int32_t step, const char* args)
 {
     //cout << "setup_simulation_config() step " << step << endl;
 
-    sim_config.num_pe = Environment::CountTotalClients();
+    sim_config.num_pe = damaris::Environment::CountTotalClients();
     for (int i = 0; i < sim_config.num_pe; i++)
     {
         auto val = *(static_cast<int*>(DUtil::get_value_from_damaris("ross/nlp", i, 0, 0)));
@@ -52,16 +51,20 @@ void setup_simulation_config(const std::string& event, int32_t src, int32_t step
         sim_config.inst_mode_sim[i] = inst_modes_sim[i];
         sim_config.inst_mode_model[i] = inst_modes_model[i];
     }
-    data_file.open("test-fb.bin", ios::out | ios::trunc | ios::binary);
 
-    tcp::resolver::query q("localhost", "8000");
-    auto it = resolver.resolve(q);
-    client = new StreamClient(service, it);
-    //service.run();
-    t = new std::thread([](){ service.run(); });
+    if (write_data)
+        data_file.open("test-fb.bin", ios::out | ios::trunc | ios::binary);
+
+    if (stream_data)
+    {
+        tcp::resolver::query q("localhost", "8000");
+        auto it = resolver.resolve(q);
+        client = new StreamClient(service, it);
+        t = new std::thread([](){ service.run(); });
+    }
 }
 
-void write_data(const std::string& event, int32_t src, int32_t step, const char* args)
+void handle_data(const std::string& event, int32_t src, int32_t step, const char* args)
 {
     step--;
     //cout << "write_data() rank " << src << " step " << step << endl;
@@ -84,20 +87,30 @@ void write_data(const std::string& event, int32_t src, int32_t step, const char*
 
 	//auto s = flatbuffers::FlatBufferToString(builder.GetBufferPointer(), DamarisDataSampleTypeTable(), true);
 	//cout << "current sample:\n" << s << endl;
-    // Get pointer to the buffer and the size for writing to file
-    uint8_t *buf = builder.GetBufferPointer();
-    int size = builder.GetSize();
-	data_file.write(reinterpret_cast<const char*>(&size), sizeof(size));
-    data_file.write(reinterpret_cast<const char*>(buf), size);
-    client->write(builder);
-	//cout << "wrote " << size << " bytes to file" << endl;
+    if (write_data)
+    {
+        // Get pointer to the buffer and the size for writing to file
+        uint8_t *buf = builder.GetBufferPointer();
+        int size = builder.GetSize();
+        data_file.write(reinterpret_cast<const char*>(&size), sizeof(size));
+        data_file.write(reinterpret_cast<const char*>(buf), size);
+        //cout << "wrote " << size << " bytes to file" << endl;
+    }
+
+    if (stream_data)
+        client->write(builder);
 }
 
 void streaming_finalize(const std::string& event, int32_t src, int32_t step, const char* args)
 {
-    data_file.close();
-    client->close();
-    t->join();
+    if (write_data)
+        data_file.close();
+
+    if (stream_data)
+    {
+        client->close();
+        t->join();
+    }
 }
 
 std::vector<flatbuffers::Offset<SimEngineMetrics>> sim_engine_metrics_to_fb(flatbuffers::FlatBufferBuilder& builder,

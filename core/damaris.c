@@ -628,8 +628,8 @@ void st_damaris_end_iteration()
     {
         if ((err = damaris_end_iteration()) != DAMARIS_OK)
             st_damaris_error(TW_LOC, err, "end iteration");
-        if ((err = damaris_signal("write_data")) != DAMARIS_OK)
-            st_damaris_error(TW_LOC, err, "write_data");
+        if ((err = damaris_signal("handle_data")) != DAMARIS_OK)
+            st_damaris_error(TW_LOC, err, "handle_data");
     }
 
     iterations++;
