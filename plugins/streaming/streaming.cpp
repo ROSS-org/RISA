@@ -5,127 +5,14 @@
 #include <fstream>
 #include <boost/asio.hpp>
 #include "stream-client.h"
+#include "fb-util.h"
+#include "damaris-util.h"
 
 using namespace ross_damaris;
 using namespace ross_damaris::sample;
-using namespace damaris_streaming;
+using namespace ross_damaris::streaming;
+using namespace ross_damaris::util;
 using namespace damaris;
-
-// return the pointer to the variable, because it may be a single value or an array
-void *get_value_from_damaris(const std::string& varname, int32_t src, int32_t step, int32_t block_id)
-{
-    boost::shared_ptr<Variable> v = VariableManager::Search(varname);
-    if (v && v->GetBlock(src, step, block_id))
-        return v->GetBlock(src, step, block_id)->GetDataSpace().GetData();
-    else
-    {
-        //cout << "ERROR in get_value_from_damaris() for variable " << varname << endl;
-        return nullptr;
-    }
-}
-
-template <typename T>
-void add_metric(SimEngineMetricsT *obj, const std::string& var_name, T value)
-{
-    if (var_name.compare("nevent_processed") == 0)
-        obj->nevent_processed = value;
-    else if (var_name.compare("nevent_abort") == 0)
-        obj->nevent_abort = value;
-    else if (var_name.compare("nevent_rb") == 0)
-        obj->nevent_rb = value;
-    else if (var_name.compare("rb_total") == 0)
-        obj->rb_total = value;
-    else if (var_name.compare("rb_prim") == 0)
-        obj->rb_prim = value;
-    else if (var_name.compare("rb_sec") == 0)
-        obj->rb_sec = value;
-    else if (var_name.compare("fc_attempts") == 0)
-        obj->fc_attempts = value;
-    else if (var_name.compare("pq_qsize") == 0)
-        obj->pq_qsize = value;
-    else if (var_name.compare("network_send") == 0)
-        obj->network_send = value;
-    else if (var_name.compare("network_recv") == 0)
-        obj->network_recv = value;
-    else if (var_name.compare("num_gvt") == 0)
-        obj->num_gvt = value;
-    else if (var_name.compare("event_ties") == 0)
-        obj->event_ties = value;
-    else if (var_name.compare("efficiency") == 0)
-        obj->efficiency = value;
-    else if (var_name.compare("net_read_time") == 0)
-        obj->net_read_time = value;
-    else if (var_name.compare("net_other_time") == 0)
-        obj->net_other_time = value;
-    else if (var_name.compare("gvt_time") == 0)
-        obj->gvt_time = value;
-    else if (var_name.compare("fc_time") == 0)
-        obj->fc_time = value;
-    else if (var_name.compare("event_abort_time") == 0)
-        obj->event_abort_time = value;
-    else if (var_name.compare("event_proc_time") == 0)
-        obj->event_proc_time = value;
-    else if (var_name.compare("pq_time") == 0)
-        obj->pq_time = value;
-    else if (var_name.compare("rb_time") == 0)
-        obj->rb_time = value;
-    else if (var_name.compare("cancel_q_time") == 0)
-        obj->cancel_q_time = value;
-    else if (var_name.compare("avl_time") == 0)
-        obj->avl_time = value;
-    else if (var_name.compare("virtual_time_diff") == 0)
-        obj->virtual_time_diff = value;
-    else
-        cout << "ERROR in get_metric_fn_ptr() var " << var_name << "not found!" << endl;
-}
-
-void collect_metrics(SimEngineMetricsT *metrics_objects, const std::string& var_prefix,
-        int32_t src, int32_t step, int32_t block_id, int32_t num_entities)
-{
-    const flatbuffers::TypeTable *tt = SimEngineMetricsTypeTable();
-    for (int i = 0; i < tt->num_elems; i++)
-    {
-        flatbuffers::ElementaryType type = static_cast<flatbuffers::ElementaryType>(tt->type_codes[i].base_type);
-        switch (type)
-        {
-            case flatbuffers::ET_INT:
-            {
-                auto *val = static_cast<int*>(get_value_from_damaris(var_prefix + tt->names[i], src, step, 0));
-                if (val)
-                {
-                    for (int j = 0; j < num_entities; j++)
-                        add_metric(&metrics_objects[j], tt->names[i], val[j]);
-                }
-                break;
-            }
-            case flatbuffers::ET_FLOAT:
-            {
-                auto *val = static_cast<float*>(get_value_from_damaris(var_prefix + tt->names[i], src, step, 0));
-                if (val)
-                {
-                    for (int j = 0; j < num_entities; j++)
-                        add_metric(&metrics_objects[j], tt->names[i], val[j]);
-                }
-                break;
-            }
-            case flatbuffers::ET_DOUBLE:
-            {
-                auto *val = static_cast<double*>(get_value_from_damaris(var_prefix + tt->names[i], src, step, 0));
-                if (val)
-                {
-                    for (int j = 0; j < num_entities; j++)
-                        add_metric(&metrics_objects[j], tt->names[i], val[j]);
-                }
-                break;
-            }
-            default:
-            {
-                cout << "collect_metrics(): this type hasn't been implemented!" << endl;
-                break;
-            }
-        }
-    }
-}
 
 // TODO need setup event to get sim configuration options
 SimConfig sim_config;
@@ -153,13 +40,13 @@ void setup_simulation_config(const std::string& event, int32_t src, int32_t step
     sim_config.num_pe = Environment::CountTotalClients();
     for (int i = 0; i < sim_config.num_pe; i++)
     {
-        auto val = *(static_cast<int*>(get_value_from_damaris("ross/nlp", i, 0, 0)));
+        auto val = *(static_cast<int*>(DUtil::get_value_from_damaris("ross/nlp", i, 0, 0)));
         sim_config.num_lp.push_back(val);
     }
-    sim_config.kp_per_pe = *(static_cast<int*>(get_value_from_damaris("ross/nkp", 0, 0, 0)));
+    sim_config.kp_per_pe = *(static_cast<int*>(DUtil::get_value_from_damaris("ross/nkp", 1, 0, 0)));
 
-    int *inst_modes_sim = static_cast<int*>(get_value_from_damaris("ross/inst_modes_sim", 0, 0, 0));
-    int *inst_modes_model = static_cast<int*>(get_value_from_damaris("ross/inst_modes_model", 0, 0, 0));
+    int *inst_modes_sim = static_cast<int*>(DUtil::get_value_from_damaris("ross/inst_modes_sim", 0, 0, 0));
+    int *inst_modes_model = static_cast<int*>(DUtil::get_value_from_damaris("ross/inst_modes_model", 0, 0, 0));
     for (int i = 0; i < InstMode_MAX; i++)
     {
         sim_config.inst_mode_sim[i] = inst_modes_sim[i];
@@ -187,10 +74,10 @@ void write_data(const std::string& event, int32_t src, int32_t step, const char*
 
     // then setup the DamarisDataSample table
     //DamarisDataSampleT data_sample;
-    //double virtual_ts = *get_value_from_damaris("ross/virtual_ts", 0, step, 0);
+    //double virtual_ts = *DUtil::get_value_from_damaris("ross/virtual_ts", 0, step, 0);
     double virtual_ts = 0.0; // placeholder for now
-    double real_ts =*(static_cast<double*>(get_value_from_damaris("ross/real_time", 0, step, 0)));
-    double last_gvt = *(static_cast<double*>(get_value_from_damaris("ross/last_gvt", 0, step, 0)));
+    double real_ts =*(static_cast<double*>(DUtil::get_value_from_damaris("ross/real_time", 0, step, 0)));
+    double last_gvt = *(static_cast<double*>(DUtil::get_value_from_damaris("ross/last_gvt", 0, step, 0)));
     auto data_sample = CreateDamarisDataSampleDirect(builder, virtual_ts, real_ts, last_gvt, InstMode_GVT, &pe_data, &kp_data, &lp_data);
     
     builder.Finish(data_sample);
@@ -218,7 +105,7 @@ std::vector<flatbuffers::Offset<SimEngineMetrics>> sim_engine_metrics_to_fb(flat
 {
     std::vector<flatbuffers::Offset<SimEngineMetrics>> data;
     SimEngineMetricsT metrics_objects[num_entities];
-    collect_metrics(&metrics_objects[0], var_prefix, src, step, 0, num_entities);
+    FBUtil::collect_metrics(&metrics_objects[0], var_prefix, src, step, 0, num_entities);
     for (int id = 0; id < num_entities; id++)
     {
         auto metrics = CreateSimEngineMetrics(builder, &metrics_objects[id]);

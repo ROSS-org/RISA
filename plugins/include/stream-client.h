@@ -4,8 +4,10 @@
 /*
  * Adapted from examples found at:
  * https://github.com/boostorg/asio/blob/develop/example/cpp11
- * original has support for reading from and writing to a socket, but I think we only need writing
- * But in the future perhaps we want to support user input for simulation steering?
+ * Although we only need to write out data, reading functionality has been left in
+ * this keeps the connection open.
+ * The client will attempt to read continuously until it detects there is something
+ * in the write_msgs_ queue to stream.
  */
 
 #include <cstdlib>
@@ -16,7 +18,9 @@
 #include "schemas/data_sample_generated.h"
 
 
-namespace damaris_streaming {
+namespace ross_damaris {
+namespace streaming {
+
 using boost::asio::ip::tcp;
 using namespace ross_damaris::sample;
 
@@ -68,6 +72,7 @@ class StreamClient
     void close();
 };
 
-} // end namespace damaris_streaming
+} // end namespace streaming
+} // end namespace ross_damaris
 
 #endif // STREAM_CLIENT_H

@@ -6,7 +6,7 @@
 using namespace boost::asio;
 using namespace boost::asio::ip;
 
-using namespace damaris_streaming;
+using namespace ross_damaris::streaming;
 using namespace std;
 
 void StreamClient::write(const flatbuffers::FlatBufferBuilder& data)

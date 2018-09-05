@@ -5,7 +5,9 @@ ADD_DEFINITIONS(-std=gnu++11)
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
 INCLUDE_DIRECTORIES(include)
 SET(plugin_srcs
-    util/garbage_collection.cpp
+    util/garbage-collection.cpp
+    util/damaris-util.cpp
+    util/fb-util.cpp
     streaming/streaming.cpp
     streaming/stream-client.cpp)
 
