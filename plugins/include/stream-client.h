@@ -2,8 +2,8 @@
 #define STREAM_CLIENT_H
 
 /*
- * Adapted from example found at:
- * https://github.com/boostorg/asio/blob/develop/example/cpp11/nonblocking/third_party_lib.cpp
+ * Adapted from examples found at:
+ * https://github.com/boostorg/asio/blob/develop/example/cpp11
  * original has support for reading from and writing to a socket, but I think we only need writing
  * But in the future perhaps we want to support user input for simulation steering?
  */
@@ -40,7 +40,7 @@ class StreamClient
     boost::asio::io_service& service_;
     tcp::socket socket_;
     sample_queue write_msgs_;
-    std::array<char, 128> dummy_buf_;
+    std::array<char, 1> dummy_buf_;
 	
     void do_connect(tcp::resolver::iterator it);
     void do_write();
@@ -54,7 +54,17 @@ class StreamClient
         do_connect(it);
     }
 
+    /**
+     * @brief Gets the data to the streaming client
+     *
+     * This may not actually write data immediately to the socket.
+     * Data is placed in a FIFO queue
+     */
     void write(const flatbuffers::FlatBufferBuilder& data);
+
+    /**
+     * @brief Close the streaming connection
+     */
     void close();
 };
 

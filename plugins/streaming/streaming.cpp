@@ -143,7 +143,7 @@ ofstream data_file;
 boost::asio::io_service service;
 tcp::resolver resolver(service);
 StreamClient *client;
-std::thread *t;
+std::thread *t; // thread is to handle boost async operations
 
 // only call once, not per source
 void setup_simulation_config(const std::string& event, int32_t src, int32_t step, const char* args)
