@@ -10,7 +10,7 @@ SET(DAMARIS_INCLUDE ${DAMARIS_DIR}/include CACHE INTERNAL "")
 SET(DAMARIS_LIBRARY ${DAMARIS_DIR}/lib CACHE INTERNAL "")
 SET(FLATBUF_INCLUDE ${FLATBUF_DIR}/include CACHE INTERNAL "")
 
-SET(LINKER_STR "-rdynamic -L${DAMARIS_LIBRARY} -Wl,--whole-archive,-ldamaris,--no-whole-archive -lxerces-c -lboost_log -lboost_log_setup -lboost_filesystem -lboost_system -lboost_date_time -lboost_thread -lstdc++ -lmpi_cxx -lrt -ldl -lpthread")
+SET(LINKER_STR "-rdynamic -L${DAMARIS_LIBRARY} -Wl,--whole-archive -ldamaris -lboost_program_options -Wl,--no-whole-archive -lxerces-c -lboost_log -lboost_log_setup -lboost_filesystem -lboost_system -lboost_date_time -lboost_thread -lstdc++ -lmpi_cxx -lrt -ldl -lpthread")
 IF (USE_VISIT)
     SET(VISIT_DIR $ENV{VISIT_DIR} CACHE STRING "Path to VisIt src dir")
     SET(LINKER_STR "${LINKER_STR} -L${VISIT_DIR}/lib -lsimV2")

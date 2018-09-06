@@ -6,6 +6,8 @@
 #include "stream-client.h"
 #include "fb-util.h"
 #include "damaris-util.h"
+#include "config.h"
+#include "sim-config.h"
 
 using namespace ross_damaris;
 using namespace ross_damaris::sample;
@@ -44,13 +46,22 @@ void setup_simulation_config(const std::string& event, int32_t src, int32_t step
     }
     sim_config.kp_per_pe = *(static_cast<int*>(DUtil::get_value_from_damaris("ross/nkp", 1, 0, 0)));
 
-    int *inst_modes_sim = static_cast<int*>(DUtil::get_value_from_damaris("ross/inst_modes_sim", 0, 0, 0));
-    int *inst_modes_model = static_cast<int*>(DUtil::get_value_from_damaris("ross/inst_modes_model", 0, 0, 0));
-    for (int i = 0; i < InstMode_MAX; i++)
-    {
-        sim_config.inst_mode_sim[i] = inst_modes_sim[i];
-        sim_config.inst_mode_model[i] = inst_modes_model[i];
-    }
+    auto opts = set_options();
+    po::variables_map vars;
+    string config_file = "/home/rossc3/rv-build/models/phold/test.cfg";
+    const char *cf = config_file.c_str();
+    ifstream ifs(config_file.c_str());
+    parse_file(ifs, opts, vars);
+    sim_config.set_parameters(vars);
+    sim_config.print_parameters();
+
+    //int *inst_modes_sim = static_cast<int*>(DUtil::get_value_from_damaris("ross/inst_modes_sim", 0, 0, 0));
+    //int *inst_modes_model = static_cast<int*>(DUtil::get_value_from_damaris("ross/inst_modes_model", 0, 0, 0));
+    //for (int i = 0; i < InstMode_MAX; i++)
+    //{
+    //    sim_config.inst_mode_sim[i] = inst_modes_sim[i];
+    //    sim_config.inst_mode_model[i] = inst_modes_model[i];
+    //}
 
     if (write_data)
         data_file.open("test-fb.bin", ios::out | ios::trunc | ios::binary);

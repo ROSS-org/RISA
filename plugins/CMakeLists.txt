@@ -8,6 +8,7 @@ SET(plugin_srcs
     util/garbage-collection.cpp
     util/damaris-util.cpp
     util/fb-util.cpp
+    util/config.cpp
     streaming/streaming.cpp
     streaming/stream-client.cpp)
 
