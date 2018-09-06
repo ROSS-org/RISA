@@ -9,6 +9,7 @@ SET(FLATBUF_DIR $ENV{FLATBUF_DIR} CACHE STRING "Path to Flatbuffers install")
 SET(DAMARIS_INCLUDE ${DAMARIS_DIR}/include CACHE INTERNAL "")
 SET(DAMARIS_LIBRARY ${DAMARIS_DIR}/lib CACHE INTERNAL "")
 SET(FLATBUF_INCLUDE ${FLATBUF_DIR}/include CACHE INTERNAL "")
+SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Wpedantic")
 
 SET(LINKER_STR "-rdynamic -L${DAMARIS_LIBRARY} -Wl,--whole-archive -ldamaris -lboost_program_options -Wl,--no-whole-archive -lxerces-c -lboost_log -lboost_log_setup -lboost_filesystem -lboost_system -lboost_date_time -lboost_thread -lstdc++ -lmpi_cxx -lrt -ldl -lpthread")
 IF (USE_VISIT)

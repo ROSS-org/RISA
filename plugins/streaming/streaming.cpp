@@ -18,11 +18,11 @@ using namespace ross_damaris::util;
 extern "C" {
 
 std::vector<flatbuffers::Offset<PEData>> pe_data_to_fb(
-        flatbuffers::FlatBufferBuilder& builder, int32_t src, int32_t step);
+        flatbuffers::FlatBufferBuilder& builder, int32_t step);
 std::vector<flatbuffers::Offset<KPData>> kp_data_to_fb(
-        flatbuffers::FlatBufferBuilder& builder, int32_t src, int32_t step);
+        flatbuffers::FlatBufferBuilder& builder, int32_t step);
 std::vector<flatbuffers::Offset<LPData>> lp_data_to_fb(
-        flatbuffers::FlatBufferBuilder& builder, int32_t src, int32_t step);
+        flatbuffers::FlatBufferBuilder& builder, int32_t step);
 
 SimConfig sim_config;
 ofstream data_file;
@@ -36,6 +36,10 @@ static bool stream_data = true;
 // only call once, not per source
 void setup_simulation_config(const std::string& event, int32_t src, int32_t step, const char* args)
 {
+    (void) event;
+    (void) src;
+    (void) step;
+    (void) args;
     //cout << "setup_simulation_config() step " << step << endl;
 
     sim_config.num_pe = damaris::Environment::CountTotalClients();
@@ -49,7 +53,6 @@ void setup_simulation_config(const std::string& event, int32_t src, int32_t step
     auto opts = set_options();
     po::variables_map vars;
     string config_file = "/home/rossc3/rv-build/models/phold/test.cfg";
-    const char *cf = config_file.c_str();
     ifstream ifs(config_file.c_str());
     parse_file(ifs, opts, vars);
     sim_config.set_parameters(vars);
@@ -77,14 +80,17 @@ void setup_simulation_config(const std::string& event, int32_t src, int32_t step
 
 void handle_data(const std::string& event, int32_t src, int32_t step, const char* args)
 {
+    (void) event;
+    (void) src;
+    (void) args;
     step--;
     //cout << "write_data() rank " << src << " step " << step << endl;
     flatbuffers::FlatBufferBuilder builder;
 
     // setup sim engine data tables and model tables as needed
-    auto pe_data = pe_data_to_fb(builder, src, step);
-    auto kp_data = kp_data_to_fb(builder, src, step);
-    auto lp_data = lp_data_to_fb(builder, src, step);
+    auto pe_data = pe_data_to_fb(builder, step);
+    auto kp_data = kp_data_to_fb(builder, step);
+    auto lp_data = lp_data_to_fb(builder, step);
 
     // then setup the DamarisDataSample table
     //DamarisDataSampleT data_sample;
@@ -114,6 +120,10 @@ void handle_data(const std::string& event, int32_t src, int32_t step, const char
 
 void streaming_finalize(const std::string& event, int32_t src, int32_t step, const char* args)
 {
+    (void) event;
+    (void) src;
+    (void) step;
+    (void) args;
     if (write_data)
         data_file.close();
 
@@ -128,18 +138,19 @@ std::vector<flatbuffers::Offset<SimEngineMetrics>> sim_engine_metrics_to_fb(flat
         int32_t src, int32_t step, int32_t num_entities, const std::string& var_prefix)
 {
     std::vector<flatbuffers::Offset<SimEngineMetrics>> data;
-    SimEngineMetricsT metrics_objects[num_entities];
+    SimEngineMetricsT *metrics_objects = new SimEngineMetricsT[num_entities];
     FBUtil::collect_metrics(&metrics_objects[0], var_prefix, src, step, 0, num_entities);
     for (int id = 0; id < num_entities; id++)
     {
         auto metrics = CreateSimEngineMetrics(builder, &metrics_objects[id]);
         data.push_back(metrics);
     }
+    delete[] metrics_objects;
     return data;
 }
 
 std::vector<flatbuffers::Offset<PEData>> pe_data_to_fb(
-        flatbuffers::FlatBufferBuilder& builder, int32_t src, int32_t step)
+        flatbuffers::FlatBufferBuilder& builder, int32_t step)
 {
     std::string var_prefix = "ross/pes/gvt_inst/";
     std::vector<flatbuffers::Offset<PEData>> pe_data;
@@ -153,7 +164,7 @@ std::vector<flatbuffers::Offset<PEData>> pe_data_to_fb(
 }
 
 std::vector<flatbuffers::Offset<KPData>> kp_data_to_fb(
-        flatbuffers::FlatBufferBuilder& builder, int32_t src, int32_t step)
+        flatbuffers::FlatBufferBuilder& builder, int32_t step)
 {
     std::string var_prefix = "ross/kps/gvt_inst/";
     std::vector<flatbuffers::Offset<KPData>> kp_data;
@@ -171,7 +182,7 @@ std::vector<flatbuffers::Offset<KPData>> kp_data_to_fb(
 }
 
 std::vector<flatbuffers::Offset<LPData>> lp_data_to_fb(
-        flatbuffers::FlatBufferBuilder& builder, int32_t src, int32_t step)
+        flatbuffers::FlatBufferBuilder& builder, int32_t step)
 {
     std::string var_prefix = "ross/lps/gvt_inst/";
     std::vector<flatbuffers::Offset<LPData>> lp_data;

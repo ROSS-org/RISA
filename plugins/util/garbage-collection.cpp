@@ -10,6 +10,10 @@ static int num_steps = 10;
 
 void damaris_gc(const std::string& event, int32_t src, int32_t step, const char* args)
 {
+    (void) event;
+    (void) src;
+    (void) args;
+
     if (step < num_steps) return;
 
     VariableManager::iterator it = VariableManager::Begin();

@@ -29,7 +29,7 @@ void StreamClient::close()
 void StreamClient::do_connect(tcp::resolver::iterator it)
 {
     boost::asio::async_connect(socket_, it,
-            [this](boost::system::error_code ec, tcp::resolver::iterator it)
+            [this](boost::system::error_code ec, tcp::resolver::iterator /*it*/)
             {
                 if (ec)
                 {

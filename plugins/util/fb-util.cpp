@@ -63,8 +63,10 @@ void FBUtil::add_metric(SimEngineMetricsT *obj, const std::string& var_name, T v
 void FBUtil::collect_metrics(SimEngineMetricsT *metrics_objects, const std::string& var_prefix,
         int32_t src, int32_t step, int32_t block_id, int32_t num_entities)
 {
+    (void) block_id;
+
     const flatbuffers::TypeTable *tt = SimEngineMetricsTypeTable();
-    for (int i = 0; i < tt->num_elems; i++)
+    for (unsigned int i = 0; i < tt->num_elems; i++)
     {
         flatbuffers::ElementaryType type = static_cast<flatbuffers::ElementaryType>(tt->type_codes[i].base_type);
         switch (type)

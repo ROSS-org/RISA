@@ -322,14 +322,14 @@ void st_damaris_inst_init()
 
     // LP coordinates in local ids
     lp_id = tw_calloc(TW_LOC, "damaris", sizeof(double), g_tw_nlp + 1);
-    for (i = 0; i < g_tw_nlp + 1; i++)
+    for (i = 0; (unsigned int)i < g_tw_nlp + 1; i++)
         lp_id[i] = (double) i;
     if ((err = damaris_write("ross/lp_id", lp_id)) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, "ross/lp_id");
 
     // KP coordinates in local ids
     kp_id = tw_calloc(TW_LOC, "damaris", sizeof(double), g_tw_nkp + 1);
-    for (i = 0; i < g_tw_nkp + 1; i++)
+    for (i = 0; (unsigned int)i < g_tw_nkp + 1; i++)
         kp_id[i] = (double) i;
     if ((err = damaris_write("ross/kp_id", kp_id)) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, "ross/kp_id");
@@ -352,7 +352,7 @@ void st_damaris_inst_init()
         for (i = 0; i <  NUM_KP_VARS; i++)
         {
             kp_data[i].var_path = tw_calloc(TW_LOC, "damaris", sizeof(char), 1024);
-            for (j = 0; j < g_tw_nkp; j++)
+            for (j = 0; (unsigned int) j < g_tw_nkp; j++)
             {
                 if (i < DKP_VT_DIFF)
                     kp_data[i].data_ptr = tw_calloc(TW_LOC, "damaris", sizeof(int), g_tw_nkp);
@@ -367,7 +367,7 @@ void st_damaris_inst_init()
         for (i = 0; i <  NUM_LP_VARS; i++)
         {
             lp_data[i].var_path = tw_calloc(TW_LOC, "damaris", sizeof(char), 1024);
-            for (j = 0; j < g_tw_nlp; j++)
+            for (j = 0; (unsigned int) j < g_tw_nlp; j++)
             {
                 if (i < DLP_EFF)
                     lp_data[i].data_ptr = tw_calloc(TW_LOC, "damaris", sizeof(int), g_tw_nlp);
@@ -411,7 +411,7 @@ void st_damaris_expose_data(tw_pe *me, tw_stime gvt, int inst_type)
     if (g_tw_gvt_done % g_st_num_gvt != 0)
         return;
 
-    int err, i;
+    int err;
 
     tw_statistics s;
     bzero(&s, sizeof(s));
@@ -512,7 +512,7 @@ static void expose_kp_data(tw_pe *pe, int inst_type)
     int i, err, block = 0;
     tw_kp *kp;
 
-    for (i = 0; i < g_tw_nkp; i++)
+    for (i = 0; (unsigned int)i < g_tw_nkp; i++)
     {
         kp = tw_getkp(i);
         ((int*)kp_data[DKP_EVENT_PROC].data_ptr)[i] = (int)(kp->kp_stats->s_nevent_processed - kp->last_stats[inst_type]->s_nevent_processed);
@@ -555,7 +555,7 @@ static void expose_lp_data(int inst_type)
     tw_lp *lp;
     int i, err, block = 0;
 
-    for (i = 0; i < g_tw_nlp; i++)
+    for (i = 0; (unsigned int) i < g_tw_nlp; i++)
     {
         lp = tw_getlp(i);
 

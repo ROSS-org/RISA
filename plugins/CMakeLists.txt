@@ -2,7 +2,7 @@ PROJECT(rdplugins)
 
 INCLUDE_DIRECTORIES(${DAMARIS_INCLUDE} ${VISIT_DIR}/sim/V2/lib ${FLATBUF_INCLUDE})
 ADD_DEFINITIONS(-std=gnu++11)
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations -Wall -Wextra -Wpedantic")
 INCLUDE_DIRECTORIES(include)
 SET(plugin_srcs
     util/garbage-collection.cpp
