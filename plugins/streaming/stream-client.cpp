@@ -33,8 +33,10 @@ void StreamClient::do_connect(tcp::resolver::iterator it)
             {
                 if (ec)
                 {
+                    cout << ec.category().name() << " error " << ec.value(); 
+                    cout << ": StreamClient do_connect() " << ec.message();
+                    cout << ". Closing Socket\n";
                     socket_.close();
-                    cout << "StreamClient Error do_connect() closing socket" << endl;
                 }
                 else
                 {
@@ -64,8 +66,10 @@ void StreamClient::do_write()
                 }
                 else
                 {
+                    cout << ec.category().name() << " error " << ec.value(); 
+                    cout << ": StreamClient do_write() " << ec.message();
+                    cout << ". Closing Socket\n";
                     socket_.close();
-                    cout << "StreamClient Error do_write() closing socket" << endl;
                 }
             });
 }
@@ -85,8 +89,10 @@ void StreamClient::do_read()
                 }
                 else
                 {
+                    cout << ec.category().name() << " error " << ec.value(); 
+                    cout << ": StreamClient do_read() " << ec.message();
+                    cout << ". Closing Socket\n";
                     socket_.close();
-                    cout << "StreamClient Error do_read() closing socket" << endl;
                 }
             });
 }
