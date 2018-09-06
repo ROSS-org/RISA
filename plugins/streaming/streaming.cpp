@@ -30,8 +30,6 @@ boost::asio::io_service service;
 tcp::resolver resolver(service);
 StreamClient *client;
 std::thread *t; // thread is to handle boost async operations
-static bool write_data = true;
-static bool stream_data = true;
 
 // only call once, not per source
 void setup_simulation_config(const std::string& event, int32_t src, int32_t step, const char* args)
@@ -66,10 +64,10 @@ void setup_simulation_config(const std::string& event, int32_t src, int32_t step
     //    sim_config.inst_mode_model[i] = inst_modes_model[i];
     //}
 
-    if (write_data)
+    if (sim_config.write_data)
         data_file.open("test-fb.bin", ios::out | ios::trunc | ios::binary);
 
-    if (stream_data)
+    if (sim_config.stream_data)
     {
         tcp::resolver::query q("localhost", "8000");
         auto it = resolver.resolve(q);
@@ -104,7 +102,7 @@ void handle_data(const std::string& event, int32_t src, int32_t step, const char
 
 	//auto s = flatbuffers::FlatBufferToString(builder.GetBufferPointer(), DamarisDataSampleTypeTable(), true);
 	//cout << "current sample:\n" << s << endl;
-    if (write_data)
+    if (sim_config.write_data)
     {
         // Get pointer to the buffer and the size for writing to file
         uint8_t *buf = builder.GetBufferPointer();
@@ -114,7 +112,7 @@ void handle_data(const std::string& event, int32_t src, int32_t step, const char
         //cout << "wrote " << size << " bytes to file" << endl;
     }
 
-    if (stream_data)
+    if (sim_config.stream_data)
         client->write(builder);
 }
 
@@ -124,10 +122,10 @@ void streaming_finalize(const std::string& event, int32_t src, int32_t step, con
     (void) src;
     (void) step;
     (void) args;
-    if (write_data)
+    if (sim_config.write_data)
         data_file.close();
 
-    if (stream_data)
+    if (sim_config.stream_data)
     {
         client->close();
         t->join();

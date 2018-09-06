@@ -24,6 +24,9 @@ struct SimConfig {
     double rt_interval;
     double vt_interval;
     double vt_samp_end;
+
+    bool write_data;
+    bool stream_data;
     SimConfig() :
         num_pe(1),
         kp_per_pe(16),
@@ -33,7 +36,9 @@ struct SimConfig {
         num_gvt(10),
         rt_interval(0.0),
         vt_interval(0.0),
-        vt_samp_end(0.0) {  }
+        vt_samp_end(0.0),
+        write_data(false),
+        stream_data(true) {  }
 
     void set_parameters(po::variables_map& var_map);
     void print_parameters();
