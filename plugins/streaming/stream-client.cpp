@@ -9,11 +9,12 @@ using namespace boost::asio::ip;
 using namespace ross_damaris::streaming;
 using namespace std;
 
-void StreamClient::write(const flatbuffers::FlatBufferBuilder& data)
+void StreamClient::write(flatbuffers::FlatBufferBuilder* data)
 {
-    sample_msg msg;
-    msg.size = data.GetSize();
-    msg.buffer = data.GetBufferPointer();
+    sample_msg *msg = new sample_msg();
+    msg->size = data->GetSize();
+    msg->buffer = data->GetBufferPointer();
+    msg->builder = data;
     write_msgs_.push_back(msg);
 }
 
@@ -50,14 +51,17 @@ void StreamClient::do_write()
 {
     if (write_msgs_.empty())
         return;
-    std::vector<const_buffer> buf;
-    buf.push_back(boost::asio::buffer(&write_msgs_.front().size, sizeof(flatbuffers::uoffset_t)));
-    buf.push_back(boost::asio::buffer(write_msgs_.front().buffer, write_msgs_.front().size));
+    std::vector<boost::asio::const_buffer> buf;
+    buf.push_back(boost::asio::buffer(&write_msgs_.front()->size, sizeof(flatbuffers::uoffset_t)));
+    buf.push_back(boost::asio::buffer(write_msgs_.front()->buffer, write_msgs_.front()->size));
     boost::asio::async_write(socket_, buf,
             [this](boost::system::error_code ec, std::size_t /*length*/)
             {
                 if (!ec)
                 {
+                    sample_msg *msg = write_msgs_.front();
+                    delete msg->builder;
+                    delete msg;
                     write_msgs_.pop_front();
                     if (!write_msgs_.empty())
                         do_write();

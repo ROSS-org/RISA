@@ -85,28 +85,28 @@ void handle_data(const std::string& event, int32_t src, int32_t step, const char
     (void) args;
     step--;
     //cout << "write_data() rank " << src << " step " << step << endl;
-    flatbuffers::FlatBufferBuilder builder;
+    flatbuffers::FlatBufferBuilder *builder = new flatbuffers::FlatBufferBuilder();
 
     // setup sim engine data tables and model tables as needed
-    auto pe_data = pe_data_to_fb(builder, step);
-    auto kp_data = kp_data_to_fb(builder, step);
-    auto lp_data = lp_data_to_fb(builder, step);
+    auto pe_data = pe_data_to_fb(*builder, step);
+    auto kp_data = kp_data_to_fb(*builder, step);
+    auto lp_data = lp_data_to_fb(*builder, step);
 
     // then setup the DamarisDataSample table
     double virtual_ts = 0.0; // placeholder for now
     double real_ts =*(static_cast<double*>(DUtil::get_value_from_damaris("ross/real_time", 0, step, 0)));
     double last_gvt = *(static_cast<double*>(DUtil::get_value_from_damaris("ross/last_gvt", 0, step, 0)));
-    auto data_sample = CreateDamarisDataSampleDirect(builder, virtual_ts, real_ts, last_gvt, InstMode_GVT, &pe_data, &kp_data, &lp_data);
+    auto data_sample = CreateDamarisDataSampleDirect(*builder, virtual_ts, real_ts, last_gvt, InstMode_GVT, &pe_data, &kp_data, &lp_data);
     
-    builder.Finish(data_sample);
+    builder->Finish(data_sample);
 
 	//auto s = flatbuffers::FlatBufferToString(builder.GetBufferPointer(), DamarisDataSampleTypeTable(), true);
 	//cout << "current sample:\n" << s << endl;
     if (sim_config.write_data)
     {
         // Get pointer to the buffer and the size for writing to file
-        uint8_t *buf = builder.GetBufferPointer();
-        int size = builder.GetSize();
+        uint8_t *buf = builder->GetBufferPointer();
+        int size = builder->GetSize();
         data_file.write(reinterpret_cast<const char*>(&size), sizeof(size));
         data_file.write(reinterpret_cast<const char*>(buf), size);
         //cout << "wrote " << size << " bytes to file" << endl;

@@ -29,17 +29,19 @@ struct sample_msg
 {
     flatbuffers::uoffset_t size;
     uint8_t *buffer;
+    flatbuffers::FlatBufferBuilder *builder;
 
     sample_msg() :
         size(0),
-        buffer(nullptr)
+        buffer(nullptr),
+        builder(nullptr)
     {  }
 };
 
 class StreamClient
 {
     private:
-    typedef std::deque<sample_msg> sample_queue;
+    typedef std::deque<sample_msg*> sample_queue;
 
     boost::asio::io_service& service_;
     tcp::socket socket_;
@@ -64,7 +66,7 @@ class StreamClient
      * This may not actually write data immediately to the socket.
      * Data is placed in a FIFO queue
      */
-    void write(const flatbuffers::FlatBufferBuilder& data);
+    void write(flatbuffers::FlatBufferBuilder* data);
 
     /**
      * @brief Close the streaming connection
