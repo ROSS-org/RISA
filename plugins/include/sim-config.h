@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <unordered_set>
 #include "schemas/data_sample_generated.h"
 #include "flatbuffers/minireflect.h"
 #include <boost/program_options.hpp>
@@ -43,6 +44,17 @@ struct SimConfig {
     void set_parameters(po::variables_map& var_map);
     void print_parameters();
     void print_mode_types(int type);
+};
+
+class ModelConfig {
+    private:
+    std::map<std::string, std::unordered_set<std::string>> lp_type_var_map_;
+
+    public:
+    ModelConfig() {  }
+    void model_setup();
+    void print_model_info();
+
 };
 
 po::options_description set_options();

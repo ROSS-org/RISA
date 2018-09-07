@@ -1,4 +1,5 @@
 #include <boost/program_options.hpp>
+#include "damaris/data/VariableManager.hpp"
 #include "config.h"
 #include "sim-config.h"
 #include "fb-util.h"
@@ -156,3 +157,37 @@ void ross_damaris::SimConfig::print_mode_types(int type)
     if (inst_mode_model[type])
         cout << "model data";
 }
+
+// assumes all model variables are defined in damaris XML file as:
+// model/<lp_type_name>/<variable_name>
+void ross_damaris::ModelConfig::model_setup()
+{
+    damaris::VariableManager::iterator it = damaris::VariableManager::Begin();
+    damaris::VariableManager::iterator end = damaris::VariableManager::End();
+
+    while (it != end)
+    {
+        int pos = (*it)->GetName().find("model");
+        if (pos == 0) // this variable starts with "model"
+        {
+			std::vector<std::string> groups;
+			boost::split(groups, (*it)->GetName(), boost::is_any_of("/"));
+            lp_type_var_map_[groups[1]].insert(groups[2]);
+        }
+        it++;
+    }
+}
+
+void ross_damaris::ModelConfig::print_model_info()
+{
+    cout << "checking model metadata recv'd from Damaris:\n";
+    for (auto& lp_type: lp_type_var_map_)
+    {
+        cout << lp_type.first << ":";
+        for (auto v_it = lp_type.second.begin(); v_it != lp_type.second.end(); ++v_it)
+            cout << " " << *v_it;
+        cout << endl;
+    }
+
+}
+

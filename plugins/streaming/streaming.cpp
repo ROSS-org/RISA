@@ -1,4 +1,5 @@
-//#include "damaris/data/VariableManager.hpp"
+#include "damaris/data/VariableManager.hpp"
+#include "damaris/data/Variable.hpp"
 #include <iostream>
 #include <fstream>
 #include <boost/asio.hpp>
@@ -25,6 +26,7 @@ std::vector<flatbuffers::Offset<LPData>> lp_data_to_fb(
         flatbuffers::FlatBufferBuilder& builder, int32_t step);
 
 SimConfig sim_config;
+ModelConfig model_config;
 ofstream data_file;
 boost::asio::io_service service;
 tcp::resolver resolver(service);
@@ -70,6 +72,9 @@ void setup_simulation_config(const std::string& event, int32_t src, int32_t step
         client = new StreamClient(service, it);
         t = new std::thread([](){ service.run(); });
     }
+
+    model_config.model_setup();
+    //model_config.print_model_info();
 }
 
 /**
