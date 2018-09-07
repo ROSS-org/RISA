@@ -32,8 +32,6 @@
         <layout name="kp_int_layout" type="int" dimensions="num_kp" />
         <layout name="kp_float_layout" type="float" dimensions="num_kp" />
 
-        <layout name="inst_mode_layout" type="int" dimensions="num_modes" />
-
         <mesh name="mesh2d_lp" type="rectilinear" topology="2">
             <coord name="ross/lp_id" unit="lp_id" label="LP ID" />
             <coord name="ross/pe_id" unit="pe_id" label="PE ID" />
@@ -57,8 +55,6 @@
             <variable name="lp_id" layout="lp_id_layout" visualizable="false" time-varying="false" />
             <variable name="dummy" layout="dummy_layout" visualizable="false" time-varying="false" />
 
-            <variable name="inst_modes_sim" layout="inst_mode_layout" visualizable="false" time-varying="false" />
-            <variable name="inst_modes_model" layout="inst_mode_layout" visualizable="false" time-varying="false" />
             <variable name="nlp" layout="int" visualizable="false" time-varying="false" />
             <variable name="nkp" layout="int" visualizable="false" time-varying="false" />
 

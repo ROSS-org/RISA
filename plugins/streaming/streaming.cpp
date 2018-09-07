@@ -29,9 +29,13 @@ ofstream data_file;
 boost::asio::io_service service;
 tcp::resolver resolver(service);
 StreamClient *client;
-std::thread *t; // thread is to handle boost async operations
+std::thread *t; // thread is to handle boost async IO operations
 
-// only call once, not per source
+/** 
+ * @brief Damaris event to set up simulation configuration
+ *
+ * Should be set in XML file as "group" scope
+ */
 void setup_simulation_config(const std::string& event, int32_t src, int32_t step, const char* args)
 {
     (void) event;
@@ -56,14 +60,6 @@ void setup_simulation_config(const std::string& event, int32_t src, int32_t step
     sim_config.set_parameters(vars);
     sim_config.print_parameters();
 
-    //int *inst_modes_sim = static_cast<int*>(DUtil::get_value_from_damaris("ross/inst_modes_sim", 0, 0, 0));
-    //int *inst_modes_model = static_cast<int*>(DUtil::get_value_from_damaris("ross/inst_modes_model", 0, 0, 0));
-    //for (int i = 0; i < InstMode_MAX; i++)
-    //{
-    //    sim_config.inst_mode_sim[i] = inst_modes_sim[i];
-    //    sim_config.inst_mode_model[i] = inst_modes_model[i];
-    //}
-
     if (sim_config.write_data)
         data_file.open("test-fb.bin", ios::out | ios::trunc | ios::binary);
 
@@ -76,6 +72,12 @@ void setup_simulation_config(const std::string& event, int32_t src, int32_t step
     }
 }
 
+/**
+ * @brief Damaris event to either stream data or write to file
+ *
+ * First converts all data in a given sample into Flatbuffers format.
+ * Call with "group" scope.
+ */
 void handle_data(const std::string& event, int32_t src, int32_t step, const char* args)
 {
     (void) event;
@@ -91,8 +93,6 @@ void handle_data(const std::string& event, int32_t src, int32_t step, const char
     auto lp_data = lp_data_to_fb(builder, step);
 
     // then setup the DamarisDataSample table
-    //DamarisDataSampleT data_sample;
-    //double virtual_ts = *DUtil::get_value_from_damaris("ross/virtual_ts", 0, step, 0);
     double virtual_ts = 0.0; // placeholder for now
     double real_ts =*(static_cast<double*>(DUtil::get_value_from_damaris("ross/real_time", 0, step, 0)));
     double last_gvt = *(static_cast<double*>(DUtil::get_value_from_damaris("ross/last_gvt", 0, step, 0)));
@@ -116,6 +116,12 @@ void handle_data(const std::string& event, int32_t src, int32_t step, const char
         client->write(builder);
 }
 
+/**
+ * @brief Damaris event to close files, sockets, etc
+ *
+ * Called just before Damaris is stopped.
+ * Called with "group" scope.
+ */
 void streaming_finalize(const std::string& event, int32_t src, int32_t step, const char* args)
 {
     (void) event;
