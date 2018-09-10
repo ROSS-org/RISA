@@ -1,0 +1,380 @@
+<?xml version="1.0"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+	elementFormDefault="qualified"
+	targetNamespace="http://damaris.gforge.inria.fr/damaris/model"
+	xmlns:mdl="http://damaris.gforge.inria.fr/damaris/model">
+
+<!-- Deprecated -->
+	<!-- Client node -->
+	<xs:complexType name="DeprecatedClients">
+		<xs:attribute name="count" type="xs:unsignedInt" use="required"/>
+		<xs:attribute name="domains" type="xs:unsignedInt" use="optional" default="1"/>
+	</xs:complexType>
+
+	<!-- Cores node -->
+	<xs:complexType name="DeprecatedCores">
+		<xs:sequence>
+			<xs:element name="clients" type="mdl:DeprecatedClients"/>
+		</xs:sequence>
+		<xs:attribute name="count" type="xs:unsignedInt" use="required"/>
+	</xs:complexType>
+<!-- End deprecated -->
+
+        <xs:complexType name="KeyVal">
+		<xs:simpleContent>
+		<xs:extension base="xs:string">
+			<xs:attribute name="key" type="xs:string" />
+		</xs:extension>
+		</xs:simpleContent>
+	</xs:complexType>
+
+
+	<xs:complexType name="Dedicated">
+		<xs:attribute name="cores" type="xs:unsignedInt" use="optional" default="0" />
+		<xs:attribute name="nodes" type="xs:unsignedInt" use="optional" default="0"/>
+	</xs:complexType>
+
+	<xs:complexType name="Domains">
+		<xs:attribute name="count" type="xs:unsignedInt" use="optional" default="1"/>
+	</xs:complexType>
+
+	<!-- Type of shared memory (POSIX or System-V) -->
+	<xs:simpleType name="ShmType">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="posix"/>
+			<xs:enumeration value="sysv"/>
+		</xs:restriction>
+	</xs:simpleType>
+
+	<!-- Buffer node -->
+	<xs:complexType name="Buffer">
+		<xs:attribute name="name" type="xs:string" use="required"/>
+		<xs:attribute name="size" type="xs:unsignedInt" use="required"/>
+		<xs:attribute name="type"   type="mdl:ShmType"    use="optional" default="posix"/>
+		<xs:attribute name="blocks" type="xs:unsignedInt" use="optional" default="0"/>
+		<xs:attribute name="enabled" type="xs:boolean" use="optional" default="true"/>
+	</xs:complexType>	
+
+	<!-- Queue node -->
+	<xs:complexType name="Queue">
+		<xs:attribute name="name" type="xs:string"      use="required"/>
+		<xs:attribute name="size" type="xs:unsignedInt" use="required"/>
+	</xs:complexType>
+
+	<!-- Architecture node -->
+	<xs:complexType name="Architecture">
+		<xs:all>
+		<!--	<xs:element name="cores"  type="mdl:DeprecatedCores" /> -->
+			<xs:element name="domains" type="mdl:Domains" />
+			<xs:element name="dedicated" type="mdl:Dedicated"/>
+			<xs:element name="buffer" type="mdl:Buffer" />
+			<xs:element name="queue"  type="mdl:Queue" />
+		</xs:all>
+		<xs:attribute name="name" type="xs:string" use="optional"/>
+	</xs:complexType>
+
+	<!-- Languages -->
+	<xs:simpleType name="Language">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="unknown"/>
+			<xs:enumeration value="fortran"/>
+			<xs:enumeration value="c"/>
+			<xs:enumeration value="cpp"/>
+			<xs:enumeration value="python"/>
+		</xs:restriction>
+	</xs:simpleType>
+
+	<!-- Type Model -->
+	<xs:simpleType name="Type">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="short" />
+			<xs:enumeration value="int" />
+			<xs:enumeration value="integer" />
+			<xs:enumeration value="long" />
+			<xs:enumeration value="float" />
+			<xs:enumeration value="real" />
+			<xs:enumeration value="double" />
+			<xs:enumeration value="char" />
+			<xs:enumeration value="character" />
+			<xs:enumeration value="string" />
+			<xs:enumeration value="label" />
+			<xs:enumeration value="undefined" />
+		</xs:restriction>
+	</xs:simpleType>
+
+	<!-- Layout node -->
+	<xs:complexType name="Layout">
+		<xs:simpleContent>
+		<xs:extension base="xs:string">
+			<xs:attribute name="name"         type="xs:string" use="required"/>
+			<xs:attribute name="type"         type="mdl:Type"  use="required"/>
+			<xs:attribute name="dimensions"   type="xs:string" use="required" />
+			<xs:attribute name="global"	  type="xs:string"    use="optional" default="#"/>
+			<xs:attribute name="ghosts"	  type="xs:string"    use="optional" default="#"/>
+			<xs:attribute name="language"     type="mdl:Language" use="optional" default="unknown"/>
+			<xs:attribute name="visualizable" type="xs:boolean"   use="optional" default="true"/>
+		</xs:extension>
+		</xs:simpleContent>
+	</xs:complexType>
+
+	<!-- Variable Type -->
+	<xs:simpleType name="VarType">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="scalar" />
+			<xs:enumeration value="vector" />
+			<xs:enumeration value="tensor" />
+			<xs:enumeration value="symmetric-tensor" />
+			<xs:enumeration value="material" />
+			<xs:enumeration value="matspecies" />
+			<xs:enumeration value="label" />
+			<xs:enumeration value="array" />
+			<xs:enumeration value="mesh" />
+			<xs:enumeration value="curve" />
+		</xs:restriction>
+	</xs:simpleType>
+
+	<!-- Variable centering -->
+	<xs:simpleType name="VarCentering">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="nodal"/>
+			<xs:enumeration value="zonal"/>
+		</xs:restriction>
+	</xs:simpleType>
+
+	<!-- Variable node -->
+	<xs:complexType name="Variable">
+		<xs:simpleContent>
+		<xs:extension base="xs:string">
+			<xs:attribute name="name"    type="xs:string"  use="required"/>
+			<xs:attribute name="unit"    type="xs:string"  use="optional" default=""/>
+			<xs:attribute name="layout"  type="xs:string"  use="required"/>
+			<xs:attribute name="enabled" type="xs:boolean" use="optional" default="true"/>
+			<xs:attribute name="mesh"	 type="xs:string"  use="optional" default="#"/>
+			<xs:attribute name="type"    type="mdl:VarType" use="optional" default="scalar"/>
+			<xs:attribute name="centering" type="mdl:VarCentering" use="optional" default="zonal"/>
+			<xs:attribute name="visualizable" type="xs:boolean" use="optional" default="true"/>
+			<xs:attribute name="time-varying" type="xs:boolean" use="optional" default="true"/>
+			<xs:attribute name="store"	type="xs:string" use="optional" default="#"/>
+		</xs:extension>
+		</xs:simpleContent>
+	</xs:complexType>
+
+	<!-- Group node -->
+	<xs:complexType name="Group">
+		<xs:sequence>
+			<xs:choice maxOccurs="unbounded" minOccurs="0">
+				<xs:element name="layout"   type="mdl:Layout"/>
+				<xs:element name="variable" type="mdl:Variable"/>
+				<xs:element name="group"    type="mdl:Group"/>
+				<xs:element name="mesh"     type="mdl:Mesh"/>
+				<xs:element name="curve"    type="mdl:Curve"/>
+			</xs:choice>
+		</xs:sequence>
+		<xs:attribute name="name"    type="xs:string"  use="required"/>
+		<xs:attribute name="enabled" type="xs:boolean" use="optional" default="true" />
+		<xs:attribute name="store"   type="xs:string"  use="optional" default="#"/>
+	</xs:complexType>
+
+	<!-- Parameter node -->
+	<xs:complexType name="Parameter">
+		<xs:simpleContent>
+		<xs:extension base="xs:string">
+			<xs:attribute name="name"  type="xs:NCName" use="required"/>
+			<xs:attribute  name="type"  type="mdl:Type" use="required"/>
+			<xs:attribute name="value" type="xs:string" use="required"/>
+		</xs:extension>
+		</xs:simpleContent>
+	</xs:complexType>
+
+	<!-- MeshType node -->
+	<xs:simpleType name="MeshType">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="unknown"/>
+			<xs:enumeration value="rectilinear"/>
+			<xs:enumeration value="curvilinear"/>
+			<xs:enumeration value="unstructured"/>
+			<xs:enumeration value="point"/>
+			<xs:enumeration value="csg"/>
+			<xs:enumeration value="amr"/>
+		</xs:restriction>
+	</xs:simpleType>
+
+	<!-- Coordinates (for curves and meshes) -->
+	<xs:complexType name="Coord">
+		<xs:attribute name="name"  type="xs:string" use="required"/>
+		<xs:attribute name="unit"  type="xs:string" use="optional" default="#"/>
+		<xs:attribute name="label" type="xs:string" use="optional" default="#"/>
+	</xs:complexType>
+
+	<!-- Mesh node -->
+	<xs:complexType name="Mesh">
+		<xs:sequence>
+			<xs:element name="coord" type="mdl:Coord" minOccurs="2" maxOccurs="3"/>
+		</xs:sequence>
+		<xs:attribute name="name" type="xs:string"    use="required"/>
+		<xs:attribute name="type" type="mdl:MeshType" use="required"/>
+		<xs:attribute name="topology"   type="xs:unsignedInt" use="optional" default="2"/>
+	</xs:complexType>
+
+	<!-- Curve node -->
+	<xs:complexType name="Curve">
+		<xs:sequence>
+			<xs:element name="coord" type="mdl:Coord" minOccurs="2" maxOccurs="2"/>
+		</xs:sequence>
+		<xs:attribute name="name" type="xs:string"    use="required"/>
+	</xs:complexType>
+
+	<!-- Data node -->
+	<xs:complexType name="Data">
+		<xs:sequence>
+		<xs:choice minOccurs="0" maxOccurs="unbounded">
+			<xs:element name="parameter" type="mdl:Parameter"/>
+			<xs:element name="layout"    type="mdl:Layout"/>
+			<xs:element name="variable"  type="mdl:Variable"/>
+			<xs:element name="group"     type="mdl:Group"/>
+			<xs:element name="mesh"	     type="mdl:Mesh"/>
+			<xs:element name="curve" type="mdl:Curve"/>
+		</xs:choice>
+		</xs:sequence>
+	</xs:complexType>
+
+	<!-- Scope node  -->
+	<xs:simpleType name="Scope">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="core"  />
+			<xs:enumeration value="group"  />
+	<!--		<xs:enumeration value="global"/> -->
+			<xs:enumeration value="bcast" />
+		</xs:restriction>
+	</xs:simpleType>
+
+	<!-- Execution type node -->
+	<xs:simpleType name="Exec">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="local"   />
+			<xs:enumeration value="coupled" />
+			<xs:enumeration value="remote"  />
+		</xs:restriction>
+	</xs:simpleType>
+
+	<!-- Event node -->
+	<xs:complexType name="Event">
+		<xs:attribute name="name"      type="xs:string"  use="required"/>
+		<xs:attribute name="action"    type="xs:string"  use="required"/>
+		<xs:attribute name="execution" type="mdl:Exec"   use="optional" default="remote"/>
+		<xs:attribute name="library"   type="xs:string"  use="optional" default=""/>
+		<xs:attribute name="scope"     type="mdl:Scope"  use="optional" default="core"/>
+		<xs:attribute name="external"  type="xs:boolean" use="optional" default="false"/>
+	</xs:complexType>
+
+	<!-- Script node -->
+	<xs:complexType name="Script">
+		<xs:attribute name="name"     type="xs:string"  use="required"/>
+		<xs:attribute name="file"     type="xs:string"  use="required"/>
+		<xs:attribute name="execution" type="mdl:Exec"   use="optional" default="remote"/>
+		<xs:attribute name="language" type="mdl:Language"  use="required"/>
+		<xs:attribute name="scope"    type="mdl:Scope"  use="optional" default="core"/>
+		<xs:attribute name="external" type="xs:boolean" use="optional" default="false"/>
+	</xs:complexType>
+
+	<!-- Exception node -->
+	<xs:complexType name="Exception">
+		<xs:attribute name="event"  type="xs:string"  use="optional"/>
+		<xs:attribute name="script" type="xs:string" use="optional"/>
+	</xs:complexType>
+
+	<!-- Parameters related to VisIt -->
+	<xs:complexType name="VisitParam">
+		<xs:sequence>
+			<xs:element name="path" type="xs:string" maxOccurs="1" minOccurs="0"/>
+			<xs:element name="options" type="xs:string" maxOccurs="1" minOccurs="0"/>
+		</xs:sequence>
+		<xs:attribute name="update-frequency" type="xs:unsignedInt" use="optional" default="1"/>
+	</xs:complexType>
+
+	<!-- Parameters related to Python -->
+	<xs:complexType name="PythonParam">
+		<xs:sequence>	
+			<xs:element name="path" type="xs:string"/>
+			<xs:element name="home" type="xs:string"/>
+		</xs:sequence>
+	</xs:complexType>
+
+	<!-- Actions node -->
+	<xs:complexType name="Actions">
+		<xs:sequence>
+			<xs:choice minOccurs="0" maxOccurs="unbounded">
+				<xs:element name="event" type="mdl:Event"/>
+				<xs:element name="script" type="mdl:Script"/>
+				<xs:element name="error" type="mdl:Exception"/>
+			</xs:choice>
+		</xs:sequence>
+	</xs:complexType>
+
+	<!-- Store type node -->
+	<xs:simpleType name="StoreType">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="null" />
+			<xs:enumeration value="HDF5" />
+		</xs:restriction>
+	</xs:simpleType>
+
+	<!-- Store node -->
+	<xs:complexType name="Store">
+		<xs:sequence>
+		<xs:choice minOccurs="0" maxOccurs="unbounded">
+			<xs:element name="option" type="mdl:KeyVal"/>
+		</xs:choice>
+		</xs:sequence>
+		<xs:attribute name="name" type="xs:string" use="required" />
+		<xs:attribute name="type" type="mdl:StoreType" use="required" />
+		<xs:attribute name="frequency" type="xs:unsignedInt" use="optional" default="1" />
+	</xs:complexType>
+
+	<!-- Storage node -->
+	<xs:complexType name="Storage">
+		<xs:sequence>
+			<xs:choice minOccurs="0" maxOccurs="unbounded">
+				<xs:element name="store" type="mdl:Store"/>
+			</xs:choice>
+		</xs:sequence>
+	</xs:complexType>
+
+	<!-- LogDepth Type -->
+	<xs:simpleType name="LogLevelType">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="trace" />
+			<xs:enumeration value="debug" />
+			<xs:enumeration value="info" />
+			<xs:enumeration value="warning" />
+			<xs:enumeration value="error" />
+			<xs:enumeration value="fatal" />
+		</xs:restriction>
+	</xs:simpleType>
+
+	<!-- log config node -->
+	<xs:complexType name="Log">
+		<xs:attribute name="FileName" type="xs:string"      use="required"/>
+		<xs:attribute name="RotationSize" type="xs:unsignedInt" use="required"/>
+		<xs:attribute name="LogFormat" type="xs:string" use="required"/>
+		<xs:attribute name="LogLevel" type="mdl:LogLevelType" use="required"/>
+	</xs:complexType>
+
+	<!-- Simulation node -->
+	<xs:complexType name="Simulation">
+		<xs:sequence>
+			<xs:element name="architecture" type="mdl:Architecture" minOccurs="1" maxOccurs="1"/>
+			<xs:element name="data" type="mdl:Data" maxOccurs="1"/>
+			<xs:element name="storage" type="mdl:Storage" maxOccurs="1" minOccurs="0"/>
+			<xs:element name="actions" type="mdl:Actions" maxOccurs="1"/>
+			<xs:element name="python" type="mdl:PythonParam" maxOccurs="1" minOccurs="0"/>
+			<xs:element name="visit" type="mdl:VisitParam" maxOccurs="1" minOccurs="0"/>
+			<xs:element name="log" type="mdl:Log" maxOccurs="1" minOccurs="0"/>
+		</xs:sequence>
+		<xs:attribute name="name" type="xs:string" use="required"/>
+		<xs:attribute name="language" type="mdl:Language" use="optional" default="unknown"/>
+	</xs:complexType>
+
+	<!-- Root element -->
+	<xs:element name="simulation" type="mdl:Simulation"/>
+</xs:schema>
