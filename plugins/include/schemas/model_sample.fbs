@@ -29,29 +29,19 @@ table ModelData {
     terminals:[DflyCustomTerminal];
 }
 
-// the structs wrapping values should be moved to the sim engine 
-// so we can (attempt to) ensure they're not changed by the user
-struct DoubleVal {
-    value:double;
+struct Param_radix_double {
+    values:double;
 }
 
-struct LongVal {
-    value:long;
-}
-
-union radix {
-    DoubleVal,
-    LongVal
-}
-
-table Param_radix {
-    values:[radix];
+struct Param_radix_long {
+    values:long;
 }
 
 table DflyCustomRouter {
     router_id:int;
-    busy_time:Param_radix;
-    link_traffic:Param_radix;
+    busy_time:[Param_radix_double];
+    link_traffic:[Param_radix_long];
+    test:[Param_radix_long];
 }
 
 table DflyCustomTerminal {
