@@ -213,7 +213,6 @@ struct DflyCustomRouterT : public flatbuffers::NativeTable {
   int32_t router_id;
   std::vector<Param_radix_double> busy_time;
   std::vector<Param_radix_long> link_traffic;
-  std::vector<Param_radix_long> test;
   DflyCustomRouterT()
       : router_id(0) {
   }
@@ -227,8 +226,7 @@ struct DflyCustomRouter FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum {
     VT_ROUTER_ID = 4,
     VT_BUSY_TIME = 6,
-    VT_LINK_TRAFFIC = 8,
-    VT_TEST = 10
+    VT_LINK_TRAFFIC = 8
   };
   int32_t router_id() const {
     return GetField<int32_t>(VT_ROUTER_ID, 0);
@@ -239,9 +237,6 @@ struct DflyCustomRouter FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::Vector<const Param_radix_long *> *link_traffic() const {
     return GetPointer<const flatbuffers::Vector<const Param_radix_long *> *>(VT_LINK_TRAFFIC);
   }
-  const flatbuffers::Vector<const Param_radix_long *> *test() const {
-    return GetPointer<const flatbuffers::Vector<const Param_radix_long *> *>(VT_TEST);
-  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<int32_t>(verifier, VT_ROUTER_ID) &&
@@ -249,8 +244,6 @@ struct DflyCustomRouter FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyVector(busy_time()) &&
            VerifyOffset(verifier, VT_LINK_TRAFFIC) &&
            verifier.VerifyVector(link_traffic()) &&
-           VerifyOffset(verifier, VT_TEST) &&
-           verifier.VerifyVector(test()) &&
            verifier.EndTable();
   }
   DflyCustomRouterT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -270,9 +263,6 @@ struct DflyCustomRouterBuilder {
   void add_link_traffic(flatbuffers::Offset<flatbuffers::Vector<const Param_radix_long *>> link_traffic) {
     fbb_.AddOffset(DflyCustomRouter::VT_LINK_TRAFFIC, link_traffic);
   }
-  void add_test(flatbuffers::Offset<flatbuffers::Vector<const Param_radix_long *>> test) {
-    fbb_.AddOffset(DflyCustomRouter::VT_TEST, test);
-  }
   explicit DflyCustomRouterBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -289,10 +279,8 @@ inline flatbuffers::Offset<DflyCustomRouter> CreateDflyCustomRouter(
     flatbuffers::FlatBufferBuilder &_fbb,
     int32_t router_id = 0,
     flatbuffers::Offset<flatbuffers::Vector<const Param_radix_double *>> busy_time = 0,
-    flatbuffers::Offset<flatbuffers::Vector<const Param_radix_long *>> link_traffic = 0,
-    flatbuffers::Offset<flatbuffers::Vector<const Param_radix_long *>> test = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<const Param_radix_long *>> link_traffic = 0) {
   DflyCustomRouterBuilder builder_(_fbb);
-  builder_.add_test(test);
   builder_.add_link_traffic(link_traffic);
   builder_.add_busy_time(busy_time);
   builder_.add_router_id(router_id);
@@ -303,14 +291,12 @@ inline flatbuffers::Offset<DflyCustomRouter> CreateDflyCustomRouterDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     int32_t router_id = 0,
     const std::vector<Param_radix_double> *busy_time = nullptr,
-    const std::vector<Param_radix_long> *link_traffic = nullptr,
-    const std::vector<Param_radix_long> *test = nullptr) {
+    const std::vector<Param_radix_long> *link_traffic = nullptr) {
   return ross_damaris::sample::CreateDflyCustomRouter(
       _fbb,
       router_id,
       busy_time ? _fbb.CreateVectorOfStructs<Param_radix_double>(*busy_time) : 0,
-      link_traffic ? _fbb.CreateVectorOfStructs<Param_radix_long>(*link_traffic) : 0,
-      test ? _fbb.CreateVectorOfStructs<Param_radix_long>(*test) : 0);
+      link_traffic ? _fbb.CreateVectorOfStructs<Param_radix_long>(*link_traffic) : 0);
 }
 
 flatbuffers::Offset<DflyCustomRouter> CreateDflyCustomRouter(flatbuffers::FlatBufferBuilder &_fbb, const DflyCustomRouterT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -476,7 +462,6 @@ inline void DflyCustomRouter::UnPackTo(DflyCustomRouterT *_o, const flatbuffers:
   { auto _e = router_id(); _o->router_id = _e; };
   { auto _e = busy_time(); if (_e) { _o->busy_time.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->busy_time[_i] = *_e->Get(_i); } } };
   { auto _e = link_traffic(); if (_e) { _o->link_traffic.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->link_traffic[_i] = *_e->Get(_i); } } };
-  { auto _e = test(); if (_e) { _o->test.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->test[_i] = *_e->Get(_i); } } };
 }
 
 inline flatbuffers::Offset<DflyCustomRouter> DflyCustomRouter::Pack(flatbuffers::FlatBufferBuilder &_fbb, const DflyCustomRouterT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -490,13 +475,11 @@ inline flatbuffers::Offset<DflyCustomRouter> CreateDflyCustomRouter(flatbuffers:
   auto _router_id = _o->router_id;
   auto _busy_time = _o->busy_time.size() ? _fbb.CreateVectorOfStructs(_o->busy_time) : 0;
   auto _link_traffic = _o->link_traffic.size() ? _fbb.CreateVectorOfStructs(_o->link_traffic) : 0;
-  auto _test = _o->test.size() ? _fbb.CreateVectorOfStructs(_o->test) : 0;
   return ross_damaris::sample::CreateDflyCustomRouter(
       _fbb,
       _router_id,
       _busy_time,
-      _link_traffic,
-      _test);
+      _link_traffic);
 }
 
 inline DflyCustomTerminalT *DflyCustomTerminal::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
@@ -623,7 +606,6 @@ inline const flatbuffers::TypeTable *DflyCustomRouterTypeTable() {
   static const flatbuffers::TypeCode type_codes[] = {
     { flatbuffers::ET_INT, 0, -1 },
     { flatbuffers::ET_SEQUENCE, 1, 0 },
-    { flatbuffers::ET_SEQUENCE, 1, 1 },
     { flatbuffers::ET_SEQUENCE, 1, 1 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
@@ -633,11 +615,10 @@ inline const flatbuffers::TypeTable *DflyCustomRouterTypeTable() {
   static const char * const names[] = {
     "router_id",
     "busy_time",
-    "link_traffic",
-    "test"
+    "link_traffic"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_TABLE, 4, type_codes, type_refs, nullptr, names
+    flatbuffers::ST_TABLE, 3, type_codes, type_refs, nullptr, names
   };
   return &tt;
 }

@@ -41,7 +41,6 @@ table DflyCustomRouter {
     router_id:int;
     busy_time:[Param_radix_double];
     link_traffic:[Param_radix_long];
-    test:[Param_radix_long];
 }
 
 table DflyCustomTerminal {

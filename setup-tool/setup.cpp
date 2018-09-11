@@ -9,7 +9,7 @@ using namespace damaris::model;
 
 void parse_idl(char *file, map<string, vector<pair<string, string>>>& lp_types_map,
         unordered_set<string>& param_types);
-string create_new_layout(const string& str, Data::layout_sequence& ls);
+string create_new_layout(const string& str, Data::layout_sequence& ls, Data::parameter_sequence& ps);
 
 
 // currently run with ./setup <path/to/xml-template> <path/to/idl-file>
@@ -34,6 +34,7 @@ int main(int argc, char* argv[])
 
         // get pointer to layout_sequences in Data, just in case
         Data::layout_sequence& data_ls = sim->data().layout();
+        Data::parameter_sequence& data_ps = sim->data().parameter();
 
         for (auto& lp_type: lp_types_map)
         {
@@ -46,7 +47,7 @@ int main(int argc, char* argv[])
                 if ((*it).second.find("Param") == 0)
                 {
                     // need to create a special layout for this variable
-                    var_type = create_new_layout((*it).second, data_ls);
+                    var_type = create_new_layout((*it).second, data_ls, data_ps);
                 }
                 else
                     var_type = (*it).second;
@@ -84,7 +85,7 @@ int main(int argc, char* argv[])
 
 // create new layout for model variables if it doesn't already exist
 // returns layout name to use as variable type
-string create_new_layout(const string& str, Data::layout_sequence& ls)
+string create_new_layout(const string& str, Data::layout_sequence& ls, Data::parameter_sequence& ps)
 {
     // expecting string in format Param_name_type
     // where name is the name for the damaris parameter and type is a supported data type
@@ -103,15 +104,34 @@ string create_new_layout(const string& str, Data::layout_sequence& ls)
 
     // before we add, make sure it doesn't already exist first
     bool found = false;
+
     for (auto it = ls.begin(); it != ls.end(); ++it)
     {
         if ((*it).name().compare(layout_name) == 0)
+        {
             found = true;
+            break;
+        }
     }
     if (!found)
     {
         Layout l(layout_name, var_type, dim);
         ls.push_back(l);
+
+        // also need to create related parameter if it doesn't already exist
+        for (auto it = ps.begin(); it != ps.end(); ++it)
+        {
+            if ((*it).name().compare(dim) == 0)
+            {
+                found = true;
+                break;
+            }
+        }
+        if (!found)
+        {
+            Parameter p(dim, "int", "0");
+            ps.push_back(p);
+        }
     }
 
     return layout_name;
