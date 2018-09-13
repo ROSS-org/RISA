@@ -43,6 +43,7 @@ ADD_LIBRARY(ROSS_Damaris ${rd_srcs})
 
 ## link with Damaris and dependencies
 TARGET_LINK_LIBRARIES(ROSS_Damaris ${DAMARIS_LINKER_FLAGS})
+TARGET_LINK_LIBRARIES(ROSS_Damaris rdplugins)
 
 # for CODES pc file
 #CONFIGURE_FILE(ross-config.in ross-config @ONLY)

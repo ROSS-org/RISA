@@ -56,7 +56,7 @@ void setup_simulation_config(const std::string& event, int32_t src, int32_t step
 
     auto opts = set_options();
     po::variables_map vars;
-    string config_file = "/home/rossc3/rv-build/models/phold/test.cfg";
+    string config_file = &((char *)DUtil::get_value_from_damaris("ross/inst_config", 0, 0, 0))[0];
     ifstream ifs(config_file.c_str());
     parse_file(ifs, opts, vars);
     sim_config.set_parameters(vars);

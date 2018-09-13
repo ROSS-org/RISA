@@ -28,6 +28,8 @@ struct SimConfig {
 
     bool write_data;
     bool stream_data;
+    std::string stream_addr;
+    std::string stream_port;
     SimConfig() :
         num_pe(1),
         kp_per_pe(16),
@@ -59,6 +61,8 @@ class ModelConfig {
 
 po::options_description set_options();
 void parse_file(std::ifstream& file, po::options_description& opts, po::variables_map& var_map);
+void set_ross_parameters(po::variables_map& var_map);
+
 } // end namespace ross_damaris
 
 #endif // SIM_CONFIG_H

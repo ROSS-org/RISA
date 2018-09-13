@@ -1,5 +1,6 @@
 #include <ross.h>
 #include <sys/stat.h>
+#include "../plugins/include/config-c.h"
 
 /**
  * @file damaris.c
@@ -151,9 +152,17 @@ const tw_optdef *st_damaris_opts(void)
 }
 
 /**
+ * @brief parse config file and set parameters
+ */
+void st_damaris_parse_config(const char *config_file)
+{
+    parse_file(config_file);
+}
+
+/**
  * @brief Sets up the simulation parameters needed by Damaris
  */
-static void set_parameters()
+static void set_parameters(const char *config_file)
 {
     int err;
     int num_pe = tw_nnodes();
@@ -176,60 +185,12 @@ static void set_parameters()
     if ((err = damaris_write("ross/nkp", &num_kp)) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, "num_kp");
 
-    int inst_modes_sim[4];
-    int inst_modes_model[4];
-    switch (g_st_engine_stats)
+    if (config_file)
     {
-        case NO_STATS:
-            break;
-        case GVT_STATS:
-            inst_modes_sim[0] = 1;
-            break;
-        case RT_STATS:
-            inst_modes_sim[1] = 1;
-            break;
-        case VT_STATS:
-            inst_modes_sim[2] = 1;
-            break;
-        case ALL_STATS:
-            inst_modes_sim[0] = 1;
-            inst_modes_sim[1] = 1;
-            inst_modes_sim[2] = 1;
-            break;
-        default:
-            break;
+        if ((err = damaris_write("ross/inst_config", &config_file[0])) != DAMARIS_OK)
+            st_damaris_error(TW_LOC, err, "ross/inst_config");
     }
-    switch (g_st_model_stats)
-    {
-        case NO_STATS:
-            break;
-        case GVT_STATS:
-            inst_modes_model[0] = 1;
-            break;
-        case RT_STATS:
-            inst_modes_model[1] = 1;
-            break;
-        case VT_STATS:
-            inst_modes_model[2] = 1;
-            break;
-        case ALL_STATS:
-            inst_modes_model[0] = 1;
-            inst_modes_model[1] = 1;
-            inst_modes_model[2] = 1;
-            break;
-        default:
-            break;
-    }
-    if (g_st_ev_trace)
-    {
-        inst_modes_sim[3] = 1;
-        inst_modes_model[3] = 1;
-    }
-
-    if ((err = damaris_write("ross/inst_modes_sim", &inst_modes_sim[0])) != DAMARIS_OK)
-        st_damaris_error(TW_LOC, err, "ross/inst_modes_sim");
-    if ((err = damaris_write("ross/inst_modes_model", &inst_modes_model[0])) != DAMARIS_OK)
-        st_damaris_error(TW_LOC, err, "ross/inst_modes_model");
+    
 }
 
 /**
@@ -296,12 +257,12 @@ void st_damaris_init_print()
 /**
  * @brief Initializes variables to be used for getting ROSS instrumentation data to Damaris.
  */
-void st_damaris_inst_init()
+void st_damaris_inst_init(const char *config_file)
 {
     int err, i, j;
     double *dummy;
 
-    set_parameters();
+    set_parameters(config_file);
 
     // each pe needs to only write the coordinates for which it will be
     // writing variables.
