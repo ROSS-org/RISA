@@ -191,6 +191,7 @@ static void set_parameters(const char *config_file)
             st_damaris_error(TW_LOC, err, "ross/inst_config");
     }
     
+    st_damaris_signal_init();
 }
 
 /**
@@ -563,27 +564,25 @@ static void reset_block_counter(int *counter)
     *counter = 0;
 }
 
+void st_damaris_signal_init()
+{
+    int err;
+    //printf("rank %ld signaling setup_simulation_config\n", g_tw_mynode);
+    if ((err = damaris_signal("setup_simulation_config")) != DAMARIS_OK)
+        st_damaris_error(TW_LOC, err, "setup_simulation_config");
+}
+
 /**
  * @brief Signals to Damaris that the current iteration is over.
  *
  * Iterations should always end at GVT (though it doesn't have to be every GVT), because
  * the call to damaris_end_iteration() contains a collective call.
  */
-static int streaming_init = 0;
 void st_damaris_end_iteration()
 {
     int err;
     if ((err = damaris_signal("damaris_gc")) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, "damaris_gc");
-
-    if (!streaming_init)
-    {
-        //printf("rank %ld signaling setup_simulation_config\n", g_tw_mynode);
-        if ((err = damaris_signal("setup_simulation_config")) != DAMARIS_OK)
-            st_damaris_error(TW_LOC, err, "setup_simulation_config");
-
-        streaming_init = 1;
-    }
 
     if (g_tw_gvt_done % g_st_num_gvt == 0)
     {

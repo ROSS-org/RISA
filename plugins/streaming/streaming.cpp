@@ -67,7 +67,8 @@ void setup_simulation_config(const std::string& event, int32_t src, int32_t step
 
     if (sim_config.stream_data)
     {
-        tcp::resolver::query q("localhost", "8000");
+        cout << "Attempting to setup connection to " << sim_config.stream_addr << ":" << sim_config.stream_port << endl;
+        tcp::resolver::query q(sim_config.stream_addr, sim_config.stream_port);
         auto it = resolver.resolve(q);
         client = new StreamClient(service, it);
         t = new std::thread([](){ service.run(); });

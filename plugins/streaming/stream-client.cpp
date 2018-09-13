@@ -41,7 +41,7 @@ void StreamClient::do_connect(tcp::resolver::iterator it)
                 }
                 else
                 {
-                    cout << "StreamClient successfully connected" << endl;
+                    cout << "StreamClient successfully connected!\n" << endl;
                     do_read();
                 }
             });
