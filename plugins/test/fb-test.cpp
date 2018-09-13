@@ -7,17 +7,15 @@
 using namespace std;
 using namespace ross_damaris::sample;
 
-int main()
+int main(int argc, char *argv[])
 {
     int buf_size = 8192;
 	char *data = new char[buf_size];
-	int length;
-    //flatbuffers::uoffset_t length;
+    flatbuffers::uoffset_t length;
 	streampos total_size;
     streampos pos = 0;
 	
-	ifstream file("/home/rossc3/rv-build/models/phold/test-fb.bin", ios::in | ios::binary | ios::ate);
-	//ifstream file("../nettest.bin", ios::in | ios::binary | ios::ate);
+	ifstream file(argv[1], ios::in | ios::binary | ios::ate);
 	if (file.is_open())
 	{
         total_size = file.tellg();

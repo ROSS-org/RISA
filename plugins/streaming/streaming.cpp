@@ -18,12 +18,12 @@ using namespace ross_damaris::util;
 
 extern "C" {
 
-std::vector<flatbuffers::Offset<PEData>> pe_data_to_fb(
-        flatbuffers::FlatBufferBuilder& builder, int32_t step);
-std::vector<flatbuffers::Offset<KPData>> kp_data_to_fb(
-        flatbuffers::FlatBufferBuilder& builder, int32_t step);
-std::vector<flatbuffers::Offset<LPData>> lp_data_to_fb(
-        flatbuffers::FlatBufferBuilder& builder, int32_t step);
+void pe_data_to_fb(flatbuffers::FlatBufferBuilder& builder, int32_t step,
+        std::vector<flatbuffers::Offset<PEData>>& pe_data);
+void kp_data_to_fb(flatbuffers::FlatBufferBuilder& builder, int32_t step,
+        std::vector<flatbuffers::Offset<KPData>>& kp_data);
+void lp_data_to_fb(flatbuffers::FlatBufferBuilder& builder, int32_t step,
+        std::vector<flatbuffers::Offset<LPData>>& lp_data);
 
 SimConfig sim_config;
 ModelConfig model_config;
@@ -94,9 +94,15 @@ void handle_data(const std::string& event, int32_t src, int32_t step, const char
     flatbuffers::FlatBufferBuilder *builder = new flatbuffers::FlatBufferBuilder();
 
     // setup sim engine data tables and model tables as needed
-    auto pe_data = pe_data_to_fb(*builder, step);
-    auto kp_data = kp_data_to_fb(*builder, step);
-    auto lp_data = lp_data_to_fb(*builder, step);
+    std::vector<flatbuffers::Offset<PEData>> pe_data;
+    std::vector<flatbuffers::Offset<KPData>> kp_data;
+    std::vector<flatbuffers::Offset<LPData>> lp_data;
+    if (sim_config.pe_data)
+        pe_data_to_fb(*builder, step, pe_data);
+    if (sim_config.kp_data)
+        kp_data_to_fb(*builder, step, kp_data);
+    if (sim_config.lp_data)
+        lp_data_to_fb(*builder, step, lp_data);
 
     // then setup the DamarisDataSample table
     double virtual_ts = 0.0; // placeholder for now
@@ -112,7 +118,7 @@ void handle_data(const std::string& event, int32_t src, int32_t step, const char
     {
         // Get pointer to the buffer and the size for writing to file
         uint8_t *buf = builder->GetBufferPointer();
-        int size = builder->GetSize();
+        flatbuffers::uoffset_t size = builder->GetSize();
         data_file.write(reinterpret_cast<const char*>(&size), sizeof(size));
         data_file.write(reinterpret_cast<const char*>(buf), size);
         //cout << "wrote " << size << " bytes to file" << endl;
@@ -159,25 +165,21 @@ std::vector<flatbuffers::Offset<SimEngineMetrics>> sim_engine_metrics_to_fb(flat
     return data;
 }
 
-std::vector<flatbuffers::Offset<PEData>> pe_data_to_fb(
-        flatbuffers::FlatBufferBuilder& builder, int32_t step)
+void pe_data_to_fb(flatbuffers::FlatBufferBuilder& builder, int32_t step,
+        std::vector<flatbuffers::Offset<PEData>>& pe_data)
 {
     std::string var_prefix = "ross/pes/gvt_inst/";
-    std::vector<flatbuffers::Offset<PEData>> pe_data;
     for (int peid = 0; peid < sim_config.num_pe; peid++)
     {
         auto metrics = sim_engine_metrics_to_fb(builder, peid, step, 1, var_prefix);
         pe_data.push_back(CreatePEData(builder, peid, metrics[0])); // for PEs, it will always be metrics[0]
     }
-
-    return pe_data;
 }
 
-std::vector<flatbuffers::Offset<KPData>> kp_data_to_fb(
-        flatbuffers::FlatBufferBuilder& builder, int32_t step)
+void kp_data_to_fb(flatbuffers::FlatBufferBuilder& builder, int32_t step,
+        std::vector<flatbuffers::Offset<KPData>>& kp_data)
 {
     std::string var_prefix = "ross/kps/gvt_inst/";
-    std::vector<flatbuffers::Offset<KPData>> kp_data;
     for (int peid = 0; peid < sim_config.num_pe; peid++)
     {
         auto metrics = sim_engine_metrics_to_fb(builder, peid, step, sim_config.kp_per_pe, var_prefix);
@@ -188,14 +190,12 @@ std::vector<flatbuffers::Offset<KPData>> kp_data_to_fb(
 
         }
     }
-    return kp_data;
 }
 
-std::vector<flatbuffers::Offset<LPData>> lp_data_to_fb(
-        flatbuffers::FlatBufferBuilder& builder, int32_t step)
+void lp_data_to_fb(flatbuffers::FlatBufferBuilder& builder, int32_t step,
+        std::vector<flatbuffers::Offset<LPData>>& lp_data)
 {
     std::string var_prefix = "ross/lps/gvt_inst/";
-    std::vector<flatbuffers::Offset<LPData>> lp_data;
     int total_lp = 0;
     for (int peid = 0; peid < sim_config.num_pe; peid++)
     {
@@ -210,8 +210,6 @@ std::vector<flatbuffers::Offset<LPData>> lp_data_to_fb(
         }
         total_lp += sim_config.num_lp[peid];
     }
-    return lp_data;
-
 }
 
 }
