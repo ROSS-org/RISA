@@ -45,6 +45,7 @@ class StreamClient
 
     boost::asio::io_service& service_;
     tcp::socket socket_;
+    bool connected_;
     sample_queue write_msgs_;
     std::array<char, 1> dummy_buf_;
 	
@@ -55,7 +56,8 @@ class StreamClient
     public:
     StreamClient(boost::asio::io_service& service, tcp::resolver::iterator it)
         : service_(service),
-          socket_(service)
+          socket_(service),
+          connected_(false)
     {
         do_connect(it);
     }

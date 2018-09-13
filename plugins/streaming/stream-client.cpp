@@ -20,9 +20,15 @@ void StreamClient::write(flatbuffers::FlatBufferBuilder* data)
 
 void StreamClient::close()
 {
+    if (!connected_)
+        return;
+    if (!write_msgs_.empty())
+        cout << "StreamClient closing socket, but there are still messages waiting to be streamed!\n";
+
     service_.post(
             [this]() {
                 cout << "StreamClient closing socket\n";
+                connected_ = false;
                 socket_.close();
             });
 }
@@ -37,11 +43,13 @@ void StreamClient::do_connect(tcp::resolver::iterator it)
                     cout << ec.category().name() << " error " << ec.value(); 
                     cout << ": StreamClient do_connect() " << ec.message();
                     cout << ". Closing Socket\n";
+                    connected_ = false;
                     socket_.close();
                 }
                 else
                 {
                     cout << "StreamClient successfully connected!\n" << endl;
+                    connected_ = true;
                     do_read();
                 }
             });
@@ -49,7 +57,7 @@ void StreamClient::do_connect(tcp::resolver::iterator it)
 
 void StreamClient::do_write()
 {
-    if (write_msgs_.empty())
+    if (write_msgs_.empty() || !connected_)
         return;
     std::vector<boost::asio::const_buffer> buf;
     buf.push_back(boost::asio::buffer(&write_msgs_.front()->size, sizeof(flatbuffers::uoffset_t)));
@@ -73,6 +81,7 @@ void StreamClient::do_write()
                     cout << ec.category().name() << " error " << ec.value(); 
                     cout << ": StreamClient do_write() " << ec.message();
                     cout << ". Closing Socket\n";
+                    connected_ = false;
                     socket_.close();
                 }
             });
@@ -80,6 +89,8 @@ void StreamClient::do_write()
 
 void StreamClient::do_read()
 {
+    if (!connected_)
+        return;
     boost::asio::async_read(socket_, 
             boost::asio::buffer(dummy_buf_, 0),
             [this](boost::system::error_code ec, std::size_t /*len*/)
@@ -96,6 +107,7 @@ void StreamClient::do_read()
                     cout << ec.category().name() << " error " << ec.value(); 
                     cout << ": StreamClient do_read() " << ec.message();
                     cout << ". Closing Socket\n";
+                    connected_ = false;
                     socket_.close();
                 }
             });
