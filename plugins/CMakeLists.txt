@@ -3,14 +3,8 @@ PROJECT(rdplugins)
 INCLUDE_DIRECTORIES(${DAMARIS_INCLUDE} ${VISIT_DIR}/sim/V2/lib ${FLATBUF_INCLUDE})
 ADD_DEFINITIONS(-std=gnu++11)
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations -Wall -Wextra -Wpedantic")
-INCLUDE_DIRECTORIES(include)
+INCLUDE_DIRECTORIES(../include)
 SET(plugin_srcs
-    include/damaris-util.h
-    include/fb-util.h
-    include/sim-config.h
-    include/stream-client.h
-    include/schemas/data_sample_generated.h
-    include/schemas/model_sample_generated.h
     util/garbage-collection.cpp
     util/damaris-util.cpp
     util/fb-util.cpp

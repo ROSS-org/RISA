@@ -1,6 +1,6 @@
 #include <ross.h>
 #include <sys/stat.h>
-#include "../plugins/include/config-c.h"
+#include <plugins/util/config-c.h>
 
 /**
  * @file damaris.c

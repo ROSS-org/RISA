@@ -3,7 +3,7 @@ damaris_path = @DAMARIS_DIR@
 damaris_ldflags = @DAMARIS_LINKER_FLAGS@
 
 damaris_cflags=-I${damaris_path}/include
-ross_damaris_libs=-lROSS_Damaris
+ross_damaris_libs=-lROSS_Damaris -lrdplugins
 
 Name: ROSS-Damaris
 Description: Rensselaer's Optimistic Simulation System - Damaris Integration

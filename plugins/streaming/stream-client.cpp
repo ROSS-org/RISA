@@ -1,7 +1,7 @@
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/write.hpp>
 #include <boost/asio/ip/tcp.hpp>
-#include "stream-client.h"
+#include <plugins/streaming/stream-client.h>
 
 using namespace boost::asio;
 using namespace boost::asio::ip;

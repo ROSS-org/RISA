@@ -4,11 +4,10 @@
 #include <fstream>
 #include <boost/asio.hpp>
 
-#include "stream-client.h"
-#include "fb-util.h"
-#include "damaris-util.h"
-#include "config.h"
-#include "sim-config.h"
+#include <plugins/streaming/stream-client.h>
+#include <plugins/util/fb-util.h>
+#include <plugins/util/damaris-util.h>
+#include <plugins/util/sim-config.h>
 
 using namespace ross_damaris;
 using namespace ross_damaris::sample;

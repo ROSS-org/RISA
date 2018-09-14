@@ -1,8 +1,8 @@
 #include <boost/program_options.hpp>
-#include "damaris/data/VariableManager.hpp"
-#include "config-c.h"
-#include "sim-config.h"
-#include "fb-util.h"
+#include <damaris/data/VariableManager.hpp>
+#include <plugins/util/config-c.h>
+#include <plugins/util/sim-config.h>
+#include <plugins/util/fb-util.h>
 #include <ross.h>
 
 using namespace std;

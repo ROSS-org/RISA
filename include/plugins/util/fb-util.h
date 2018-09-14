@@ -1,9 +1,9 @@
 #ifndef FB_UTIL_H
 #define FB_UTIL_H
 
-#include "sim-config.h"
-#include "flatbuffers/minireflect.h"
 #include <iostream>
+#include <flatbuffers/minireflect.h>
+#include <plugins/util/sim-config.h>
 
 namespace ross_damaris {
 namespace util {

@@ -1,4 +1,4 @@
-#include "damaris-util.h"
+#include <plugins/util/damaris-util.h>
 
 using namespace ross_damaris::util;
 using namespace damaris;

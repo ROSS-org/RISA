@@ -1,5 +1,5 @@
-#include "fb-util.h"
-#include "damaris-util.h"
+#include <plugins/util/fb-util.h>
+#include <plugins/util/damaris-util.h>
 
 using namespace ross_damaris::util;
 using namespace ross_damaris::sample;

@@ -15,7 +15,7 @@
 #include <iostream>
 #include <thread>
 #include <boost/asio.hpp>
-#include "schemas/data_sample_generated.h"
+#include <plugins/flatbuffers/data_sample_generated.h>
 
 
 namespace ross_damaris {

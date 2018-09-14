@@ -4,8 +4,8 @@
 #include <iostream>
 #include <fstream>
 #include <unordered_set>
-#include "schemas/data_sample_generated.h"
-#include "flatbuffers/minireflect.h"
+#include <plugins/flatbuffers/data_sample_generated.h>
+#include <flatbuffers/minireflect.h>
 #include <boost/program_options.hpp>
 
 namespace po = boost::program_options;

@@ -20,9 +20,11 @@ SET(DAMARIS_LINKER_FLAGS ${LINKER_STR} CACHE INTERNAL "")
 ## set ross-damaris sources
 INCLUDE_DIRECTORIES(${DAMARIS_INCLUDE})
 INCLUDE_DIRECTORIES(${VISIT_DIR}/sim/V2/lib)
-SET(rd_srcs 
-    core/damaris.h 
-    core/damaris.c 
+INCLUDE_DIRECTORIES(include)
+SET(rd_srcs
+    include/core/damaris.h
+    include/plugins/util/config-c.h
+    core/damaris.c
     ${DAMARIS_DIR}/include/Damaris.h)
 
 ADD_SUBDIRECTORY(plugins)
