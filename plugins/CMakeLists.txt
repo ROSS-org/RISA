@@ -15,6 +15,6 @@ SET(plugin_srcs
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR}/include)
 ADD_LIBRARY(rdplugins SHARED ${plugin_srcs})
 SET_PROPERTY(TARGET rdplugins PROPERTY POSITION_INDEPENDENT_CODE ON)
-#TARGET_LINK_LIBRARIES(rdplugins "-L${DAMARIS_DIR}/lib -lboost_program_options")
+TARGET_LINK_LIBRARIES(rdplugins "-L${DAMARIS_DIR}/lib -lboost_program_options")
 
 INSTALL(TARGETS rdplugins EXPORT rdplugins ARCHIVE DESTINATION lib LIBRARY DESTINATION lib)
