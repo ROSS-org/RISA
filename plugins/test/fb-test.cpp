@@ -1,15 +1,16 @@
-#include "../include/schemas/data_sample_generated.h"
+#include "../../include/plugins/flatbuffers/data_sample_generated.h"
 #include "flatbuffers/minireflect.h"
 #include <cstdio>
 #include <iostream>
 #include <fstream>
 
+// build: g++ -I /home/rossc3/flatbuffers/include/ -std=c++11 -g fb-test.cpp
 using namespace std;
 using namespace ross_damaris::sample;
 
 int main(int argc, char *argv[])
 {
-    int buf_size = 8192;
+    int buf_size = 262114;
 	char *data = new char[buf_size];
     flatbuffers::uoffset_t length;
 	streampos total_size;
@@ -24,7 +25,11 @@ int main(int argc, char *argv[])
         {
             file.read(reinterpret_cast<char*>(&length), sizeof(length));
             if (length > buf_size)
-                cout << "length is larger than default buffer size!" << endl;
+            {
+                cerr << "Error: length of " << length << " bytes is larger than default buffer size!" << endl;
+                return 1;
+            }
+
             file.read(data, length);
             pos = file.tellg();
             cout << "read " << length << " bytes from file" << endl;
