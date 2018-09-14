@@ -1,8 +1,8 @@
 PROJECT(rdplugins)
 
 INCLUDE_DIRECTORIES(${DAMARIS_INCLUDE} ${VISIT_DIR}/sim/V2/lib ${FLATBUF_INCLUDE})
-ADD_DEFINITIONS(-std=gnu++11)
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations -Wall -Wextra -Wpedantic")
+ADD_DEFINITIONS(-std=c++11)
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
 INCLUDE_DIRECTORIES(../include)
 SET(plugin_srcs
     util/garbage-collection.cpp
@@ -15,6 +15,6 @@ SET(plugin_srcs
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR}/include)
 ADD_LIBRARY(rdplugins SHARED ${plugin_srcs})
 SET_PROPERTY(TARGET rdplugins PROPERTY POSITION_INDEPENDENT_CODE ON)
-TARGET_LINK_LIBRARIES(rdplugins "-lboost_program_options")
+TARGET_LINK_LIBRARIES(rdplugins "-L${DAMARIS_DIR}/lib -lboost_program_options")
 
 INSTALL(TARGETS rdplugins EXPORT rdplugins ARCHIVE DESTINATION lib LIBRARY DESTINATION lib)
