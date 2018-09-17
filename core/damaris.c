@@ -398,9 +398,9 @@ void st_damaris_expose_data(tw_pe *me, tw_stime gvt, int inst_type)
     if (g_st_lp_data)
         expose_lp_data(inst_type);
 
-    if (inst_type == RT_COL)
+    if (inst_type == RT_INST)
         rt_block_counter++;
-    if (inst_type == ANALYSIS_LP)
+    if (inst_type == VT_INST)
         vt_block_counter++;
 
     memcpy(&last_pe_stats[inst_type], &s, sizeof(tw_statistics));
@@ -446,9 +446,9 @@ static void expose_pe_data(tw_pe *pe, tw_statistics *s, int inst_type)
     *((float*)pe_data[DPE_CANQ_TIME].data_ptr) = (float)(pe->stats.s_cancel_q - last_pe_stats[inst_type].s_cancel_q) / g_tw_clock_rate;
     *((float*)pe_data[DPE_AVL_TIME].data_ptr) = (float)(pe->stats.s_avl - last_pe_stats[inst_type].s_avl) / g_tw_clock_rate;
 
-    if (inst_type == RT_COL)
+    if (inst_type == RT_INST)
         block = rt_block_counter;
-    if (inst_type == ANALYSIS_LP)
+    if (inst_type == VT_INST)
         block = vt_block_counter;
     // let damaris know we're done updating data
     for (i = 0; i < NUM_PE_VARS; i++)
@@ -496,9 +496,9 @@ static void expose_kp_data(tw_pe *pe, int inst_type)
         memcpy(kp->last_stats[inst_type], kp->kp_stats, sizeof(st_kp_stats));
     }
 
-    if (inst_type == RT_COL)
+    if (inst_type == RT_INST)
         block = rt_block_counter;
-    if (inst_type == ANALYSIS_LP)
+    if (inst_type == VT_INST)
         block = vt_block_counter;
     // let damaris know we're done updating data
     for (i = 0; i < NUM_KP_VARS; i++)
@@ -536,9 +536,9 @@ static void expose_lp_data(int inst_type)
         memcpy(lp->last_stats[inst_type], lp->lp_stats, sizeof(st_lp_stats));
     }
 
-    if (inst_type == RT_COL)
+    if (inst_type == RT_INST)
         block = rt_block_counter;
-    if (inst_type == ANALYSIS_LP)
+    if (inst_type == VT_INST)
         block = vt_block_counter;
     // let damaris know we're done updating data
     for (i = 0; i < NUM_LP_VARS; i++)
