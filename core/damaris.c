@@ -1,6 +1,7 @@
 #include <ross.h>
 #include <sys/stat.h>
 #include <plugins/util/config-c.h>
+#include <core/model-c.h>
 
 /**
  * @file damaris.c
@@ -338,7 +339,7 @@ void st_damaris_inst_init(const char *config_file)
             }
         }
     }
-    //printf ("PE %ld finished writing and callocing initial mesh and pe data\n", g_tw_mynode);
+    printf ("PE %ld finished writing and callocing initial mesh and pe data\n", g_tw_mynode);
 }
 
 /**
@@ -368,16 +369,14 @@ void st_damaris_ross_finalize()
 /**
  * @brief Expose GVT-based instrumentation data to Damaris
  */
-void st_damaris_expose_data(tw_pe *me, tw_stime gvt, int inst_type)
+void st_damaris_expose_data(tw_pe *me, int inst_type)
 {
-    if (g_tw_gvt_done % g_st_num_gvt != 0)
-        return;
+    // this will be used by all instrumentation modes
+    //if (g_tw_gvt_done % g_st_num_gvt != 0)
+    //    return;
 
     int err;
-
     tw_statistics s;
-    bzero(&s, sizeof(s));
-    tw_get_stats(me, &s);
 
     //printf("%ld: damaris_expose_data\n", g_tw_mynode);
 
@@ -386,27 +385,33 @@ void st_damaris_expose_data(tw_pe *me, tw_stime gvt, int inst_type)
     {
         if ((err = damaris_write_block("ross/real_time", 0, &real_ts)) != DAMARIS_OK)
             st_damaris_error(TW_LOC, err, "ross/real_time");
-        if ((err = damaris_write_block("ross/last_gvt", 0, &gvt)) != DAMARIS_OK)
+        if ((err = damaris_write_block("ross/last_gvt", 0, &me->GVT)) != DAMARIS_OK)
             st_damaris_error(TW_LOC, err, "ross/last_gvt");
     }
 
-    // collect data for each entity
-    if (g_st_pe_data)
-        expose_pe_data(me, &s, inst_type);
-    if (g_st_kp_data)
-        expose_kp_data(me, inst_type);
-    if (g_st_lp_data)
-        expose_lp_data(inst_type);
+    if (engine_modes[inst_type])
+    {
+        bzero(&s, sizeof(s));
+        tw_get_stats(me, &s);
+        // collect data for each entity
+        if (g_st_pe_data)
+            expose_pe_data(me, &s, inst_type);
+        if (g_st_kp_data)
+            expose_kp_data(me, inst_type);
+        if (g_st_lp_data)
+            expose_lp_data(inst_type);
+        memcpy(&last_pe_stats[inst_type], &s, sizeof(tw_statistics));
+    }
+
+    if (model_modes[inst_type])
+    {
+        st_damaris_sample_model_data();
+    }
 
     if (inst_type == RT_INST)
         rt_block_counter++;
     if (inst_type == VT_INST)
         vt_block_counter++;
-
-    memcpy(&last_pe_stats[inst_type], &s, sizeof(tw_statistics));
-
-    //if ((err = damaris_signal("test")) != DAMARIS_OK)
-    //    st_damaris_error(TW_LOC, err, "test");
 }
 
 /**
@@ -605,7 +610,7 @@ void st_damaris_end_iteration()
  *
  * Some errors will stop simulation, but some will only warn and keep going.
  */
-void st_damaris_error(const char *file, int line, int err, char *variable)
+void st_damaris_error(const char *file, int line, int err, const char *variable)
 {
     switch(err)
     {

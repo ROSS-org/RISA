@@ -1,6 +1,8 @@
 // IDL file for schema for Damaris collected data
+// call for generating C++ code:
+// /path/to/flatc --cpp --reflect-types --reflect-names --gen-object-api model_sample.fbs
 
-include "model_sample.fbs";
+//include "model_sample.fbs";
 
 namespace ross_damaris.sample;
 
@@ -62,6 +64,40 @@ table PEData {
     data:SimEngineMetrics;
 }
 
+table IntVar {
+    value:[int];
+}
+
+table LongVar {
+    value:[long];
+}
+
+table FloatVar {
+    value:[float];
+}
+
+table DoubleVar {
+    value:[double];
+}
+
+union VariableType {
+    IntVar,
+    LongVar,
+    FloatVar,
+    DoubleVar
+}
+
+table ModelVariable {
+    var_name:string;
+    var_value:VariableType;
+}
+
+table ModelLP {
+    lpid:int;
+    lptype:string;
+    variables:[ModelVariable];
+}
+
 table DamarisDataSample {
     virtual_ts:double;
     real_ts:double;
@@ -70,7 +106,8 @@ table DamarisDataSample {
     pe_data:[PEData];
     kp_data:[KPData];
     lp_data:[LPData];
-    model_data:int (hash: "fnv1_32", cpp_type: "ModelData");
+    model_data:[ModelLP];
+    //model_data:int (hash: "fnv1_32", cpp_type: "ModelData");
 }
 
 root_type DamarisDataSample;

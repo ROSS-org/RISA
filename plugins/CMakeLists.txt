@@ -9,6 +9,8 @@ SET(plugin_srcs
     util/damaris-util.cpp
     util/fb-util.cpp
     util/config.cpp
+    util/model-fb.cpp
+    util/model.cpp
     streaming/streaming.cpp
     streaming/stream-client.cpp)
 

@@ -6,8 +6,6 @@
 
 #include "flatbuffers/flatbuffers.h"
 
-#include "model_sample_generated.h"
-
 namespace ross_damaris {
 namespace sample {
 
@@ -23,6 +21,24 @@ struct KPDataT;
 struct PEData;
 struct PEDataT;
 
+struct IntVar;
+struct IntVarT;
+
+struct LongVar;
+struct LongVarT;
+
+struct FloatVar;
+struct FloatVarT;
+
+struct DoubleVar;
+struct DoubleVarT;
+
+struct ModelVariable;
+struct ModelVariableT;
+
+struct ModelLP;
+struct ModelLPT;
+
 struct DamarisDataSample;
 struct DamarisDataSampleT;
 
@@ -33,6 +49,18 @@ inline const flatbuffers::TypeTable *LPDataTypeTable();
 inline const flatbuffers::TypeTable *KPDataTypeTable();
 
 inline const flatbuffers::TypeTable *PEDataTypeTable();
+
+inline const flatbuffers::TypeTable *IntVarTypeTable();
+
+inline const flatbuffers::TypeTable *LongVarTypeTable();
+
+inline const flatbuffers::TypeTable *FloatVarTypeTable();
+
+inline const flatbuffers::TypeTable *DoubleVarTypeTable();
+
+inline const flatbuffers::TypeTable *ModelVariableTypeTable();
+
+inline const flatbuffers::TypeTable *ModelLPTypeTable();
 
 inline const flatbuffers::TypeTable *DamarisDataSampleTypeTable();
 
@@ -71,6 +99,132 @@ inline const char *EnumNameInstMode(InstMode e) {
   const size_t index = static_cast<int>(e);
   return EnumNamesInstMode()[index];
 }
+
+enum VariableType {
+  VariableType_NONE = 0,
+  VariableType_IntVar = 1,
+  VariableType_LongVar = 2,
+  VariableType_FloatVar = 3,
+  VariableType_DoubleVar = 4,
+  VariableType_MIN = VariableType_NONE,
+  VariableType_MAX = VariableType_DoubleVar
+};
+
+inline const VariableType (&EnumValuesVariableType())[5] {
+  static const VariableType values[] = {
+    VariableType_NONE,
+    VariableType_IntVar,
+    VariableType_LongVar,
+    VariableType_FloatVar,
+    VariableType_DoubleVar
+  };
+  return values;
+}
+
+inline const char * const *EnumNamesVariableType() {
+  static const char * const names[] = {
+    "NONE",
+    "IntVar",
+    "LongVar",
+    "FloatVar",
+    "DoubleVar",
+    nullptr
+  };
+  return names;
+}
+
+inline const char *EnumNameVariableType(VariableType e) {
+  const size_t index = static_cast<int>(e);
+  return EnumNamesVariableType()[index];
+}
+
+template<typename T> struct VariableTypeTraits {
+  static const VariableType enum_value = VariableType_NONE;
+};
+
+template<> struct VariableTypeTraits<IntVar> {
+  static const VariableType enum_value = VariableType_IntVar;
+};
+
+template<> struct VariableTypeTraits<LongVar> {
+  static const VariableType enum_value = VariableType_LongVar;
+};
+
+template<> struct VariableTypeTraits<FloatVar> {
+  static const VariableType enum_value = VariableType_FloatVar;
+};
+
+template<> struct VariableTypeTraits<DoubleVar> {
+  static const VariableType enum_value = VariableType_DoubleVar;
+};
+
+struct VariableTypeUnion {
+  VariableType type;
+  void *value;
+
+  VariableTypeUnion() : type(VariableType_NONE), value(nullptr) {}
+  VariableTypeUnion(VariableTypeUnion&& u) FLATBUFFERS_NOEXCEPT :
+    type(VariableType_NONE), value(nullptr)
+    { std::swap(type, u.type); std::swap(value, u.value); }
+  VariableTypeUnion(const VariableTypeUnion &) FLATBUFFERS_NOEXCEPT;
+  VariableTypeUnion &operator=(const VariableTypeUnion &u) FLATBUFFERS_NOEXCEPT
+    { VariableTypeUnion t(u); std::swap(type, t.type); std::swap(value, t.value); return *this; }
+  VariableTypeUnion &operator=(VariableTypeUnion &&u) FLATBUFFERS_NOEXCEPT
+    { std::swap(type, u.type); std::swap(value, u.value); return *this; }
+  ~VariableTypeUnion() { Reset(); }
+
+  void Reset();
+
+#ifndef FLATBUFFERS_CPP98_STL
+  template <typename T>
+  void Set(T&& val) {
+    Reset();
+    type = VariableTypeTraits<typename T::TableType>::enum_value;
+    if (type != VariableType_NONE) {
+      value = new T(std::forward<T>(val));
+    }
+  }
+#endif  // FLATBUFFERS_CPP98_STL
+
+  static void *UnPack(const void *obj, VariableType type, const flatbuffers::resolver_function_t *resolver);
+  flatbuffers::Offset<void> Pack(flatbuffers::FlatBufferBuilder &_fbb, const flatbuffers::rehasher_function_t *_rehasher = nullptr) const;
+
+  IntVarT *AsIntVar() {
+    return type == VariableType_IntVar ?
+      reinterpret_cast<IntVarT *>(value) : nullptr;
+  }
+  const IntVarT *AsIntVar() const {
+    return type == VariableType_IntVar ?
+      reinterpret_cast<const IntVarT *>(value) : nullptr;
+  }
+  LongVarT *AsLongVar() {
+    return type == VariableType_LongVar ?
+      reinterpret_cast<LongVarT *>(value) : nullptr;
+  }
+  const LongVarT *AsLongVar() const {
+    return type == VariableType_LongVar ?
+      reinterpret_cast<const LongVarT *>(value) : nullptr;
+  }
+  FloatVarT *AsFloatVar() {
+    return type == VariableType_FloatVar ?
+      reinterpret_cast<FloatVarT *>(value) : nullptr;
+  }
+  const FloatVarT *AsFloatVar() const {
+    return type == VariableType_FloatVar ?
+      reinterpret_cast<const FloatVarT *>(value) : nullptr;
+  }
+  DoubleVarT *AsDoubleVar() {
+    return type == VariableType_DoubleVar ?
+      reinterpret_cast<DoubleVarT *>(value) : nullptr;
+  }
+  const DoubleVarT *AsDoubleVar() const {
+    return type == VariableType_DoubleVar ?
+      reinterpret_cast<const DoubleVarT *>(value) : nullptr;
+  }
+};
+
+bool VerifyVariableType(flatbuffers::Verifier &verifier, const void *obj, VariableType type);
+bool VerifyVariableTypeVector(flatbuffers::Verifier &verifier, const flatbuffers::Vector<flatbuffers::Offset<void>> *values, const flatbuffers::Vector<uint8_t> *types);
 
 struct SimEngineMetricsT : public flatbuffers::NativeTable {
   typedef SimEngineMetrics TableType;
@@ -686,6 +840,480 @@ inline flatbuffers::Offset<PEData> CreatePEData(
 
 flatbuffers::Offset<PEData> CreatePEData(flatbuffers::FlatBufferBuilder &_fbb, const PEDataT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
+struct IntVarT : public flatbuffers::NativeTable {
+  typedef IntVar TableType;
+  std::vector<int32_t> value;
+  IntVarT() {
+  }
+};
+
+struct IntVar FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef IntVarT NativeTableType;
+  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
+    return IntVarTypeTable();
+  }
+  enum {
+    VT_VALUE = 4
+  };
+  const flatbuffers::Vector<int32_t> *value() const {
+    return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_VALUE);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_VALUE) &&
+           verifier.VerifyVector(value()) &&
+           verifier.EndTable();
+  }
+  IntVarT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(IntVarT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<IntVar> Pack(flatbuffers::FlatBufferBuilder &_fbb, const IntVarT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct IntVarBuilder {
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_value(flatbuffers::Offset<flatbuffers::Vector<int32_t>> value) {
+    fbb_.AddOffset(IntVar::VT_VALUE, value);
+  }
+  explicit IntVarBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  IntVarBuilder &operator=(const IntVarBuilder &);
+  flatbuffers::Offset<IntVar> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<IntVar>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<IntVar> CreateIntVar(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<flatbuffers::Vector<int32_t>> value = 0) {
+  IntVarBuilder builder_(_fbb);
+  builder_.add_value(value);
+  return builder_.Finish();
+}
+
+inline flatbuffers::Offset<IntVar> CreateIntVarDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    const std::vector<int32_t> *value = nullptr) {
+  return ross_damaris::sample::CreateIntVar(
+      _fbb,
+      value ? _fbb.CreateVector<int32_t>(*value) : 0);
+}
+
+flatbuffers::Offset<IntVar> CreateIntVar(flatbuffers::FlatBufferBuilder &_fbb, const IntVarT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct LongVarT : public flatbuffers::NativeTable {
+  typedef LongVar TableType;
+  std::vector<int64_t> value;
+  LongVarT() {
+  }
+};
+
+struct LongVar FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef LongVarT NativeTableType;
+  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
+    return LongVarTypeTable();
+  }
+  enum {
+    VT_VALUE = 4
+  };
+  const flatbuffers::Vector<int64_t> *value() const {
+    return GetPointer<const flatbuffers::Vector<int64_t> *>(VT_VALUE);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_VALUE) &&
+           verifier.VerifyVector(value()) &&
+           verifier.EndTable();
+  }
+  LongVarT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(LongVarT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<LongVar> Pack(flatbuffers::FlatBufferBuilder &_fbb, const LongVarT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct LongVarBuilder {
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_value(flatbuffers::Offset<flatbuffers::Vector<int64_t>> value) {
+    fbb_.AddOffset(LongVar::VT_VALUE, value);
+  }
+  explicit LongVarBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  LongVarBuilder &operator=(const LongVarBuilder &);
+  flatbuffers::Offset<LongVar> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<LongVar>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<LongVar> CreateLongVar(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<flatbuffers::Vector<int64_t>> value = 0) {
+  LongVarBuilder builder_(_fbb);
+  builder_.add_value(value);
+  return builder_.Finish();
+}
+
+inline flatbuffers::Offset<LongVar> CreateLongVarDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    const std::vector<int64_t> *value = nullptr) {
+  return ross_damaris::sample::CreateLongVar(
+      _fbb,
+      value ? _fbb.CreateVector<int64_t>(*value) : 0);
+}
+
+flatbuffers::Offset<LongVar> CreateLongVar(flatbuffers::FlatBufferBuilder &_fbb, const LongVarT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct FloatVarT : public flatbuffers::NativeTable {
+  typedef FloatVar TableType;
+  std::vector<float> value;
+  FloatVarT() {
+  }
+};
+
+struct FloatVar FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef FloatVarT NativeTableType;
+  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
+    return FloatVarTypeTable();
+  }
+  enum {
+    VT_VALUE = 4
+  };
+  const flatbuffers::Vector<float> *value() const {
+    return GetPointer<const flatbuffers::Vector<float> *>(VT_VALUE);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_VALUE) &&
+           verifier.VerifyVector(value()) &&
+           verifier.EndTable();
+  }
+  FloatVarT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(FloatVarT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<FloatVar> Pack(flatbuffers::FlatBufferBuilder &_fbb, const FloatVarT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct FloatVarBuilder {
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_value(flatbuffers::Offset<flatbuffers::Vector<float>> value) {
+    fbb_.AddOffset(FloatVar::VT_VALUE, value);
+  }
+  explicit FloatVarBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  FloatVarBuilder &operator=(const FloatVarBuilder &);
+  flatbuffers::Offset<FloatVar> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<FloatVar>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<FloatVar> CreateFloatVar(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<flatbuffers::Vector<float>> value = 0) {
+  FloatVarBuilder builder_(_fbb);
+  builder_.add_value(value);
+  return builder_.Finish();
+}
+
+inline flatbuffers::Offset<FloatVar> CreateFloatVarDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    const std::vector<float> *value = nullptr) {
+  return ross_damaris::sample::CreateFloatVar(
+      _fbb,
+      value ? _fbb.CreateVector<float>(*value) : 0);
+}
+
+flatbuffers::Offset<FloatVar> CreateFloatVar(flatbuffers::FlatBufferBuilder &_fbb, const FloatVarT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct DoubleVarT : public flatbuffers::NativeTable {
+  typedef DoubleVar TableType;
+  std::vector<double> value;
+  DoubleVarT() {
+  }
+};
+
+struct DoubleVar FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef DoubleVarT NativeTableType;
+  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
+    return DoubleVarTypeTable();
+  }
+  enum {
+    VT_VALUE = 4
+  };
+  const flatbuffers::Vector<double> *value() const {
+    return GetPointer<const flatbuffers::Vector<double> *>(VT_VALUE);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_VALUE) &&
+           verifier.VerifyVector(value()) &&
+           verifier.EndTable();
+  }
+  DoubleVarT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(DoubleVarT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<DoubleVar> Pack(flatbuffers::FlatBufferBuilder &_fbb, const DoubleVarT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct DoubleVarBuilder {
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_value(flatbuffers::Offset<flatbuffers::Vector<double>> value) {
+    fbb_.AddOffset(DoubleVar::VT_VALUE, value);
+  }
+  explicit DoubleVarBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  DoubleVarBuilder &operator=(const DoubleVarBuilder &);
+  flatbuffers::Offset<DoubleVar> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<DoubleVar>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<DoubleVar> CreateDoubleVar(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<flatbuffers::Vector<double>> value = 0) {
+  DoubleVarBuilder builder_(_fbb);
+  builder_.add_value(value);
+  return builder_.Finish();
+}
+
+inline flatbuffers::Offset<DoubleVar> CreateDoubleVarDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    const std::vector<double> *value = nullptr) {
+  return ross_damaris::sample::CreateDoubleVar(
+      _fbb,
+      value ? _fbb.CreateVector<double>(*value) : 0);
+}
+
+flatbuffers::Offset<DoubleVar> CreateDoubleVar(flatbuffers::FlatBufferBuilder &_fbb, const DoubleVarT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct ModelVariableT : public flatbuffers::NativeTable {
+  typedef ModelVariable TableType;
+  std::string var_name;
+  VariableTypeUnion var_value;
+  ModelVariableT() {
+  }
+};
+
+struct ModelVariable FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef ModelVariableT NativeTableType;
+  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
+    return ModelVariableTypeTable();
+  }
+  enum {
+    VT_VAR_NAME = 4,
+    VT_VAR_VALUE_TYPE = 6,
+    VT_VAR_VALUE = 8
+  };
+  const flatbuffers::String *var_name() const {
+    return GetPointer<const flatbuffers::String *>(VT_VAR_NAME);
+  }
+  VariableType var_value_type() const {
+    return static_cast<VariableType>(GetField<uint8_t>(VT_VAR_VALUE_TYPE, 0));
+  }
+  const void *var_value() const {
+    return GetPointer<const void *>(VT_VAR_VALUE);
+  }
+  template<typename T> const T *var_value_as() const;
+  const IntVar *var_value_as_IntVar() const {
+    return var_value_type() == VariableType_IntVar ? static_cast<const IntVar *>(var_value()) : nullptr;
+  }
+  const LongVar *var_value_as_LongVar() const {
+    return var_value_type() == VariableType_LongVar ? static_cast<const LongVar *>(var_value()) : nullptr;
+  }
+  const FloatVar *var_value_as_FloatVar() const {
+    return var_value_type() == VariableType_FloatVar ? static_cast<const FloatVar *>(var_value()) : nullptr;
+  }
+  const DoubleVar *var_value_as_DoubleVar() const {
+    return var_value_type() == VariableType_DoubleVar ? static_cast<const DoubleVar *>(var_value()) : nullptr;
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_VAR_NAME) &&
+           verifier.VerifyString(var_name()) &&
+           VerifyField<uint8_t>(verifier, VT_VAR_VALUE_TYPE) &&
+           VerifyOffset(verifier, VT_VAR_VALUE) &&
+           VerifyVariableType(verifier, var_value(), var_value_type()) &&
+           verifier.EndTable();
+  }
+  ModelVariableT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(ModelVariableT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<ModelVariable> Pack(flatbuffers::FlatBufferBuilder &_fbb, const ModelVariableT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+template<> inline const IntVar *ModelVariable::var_value_as<IntVar>() const {
+  return var_value_as_IntVar();
+}
+
+template<> inline const LongVar *ModelVariable::var_value_as<LongVar>() const {
+  return var_value_as_LongVar();
+}
+
+template<> inline const FloatVar *ModelVariable::var_value_as<FloatVar>() const {
+  return var_value_as_FloatVar();
+}
+
+template<> inline const DoubleVar *ModelVariable::var_value_as<DoubleVar>() const {
+  return var_value_as_DoubleVar();
+}
+
+struct ModelVariableBuilder {
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_var_name(flatbuffers::Offset<flatbuffers::String> var_name) {
+    fbb_.AddOffset(ModelVariable::VT_VAR_NAME, var_name);
+  }
+  void add_var_value_type(VariableType var_value_type) {
+    fbb_.AddElement<uint8_t>(ModelVariable::VT_VAR_VALUE_TYPE, static_cast<uint8_t>(var_value_type), 0);
+  }
+  void add_var_value(flatbuffers::Offset<void> var_value) {
+    fbb_.AddOffset(ModelVariable::VT_VAR_VALUE, var_value);
+  }
+  explicit ModelVariableBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  ModelVariableBuilder &operator=(const ModelVariableBuilder &);
+  flatbuffers::Offset<ModelVariable> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<ModelVariable>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<ModelVariable> CreateModelVariable(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<flatbuffers::String> var_name = 0,
+    VariableType var_value_type = VariableType_NONE,
+    flatbuffers::Offset<void> var_value = 0) {
+  ModelVariableBuilder builder_(_fbb);
+  builder_.add_var_value(var_value);
+  builder_.add_var_name(var_name);
+  builder_.add_var_value_type(var_value_type);
+  return builder_.Finish();
+}
+
+inline flatbuffers::Offset<ModelVariable> CreateModelVariableDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    const char *var_name = nullptr,
+    VariableType var_value_type = VariableType_NONE,
+    flatbuffers::Offset<void> var_value = 0) {
+  return ross_damaris::sample::CreateModelVariable(
+      _fbb,
+      var_name ? _fbb.CreateString(var_name) : 0,
+      var_value_type,
+      var_value);
+}
+
+flatbuffers::Offset<ModelVariable> CreateModelVariable(flatbuffers::FlatBufferBuilder &_fbb, const ModelVariableT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct ModelLPT : public flatbuffers::NativeTable {
+  typedef ModelLP TableType;
+  int32_t lpid;
+  std::string lptype;
+  std::vector<std::unique_ptr<ModelVariableT>> variables;
+  ModelLPT()
+      : lpid(0) {
+  }
+};
+
+struct ModelLP FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef ModelLPT NativeTableType;
+  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
+    return ModelLPTypeTable();
+  }
+  enum {
+    VT_LPID = 4,
+    VT_LPTYPE = 6,
+    VT_VARIABLES = 8
+  };
+  int32_t lpid() const {
+    return GetField<int32_t>(VT_LPID, 0);
+  }
+  const flatbuffers::String *lptype() const {
+    return GetPointer<const flatbuffers::String *>(VT_LPTYPE);
+  }
+  const flatbuffers::Vector<flatbuffers::Offset<ModelVariable>> *variables() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<ModelVariable>> *>(VT_VARIABLES);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<int32_t>(verifier, VT_LPID) &&
+           VerifyOffset(verifier, VT_LPTYPE) &&
+           verifier.VerifyString(lptype()) &&
+           VerifyOffset(verifier, VT_VARIABLES) &&
+           verifier.VerifyVector(variables()) &&
+           verifier.VerifyVectorOfTables(variables()) &&
+           verifier.EndTable();
+  }
+  ModelLPT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(ModelLPT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<ModelLP> Pack(flatbuffers::FlatBufferBuilder &_fbb, const ModelLPT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct ModelLPBuilder {
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_lpid(int32_t lpid) {
+    fbb_.AddElement<int32_t>(ModelLP::VT_LPID, lpid, 0);
+  }
+  void add_lptype(flatbuffers::Offset<flatbuffers::String> lptype) {
+    fbb_.AddOffset(ModelLP::VT_LPTYPE, lptype);
+  }
+  void add_variables(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<ModelVariable>>> variables) {
+    fbb_.AddOffset(ModelLP::VT_VARIABLES, variables);
+  }
+  explicit ModelLPBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  ModelLPBuilder &operator=(const ModelLPBuilder &);
+  flatbuffers::Offset<ModelLP> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<ModelLP>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<ModelLP> CreateModelLP(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    int32_t lpid = 0,
+    flatbuffers::Offset<flatbuffers::String> lptype = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<ModelVariable>>> variables = 0) {
+  ModelLPBuilder builder_(_fbb);
+  builder_.add_variables(variables);
+  builder_.add_lptype(lptype);
+  builder_.add_lpid(lpid);
+  return builder_.Finish();
+}
+
+inline flatbuffers::Offset<ModelLP> CreateModelLPDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    int32_t lpid = 0,
+    const char *lptype = nullptr,
+    const std::vector<flatbuffers::Offset<ModelVariable>> *variables = nullptr) {
+  return ross_damaris::sample::CreateModelLP(
+      _fbb,
+      lpid,
+      lptype ? _fbb.CreateString(lptype) : 0,
+      variables ? _fbb.CreateVector<flatbuffers::Offset<ModelVariable>>(*variables) : 0);
+}
+
+flatbuffers::Offset<ModelLP> CreateModelLP(flatbuffers::FlatBufferBuilder &_fbb, const ModelLPT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
 struct DamarisDataSampleT : public flatbuffers::NativeTable {
   typedef DamarisDataSample TableType;
   double virtual_ts;
@@ -695,13 +1323,12 @@ struct DamarisDataSampleT : public flatbuffers::NativeTable {
   std::vector<std::unique_ptr<PEDataT>> pe_data;
   std::vector<std::unique_ptr<KPDataT>> kp_data;
   std::vector<std::unique_ptr<LPDataT>> lp_data;
-  ModelData *model_data;
+  std::vector<std::unique_ptr<ModelLPT>> model_data;
   DamarisDataSampleT()
       : virtual_ts(0.0),
         real_ts(0.0),
         last_gvt(0.0),
-        mode(InstMode_GVT),
-        model_data(nullptr) {
+        mode(InstMode_GVT) {
   }
 };
 
@@ -741,8 +1368,8 @@ struct DamarisDataSample FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::Vector<flatbuffers::Offset<LPData>> *lp_data() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<LPData>> *>(VT_LP_DATA);
   }
-  int32_t model_data() const {
-    return GetField<int32_t>(VT_MODEL_DATA, 0);
+  const flatbuffers::Vector<flatbuffers::Offset<ModelLP>> *model_data() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<ModelLP>> *>(VT_MODEL_DATA);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -759,7 +1386,9 @@ struct DamarisDataSample FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyOffset(verifier, VT_LP_DATA) &&
            verifier.VerifyVector(lp_data()) &&
            verifier.VerifyVectorOfTables(lp_data()) &&
-           VerifyField<int32_t>(verifier, VT_MODEL_DATA) &&
+           VerifyOffset(verifier, VT_MODEL_DATA) &&
+           verifier.VerifyVector(model_data()) &&
+           verifier.VerifyVectorOfTables(model_data()) &&
            verifier.EndTable();
   }
   DamarisDataSampleT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -791,8 +1420,8 @@ struct DamarisDataSampleBuilder {
   void add_lp_data(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<LPData>>> lp_data) {
     fbb_.AddOffset(DamarisDataSample::VT_LP_DATA, lp_data);
   }
-  void add_model_data(int32_t model_data) {
-    fbb_.AddElement<int32_t>(DamarisDataSample::VT_MODEL_DATA, model_data, 0);
+  void add_model_data(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<ModelLP>>> model_data) {
+    fbb_.AddOffset(DamarisDataSample::VT_MODEL_DATA, model_data);
   }
   explicit DamarisDataSampleBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -815,7 +1444,7 @@ inline flatbuffers::Offset<DamarisDataSample> CreateDamarisDataSample(
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<PEData>>> pe_data = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<KPData>>> kp_data = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<LPData>>> lp_data = 0,
-    int32_t model_data = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<ModelLP>>> model_data = 0) {
   DamarisDataSampleBuilder builder_(_fbb);
   builder_.add_last_gvt(last_gvt);
   builder_.add_real_ts(real_ts);
@@ -837,7 +1466,7 @@ inline flatbuffers::Offset<DamarisDataSample> CreateDamarisDataSampleDirect(
     const std::vector<flatbuffers::Offset<PEData>> *pe_data = nullptr,
     const std::vector<flatbuffers::Offset<KPData>> *kp_data = nullptr,
     const std::vector<flatbuffers::Offset<LPData>> *lp_data = nullptr,
-    int32_t model_data = 0) {
+    const std::vector<flatbuffers::Offset<ModelLP>> *model_data = nullptr) {
   return ross_damaris::sample::CreateDamarisDataSample(
       _fbb,
       virtual_ts,
@@ -847,7 +1476,7 @@ inline flatbuffers::Offset<DamarisDataSample> CreateDamarisDataSampleDirect(
       pe_data ? _fbb.CreateVector<flatbuffers::Offset<PEData>>(*pe_data) : 0,
       kp_data ? _fbb.CreateVector<flatbuffers::Offset<KPData>>(*kp_data) : 0,
       lp_data ? _fbb.CreateVector<flatbuffers::Offset<LPData>>(*lp_data) : 0,
-      model_data);
+      model_data ? _fbb.CreateVector<flatbuffers::Offset<ModelLP>>(*model_data) : 0);
 }
 
 flatbuffers::Offset<DamarisDataSample> CreateDamarisDataSample(flatbuffers::FlatBufferBuilder &_fbb, const DamarisDataSampleT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -1052,6 +1681,174 @@ inline flatbuffers::Offset<PEData> CreatePEData(flatbuffers::FlatBufferBuilder &
       _data);
 }
 
+inline IntVarT *IntVar::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = new IntVarT();
+  UnPackTo(_o, _resolver);
+  return _o;
+}
+
+inline void IntVar::UnPackTo(IntVarT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = value(); if (_e) { _o->value.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->value[_i] = _e->Get(_i); } } };
+}
+
+inline flatbuffers::Offset<IntVar> IntVar::Pack(flatbuffers::FlatBufferBuilder &_fbb, const IntVarT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateIntVar(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<IntVar> CreateIntVar(flatbuffers::FlatBufferBuilder &_fbb, const IntVarT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const IntVarT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _value = _o->value.size() ? _fbb.CreateVector(_o->value) : 0;
+  return ross_damaris::sample::CreateIntVar(
+      _fbb,
+      _value);
+}
+
+inline LongVarT *LongVar::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = new LongVarT();
+  UnPackTo(_o, _resolver);
+  return _o;
+}
+
+inline void LongVar::UnPackTo(LongVarT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = value(); if (_e) { _o->value.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->value[_i] = _e->Get(_i); } } };
+}
+
+inline flatbuffers::Offset<LongVar> LongVar::Pack(flatbuffers::FlatBufferBuilder &_fbb, const LongVarT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateLongVar(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<LongVar> CreateLongVar(flatbuffers::FlatBufferBuilder &_fbb, const LongVarT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const LongVarT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _value = _o->value.size() ? _fbb.CreateVector(_o->value) : 0;
+  return ross_damaris::sample::CreateLongVar(
+      _fbb,
+      _value);
+}
+
+inline FloatVarT *FloatVar::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = new FloatVarT();
+  UnPackTo(_o, _resolver);
+  return _o;
+}
+
+inline void FloatVar::UnPackTo(FloatVarT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = value(); if (_e) { _o->value.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->value[_i] = _e->Get(_i); } } };
+}
+
+inline flatbuffers::Offset<FloatVar> FloatVar::Pack(flatbuffers::FlatBufferBuilder &_fbb, const FloatVarT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateFloatVar(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<FloatVar> CreateFloatVar(flatbuffers::FlatBufferBuilder &_fbb, const FloatVarT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const FloatVarT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _value = _o->value.size() ? _fbb.CreateVector(_o->value) : 0;
+  return ross_damaris::sample::CreateFloatVar(
+      _fbb,
+      _value);
+}
+
+inline DoubleVarT *DoubleVar::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = new DoubleVarT();
+  UnPackTo(_o, _resolver);
+  return _o;
+}
+
+inline void DoubleVar::UnPackTo(DoubleVarT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = value(); if (_e) { _o->value.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->value[_i] = _e->Get(_i); } } };
+}
+
+inline flatbuffers::Offset<DoubleVar> DoubleVar::Pack(flatbuffers::FlatBufferBuilder &_fbb, const DoubleVarT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateDoubleVar(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<DoubleVar> CreateDoubleVar(flatbuffers::FlatBufferBuilder &_fbb, const DoubleVarT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const DoubleVarT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _value = _o->value.size() ? _fbb.CreateVector(_o->value) : 0;
+  return ross_damaris::sample::CreateDoubleVar(
+      _fbb,
+      _value);
+}
+
+inline ModelVariableT *ModelVariable::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = new ModelVariableT();
+  UnPackTo(_o, _resolver);
+  return _o;
+}
+
+inline void ModelVariable::UnPackTo(ModelVariableT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = var_name(); if (_e) _o->var_name = _e->str(); };
+  { auto _e = var_value_type(); _o->var_value.type = _e; };
+  { auto _e = var_value(); if (_e) _o->var_value.value = VariableTypeUnion::UnPack(_e, var_value_type(), _resolver); };
+}
+
+inline flatbuffers::Offset<ModelVariable> ModelVariable::Pack(flatbuffers::FlatBufferBuilder &_fbb, const ModelVariableT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateModelVariable(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<ModelVariable> CreateModelVariable(flatbuffers::FlatBufferBuilder &_fbb, const ModelVariableT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const ModelVariableT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _var_name = _o->var_name.empty() ? 0 : _fbb.CreateString(_o->var_name);
+  auto _var_value_type = _o->var_value.type;
+  auto _var_value = _o->var_value.Pack(_fbb);
+  return ross_damaris::sample::CreateModelVariable(
+      _fbb,
+      _var_name,
+      _var_value_type,
+      _var_value);
+}
+
+inline ModelLPT *ModelLP::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = new ModelLPT();
+  UnPackTo(_o, _resolver);
+  return _o;
+}
+
+inline void ModelLP::UnPackTo(ModelLPT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = lpid(); _o->lpid = _e; };
+  { auto _e = lptype(); if (_e) _o->lptype = _e->str(); };
+  { auto _e = variables(); if (_e) { _o->variables.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->variables[_i] = std::unique_ptr<ModelVariableT>(_e->Get(_i)->UnPack(_resolver)); } } };
+}
+
+inline flatbuffers::Offset<ModelLP> ModelLP::Pack(flatbuffers::FlatBufferBuilder &_fbb, const ModelLPT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateModelLP(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<ModelLP> CreateModelLP(flatbuffers::FlatBufferBuilder &_fbb, const ModelLPT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const ModelLPT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _lpid = _o->lpid;
+  auto _lptype = _o->lptype.empty() ? 0 : _fbb.CreateString(_o->lptype);
+  auto _variables = _o->variables.size() ? _fbb.CreateVector<flatbuffers::Offset<ModelVariable>> (_o->variables.size(), [](size_t i, _VectorArgs *__va) { return CreateModelVariable(*__va->__fbb, __va->__o->variables[i].get(), __va->__rehasher); }, &_va ) : 0;
+  return ross_damaris::sample::CreateModelLP(
+      _fbb,
+      _lpid,
+      _lptype,
+      _variables);
+}
+
 inline DamarisDataSampleT *DamarisDataSample::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
   auto _o = new DamarisDataSampleT();
   UnPackTo(_o, _resolver);
@@ -1068,8 +1865,7 @@ inline void DamarisDataSample::UnPackTo(DamarisDataSampleT *_o, const flatbuffer
   { auto _e = pe_data(); if (_e) { _o->pe_data.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->pe_data[_i] = std::unique_ptr<PEDataT>(_e->Get(_i)->UnPack(_resolver)); } } };
   { auto _e = kp_data(); if (_e) { _o->kp_data.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->kp_data[_i] = std::unique_ptr<KPDataT>(_e->Get(_i)->UnPack(_resolver)); } } };
   { auto _e = lp_data(); if (_e) { _o->lp_data.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->lp_data[_i] = std::unique_ptr<LPDataT>(_e->Get(_i)->UnPack(_resolver)); } } };
-  { auto _e = model_data(); //scalar resolver, naked 
-if (_resolver) (*_resolver)(reinterpret_cast<void **>(&_o->model_data), static_cast<flatbuffers::hash_value_t>(_e)); else _o->model_data = nullptr; };
+  { auto _e = model_data(); if (_e) { _o->model_data.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->model_data[_i] = std::unique_ptr<ModelLPT>(_e->Get(_i)->UnPack(_resolver)); } } };
 }
 
 inline flatbuffers::Offset<DamarisDataSample> DamarisDataSample::Pack(flatbuffers::FlatBufferBuilder &_fbb, const DamarisDataSampleT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -1087,7 +1883,7 @@ inline flatbuffers::Offset<DamarisDataSample> CreateDamarisDataSample(flatbuffer
   auto _pe_data = _o->pe_data.size() ? _fbb.CreateVector<flatbuffers::Offset<PEData>> (_o->pe_data.size(), [](size_t i, _VectorArgs *__va) { return CreatePEData(*__va->__fbb, __va->__o->pe_data[i].get(), __va->__rehasher); }, &_va ) : 0;
   auto _kp_data = _o->kp_data.size() ? _fbb.CreateVector<flatbuffers::Offset<KPData>> (_o->kp_data.size(), [](size_t i, _VectorArgs *__va) { return CreateKPData(*__va->__fbb, __va->__o->kp_data[i].get(), __va->__rehasher); }, &_va ) : 0;
   auto _lp_data = _o->lp_data.size() ? _fbb.CreateVector<flatbuffers::Offset<LPData>> (_o->lp_data.size(), [](size_t i, _VectorArgs *__va) { return CreateLPData(*__va->__fbb, __va->__o->lp_data[i].get(), __va->__rehasher); }, &_va ) : 0;
-  auto _model_data = _rehasher ? static_cast<int32_t>((*_rehasher)(_o->model_data)) : 0;
+  auto _model_data = _o->model_data.size() ? _fbb.CreateVector<flatbuffers::Offset<ModelLP>> (_o->model_data.size(), [](size_t i, _VectorArgs *__va) { return CreateModelLP(*__va->__fbb, __va->__o->model_data[i].get(), __va->__rehasher); }, &_va ) : 0;
   return ross_damaris::sample::CreateDamarisDataSample(
       _fbb,
       _virtual_ts,
@@ -1098,6 +1894,138 @@ inline flatbuffers::Offset<DamarisDataSample> CreateDamarisDataSample(flatbuffer
       _kp_data,
       _lp_data,
       _model_data);
+}
+
+inline bool VerifyVariableType(flatbuffers::Verifier &verifier, const void *obj, VariableType type) {
+  switch (type) {
+    case VariableType_NONE: {
+      return true;
+    }
+    case VariableType_IntVar: {
+      auto ptr = reinterpret_cast<const IntVar *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case VariableType_LongVar: {
+      auto ptr = reinterpret_cast<const LongVar *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case VariableType_FloatVar: {
+      auto ptr = reinterpret_cast<const FloatVar *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case VariableType_DoubleVar: {
+      auto ptr = reinterpret_cast<const DoubleVar *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    default: return false;
+  }
+}
+
+inline bool VerifyVariableTypeVector(flatbuffers::Verifier &verifier, const flatbuffers::Vector<flatbuffers::Offset<void>> *values, const flatbuffers::Vector<uint8_t> *types) {
+  if (!values || !types) return !values && !types;
+  if (values->size() != types->size()) return false;
+  for (flatbuffers::uoffset_t i = 0; i < values->size(); ++i) {
+    if (!VerifyVariableType(
+        verifier,  values->Get(i), types->GetEnum<VariableType>(i))) {
+      return false;
+    }
+  }
+  return true;
+}
+
+inline void *VariableTypeUnion::UnPack(const void *obj, VariableType type, const flatbuffers::resolver_function_t *resolver) {
+  switch (type) {
+    case VariableType_IntVar: {
+      auto ptr = reinterpret_cast<const IntVar *>(obj);
+      return ptr->UnPack(resolver);
+    }
+    case VariableType_LongVar: {
+      auto ptr = reinterpret_cast<const LongVar *>(obj);
+      return ptr->UnPack(resolver);
+    }
+    case VariableType_FloatVar: {
+      auto ptr = reinterpret_cast<const FloatVar *>(obj);
+      return ptr->UnPack(resolver);
+    }
+    case VariableType_DoubleVar: {
+      auto ptr = reinterpret_cast<const DoubleVar *>(obj);
+      return ptr->UnPack(resolver);
+    }
+    default: return nullptr;
+  }
+}
+
+inline flatbuffers::Offset<void> VariableTypeUnion::Pack(flatbuffers::FlatBufferBuilder &_fbb, const flatbuffers::rehasher_function_t *_rehasher) const {
+  switch (type) {
+    case VariableType_IntVar: {
+      auto ptr = reinterpret_cast<const IntVarT *>(value);
+      return CreateIntVar(_fbb, ptr, _rehasher).Union();
+    }
+    case VariableType_LongVar: {
+      auto ptr = reinterpret_cast<const LongVarT *>(value);
+      return CreateLongVar(_fbb, ptr, _rehasher).Union();
+    }
+    case VariableType_FloatVar: {
+      auto ptr = reinterpret_cast<const FloatVarT *>(value);
+      return CreateFloatVar(_fbb, ptr, _rehasher).Union();
+    }
+    case VariableType_DoubleVar: {
+      auto ptr = reinterpret_cast<const DoubleVarT *>(value);
+      return CreateDoubleVar(_fbb, ptr, _rehasher).Union();
+    }
+    default: return 0;
+  }
+}
+
+inline VariableTypeUnion::VariableTypeUnion(const VariableTypeUnion &u) FLATBUFFERS_NOEXCEPT : type(u.type), value(nullptr) {
+  switch (type) {
+    case VariableType_IntVar: {
+      value = new IntVarT(*reinterpret_cast<IntVarT *>(u.value));
+      break;
+    }
+    case VariableType_LongVar: {
+      value = new LongVarT(*reinterpret_cast<LongVarT *>(u.value));
+      break;
+    }
+    case VariableType_FloatVar: {
+      value = new FloatVarT(*reinterpret_cast<FloatVarT *>(u.value));
+      break;
+    }
+    case VariableType_DoubleVar: {
+      value = new DoubleVarT(*reinterpret_cast<DoubleVarT *>(u.value));
+      break;
+    }
+    default:
+      break;
+  }
+}
+
+inline void VariableTypeUnion::Reset() {
+  switch (type) {
+    case VariableType_IntVar: {
+      auto ptr = reinterpret_cast<IntVarT *>(value);
+      delete ptr;
+      break;
+    }
+    case VariableType_LongVar: {
+      auto ptr = reinterpret_cast<LongVarT *>(value);
+      delete ptr;
+      break;
+    }
+    case VariableType_FloatVar: {
+      auto ptr = reinterpret_cast<FloatVarT *>(value);
+      delete ptr;
+      break;
+    }
+    case VariableType_DoubleVar: {
+      auto ptr = reinterpret_cast<DoubleVarT *>(value);
+      delete ptr;
+      break;
+    }
+    default: break;
+  }
+  value = nullptr;
+  type = VariableType_NONE;
 }
 
 inline const flatbuffers::TypeTable *InstModeTypeTable() {
@@ -1118,6 +2046,33 @@ inline const flatbuffers::TypeTable *InstModeTypeTable() {
   };
   static const flatbuffers::TypeTable tt = {
     flatbuffers::ST_ENUM, 4, type_codes, type_refs, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *VariableTypeTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_SEQUENCE, 0, -1 },
+    { flatbuffers::ET_SEQUENCE, 0, 0 },
+    { flatbuffers::ET_SEQUENCE, 0, 1 },
+    { flatbuffers::ET_SEQUENCE, 0, 2 },
+    { flatbuffers::ET_SEQUENCE, 0, 3 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    IntVarTypeTable,
+    LongVarTypeTable,
+    FloatVarTypeTable,
+    DoubleVarTypeTable
+  };
+  static const char * const names[] = {
+    "NONE",
+    "IntVar",
+    "LongVar",
+    "FloatVar",
+    "DoubleVar"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_UNION, 5, type_codes, type_refs, nullptr, names
   };
   return &tt;
 }
@@ -1247,6 +2202,98 @@ inline const flatbuffers::TypeTable *PEDataTypeTable() {
   return &tt;
 }
 
+inline const flatbuffers::TypeTable *IntVarTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_INT, 1, -1 }
+  };
+  static const char * const names[] = {
+    "value"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_TABLE, 1, type_codes, nullptr, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *LongVarTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_LONG, 1, -1 }
+  };
+  static const char * const names[] = {
+    "value"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_TABLE, 1, type_codes, nullptr, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *FloatVarTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_FLOAT, 1, -1 }
+  };
+  static const char * const names[] = {
+    "value"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_TABLE, 1, type_codes, nullptr, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *DoubleVarTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_DOUBLE, 1, -1 }
+  };
+  static const char * const names[] = {
+    "value"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_TABLE, 1, type_codes, nullptr, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *ModelVariableTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_STRING, 0, -1 },
+    { flatbuffers::ET_UTYPE, 0, 0 },
+    { flatbuffers::ET_SEQUENCE, 0, 0 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    VariableTypeTypeTable
+  };
+  static const char * const names[] = {
+    "var_name",
+    "var_value_type",
+    "var_value"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_TABLE, 3, type_codes, type_refs, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *ModelLPTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_INT, 0, -1 },
+    { flatbuffers::ET_STRING, 0, -1 },
+    { flatbuffers::ET_SEQUENCE, 1, 0 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    ModelVariableTypeTable
+  };
+  static const char * const names[] = {
+    "lpid",
+    "lptype",
+    "variables"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_TABLE, 3, type_codes, type_refs, nullptr, names
+  };
+  return &tt;
+}
+
 inline const flatbuffers::TypeTable *DamarisDataSampleTypeTable() {
   static const flatbuffers::TypeCode type_codes[] = {
     { flatbuffers::ET_DOUBLE, 0, -1 },
@@ -1256,13 +2303,14 @@ inline const flatbuffers::TypeTable *DamarisDataSampleTypeTable() {
     { flatbuffers::ET_SEQUENCE, 1, 1 },
     { flatbuffers::ET_SEQUENCE, 1, 2 },
     { flatbuffers::ET_SEQUENCE, 1, 3 },
-    { flatbuffers::ET_INT, 0, -1 }
+    { flatbuffers::ET_SEQUENCE, 1, 4 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
     InstModeTypeTable,
     PEDataTypeTable,
     KPDataTypeTable,
-    LPDataTypeTable
+    LPDataTypeTable,
+    ModelLPTypeTable
   };
   static const char * const names[] = {
     "virtual_ts",

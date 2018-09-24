@@ -43,7 +43,7 @@ void setup_simulation_config(const std::string& event, int32_t src, int32_t step
     (void) src;
     (void) step;
     (void) args;
-    //cout << "setup_simulation_config() step " << step << endl;
+    cout << "setup_simulation_config() step " << step << endl;
 
     sim_config.num_pe = damaris::Environment::CountTotalClients();
     for (int i = 0; i < sim_config.num_pe; i++)
@@ -73,8 +73,9 @@ void setup_simulation_config(const std::string& event, int32_t src, int32_t step
         t = new std::thread([](){ service.run(); });
     }
 
-    model_config.model_setup();
+    //model_config.model_setup();
     //model_config.print_model_info();
+    cout << "end of setup_simulation_config()\n";
 }
 
 /**
@@ -89,7 +90,7 @@ void handle_data(const std::string& event, int32_t src, int32_t step, const char
     (void) src;
     (void) args;
     step--;
-    //cout << "write_data() rank " << src << " step " << step << endl;
+    cout << "handle_data() rank " << src << " step " << step << endl;
     flatbuffers::FlatBufferBuilder *builder = new flatbuffers::FlatBufferBuilder();
 
     // setup sim engine data tables and model tables as needed
@@ -135,6 +136,7 @@ void handle_data(const std::string& event, int32_t src, int32_t step, const char
  */
 void streaming_finalize(const std::string& event, int32_t src, int32_t step, const char* args)
 {
+    cout << "streaming_finalize()\n";
     (void) event;
     (void) src;
     (void) step;
