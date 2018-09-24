@@ -17,6 +17,7 @@ class ModelFlatBuffer {
         double real_ts_;
         double gvt_;
         rds::InstMode mode_;
+        int max_sample_size_;
 
         template <typename T>
         rds::VariableType get_var_value_type() { return rds::VariableType_NONE; }
@@ -29,7 +30,8 @@ class ModelFlatBuffer {
             virtual_ts_(0.0),
             real_ts_(0.0),
             gvt_(0.0),
-            mode_(rds::InstMode_GVT) { }
+            mode_(rds::InstMode_GVT),
+            max_sample_size_(524288) { }
 
         void set_cur_lp_type(const std::string& lp_type) { cur_lp_type_ = lp_type; }
         void set_cur_lp_type(const char* lp_type) { cur_lp_type_ = lp_type; }

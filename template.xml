@@ -11,6 +11,7 @@
         <parameter name="num_lp" type="int" value="0" />
         <parameter name="num_pe" type="int" value="0" />
         <parameter name="num_kp" type="int" value="0" />
+        <parameter name="model_sample_size" type="int" value="524288" />
 
         <layout name="pe_id_layout" type="double" dimensions="2" /> 
         <layout name="dummy_layout" type="double" dimensions="2" />
@@ -27,7 +28,7 @@
         <layout name="kp_float_layout" type="float" dimensions="num_kp" />
         <layout name="kp_double_layout" type="double" dimensions="num_kp" />
         <layout name="inst_config_layout" type="char" dimensions="1024" />
-        <layout name="model_data_fb" type="char" dimensions="20000" />
+        <layout name="model_data_fb" type="char" dimensions="model_sample_size" />
 
         <!-- The groups and variables nested under the ross group are for simulation engine metrics.
         Do not touch these, or you risk errors when running your simulation! -->

@@ -405,7 +405,7 @@ void st_damaris_expose_data(tw_pe *me, int inst_type)
 
     if (model_modes[inst_type])
     {
-        st_damaris_sample_model_data();
+        st_damaris_sample_model_data(0.0, real_ts, me->GVT, inst_type);
     }
 
     if (inst_type == RT_INST)

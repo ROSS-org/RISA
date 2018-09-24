@@ -29,6 +29,7 @@ void ModelFlatBuffer::finish_lp_sample()
 
 void ModelFlatBuffer::start_sample(double vts, double rts, double gvt, InstMode mode)
 {
+    fbb_.Clear();
     virtual_ts_ = vts;
     real_ts_ = rts;
     gvt_ = gvt;
@@ -43,9 +44,15 @@ void ModelFlatBuffer::finish_sample()
     // now get the pointer and size and expose to Damaris
     uint8_t *buf = fbb_.GetBufferPointer();
     int size = fbb_.GetSize();
-
-    cout << "size of model fb " << size << endl;
     int err;
+    //if (size > max_sample_size_)
+    {
+        max_sample_size_ = size;
+        if ((err = damaris_parameter_set("model_sample_size", &max_sample_size_, sizeof(max_sample_size_))) != DAMARIS_OK)
+            st_damaris_error(TW_LOC, err, "model_sample_size");
+    }
+
+    cout << "size of model fb " << size << " max_sample_size_ " << max_sample_size_ << endl;
     if ((err = damaris_write_block("model/sample", 0, &buf[0])) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, "model/sample");
 }

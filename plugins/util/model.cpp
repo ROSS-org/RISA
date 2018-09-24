@@ -12,11 +12,21 @@ namespace fb = flatbuffers;
 // setup model's flatbuffers table
 ModelFlatBuffer mfb;
 // call from ROSS-damaris interface to save in flatbuffers format and expose to Damaris
-void st_damaris_sample_model_data()
+void st_damaris_sample_model_data(double vts, double rts, double gvt, int inst_type)
 {
     //std::cout << "Reached st_damaris_sample_model_data()\n";
     tw_lpid lpid;
     tw_lp *lp;
+    InstMode mode;
+
+    if (inst_type == GVT_INST)
+        mode = InstMode_GVT;
+    else if (inst_type == RT_INST)
+        mode = InstMode_RT;
+    else if (inst_type == VT_INST)
+        mode = InstMode_VT;
+
+    mfb.start_sample(vts, rts, gvt, mode);
     for (lpid = 0; lpid < g_tw_nlp; lpid++)
     {
         // start the building of the ModelLP
@@ -38,6 +48,8 @@ void st_damaris_sample_model_data()
         // now finish up flatbuffer stuff for this LP
         mfb.finish_lp_sample();
     }
+
+    mfb.finish_sample();
 
 }
 
