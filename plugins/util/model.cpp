@@ -29,12 +29,12 @@ void st_damaris_sample_model_data(double vts, double rts, double gvt, int inst_t
     mfb.start_sample(vts, rts, gvt, mode);
     for (lpid = 0; lpid < g_tw_nlp; lpid++)
     {
+        lp = tw_getlp(lpid);
         // start the building of the ModelLP
-        mfb.start_lp_sample(lpid);
+        mfb.start_lp_sample(lp->gid);
 
         // call model LP's instrumentation sampling function
         // the implemented function should utilize one of st_damaris_save_model_variable_*() below
-        lp = tw_getlp(lpid);
         if (lp->model_types == NULL || lp->model_types->sample_struct_sz == 0)
             continue;
 

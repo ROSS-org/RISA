@@ -10,7 +10,7 @@ using namespace ross_damaris::sample;
 
 int main(int argc, char *argv[])
 {
-    int buf_size = 762114;
+    int buf_size = 1762114;
 	char *data = new char[buf_size];
     flatbuffers::uoffset_t length;
 	streampos total_size;

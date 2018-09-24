@@ -135,22 +135,39 @@ void handle_model_data(const std::string& event, int32_t src, int32_t step, cons
 {
     step--;
     cout << "handle_data() rank " << src << " step " << step << endl;
-    int data_size = *(static_cast<int*>(DUtil::get_value_from_damaris("model/sample_size", 0, step, 0)));
-    char *binary_data = static_cast<char*>(DUtil::get_value_from_damaris("model/sample", 0, step, 0));
-    if (sim_config.write_data)
+
+    DamarisDataSampleT combined_sample;
+    DamarisDataSampleT ds;
+    for (int peid = 0; peid < sim_config.num_pe; peid++ )
     {
-        data_file.write(reinterpret_cast<const char*>(&data_size), sizeof(data_size));
-        data_file.write(binary_data, data_size);
-        cout << "wrote " << data_size << " bytes to file" << endl;
+        int data_size = *(static_cast<int*>(DUtil::get_value_from_damaris("model/sample_size", peid, step, 0)));
+        char *binary_data = static_cast<char*>(DUtil::get_value_from_damaris("model/sample", peid, step, 0));
+
+        auto data_sample = GetDamarisDataSample(binary_data);
+        if (peid == 0)
+        {
+            data_sample->UnPackTo(&combined_sample);
+            continue;
+        }
+
+        data_sample->UnPackTo(&ds);
+        //combined_sample.model_data.insert(combined_sample.model_data.end(), ds.model_data.begin(), ds.model_data.end());
+        std::move(ds.model_data.begin(), ds.model_data.end(), std::back_inserter(combined_sample.model_data));
     }
-    //auto data_sample = GetDamarisDataSample(binary_data);
-    //DamarisDataSampleT ds;
-    //data_sample->UnPackTo(&ds);
-    //flatbuffers::FlatBufferBuilder fbb;
-    //auto new_samp = DamarisDataSample::Pack(fbb, &ds);
-    //fbb.Finish(new_samp);
+
+    flatbuffers::FlatBufferBuilder fbb;
+    auto new_samp = DamarisDataSample::Pack(fbb, &combined_sample);
+    fbb.Finish(new_samp);
     //auto s = flatbuffers::FlatBufferToString(fbb.GetBufferPointer(), DamarisDataSampleTypeTable(), true);
     //cout << s << endl;
+    if (sim_config.write_data)
+    {
+        uint8_t *buf = fbb.GetBufferPointer();
+        flatbuffers::uoffset_t size = fbb.GetSize();
+        data_file.write(reinterpret_cast<const char*>(&size), sizeof(size));
+        data_file.write(reinterpret_cast<const char*>(buf), size);
+        //cout << "wrote " << size << " bytes to file" << endl;
+    }
 }
 
 /**
