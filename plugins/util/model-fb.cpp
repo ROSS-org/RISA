@@ -30,6 +30,8 @@ void ModelFlatBuffer::finish_lp_sample()
 void ModelFlatBuffer::start_sample(double vts, double rts, double gvt, InstMode mode)
 {
     fbb_.Clear();
+    model_lps_.clear();
+    cur_lp_vars_.clear();
     virtual_ts_ = vts;
     real_ts_ = rts;
     gvt_ = gvt;
@@ -45,6 +47,9 @@ void ModelFlatBuffer::finish_sample()
     uint8_t *buf = fbb_.GetBufferPointer();
     int size = fbb_.GetSize();
     int err;
+    // I think damaris parameters may not actually use the default value that you can supposedly set in the XML file...
+    // OR damaris doesn't like it when the amount we write is not exactly the same size as we tell it
+    // but when we use char* with damaris for paths, that isn't the case
     //if (size > max_sample_size_)
     {
         max_sample_size_ = size;
@@ -53,6 +58,8 @@ void ModelFlatBuffer::finish_sample()
     }
 
     cout << "size of model fb " << size << " max_sample_size_ " << max_sample_size_ << endl;
+    if ((err = damaris_write_block("model/sample_size", 0, &size)) != DAMARIS_OK)
+        st_damaris_error(TW_LOC, err, "model/sample_size");
     if ((err = damaris_write_block("model/sample", 0, &buf[0])) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, "model/sample");
 }

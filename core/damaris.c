@@ -169,6 +169,7 @@ static void set_parameters(const char *config_file)
     int num_pe = tw_nnodes();
     int num_kp = (int) g_tw_nkp;
     int num_lp = (int) g_tw_nlp;
+    int model_sample_size = 524288;
     //printf("PE %ld num pe %d, num kp %d, num lp %d\n", g_tw_mynode, num_pe, num_kp, num_lp);
 
     if ((err = damaris_parameter_set("num_lp", &num_lp, sizeof(num_lp))) != DAMARIS_OK)
@@ -179,6 +180,9 @@ static void set_parameters(const char *config_file)
 
     if ((err = damaris_parameter_set("num_kp", &num_kp, sizeof(num_kp))) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, "num_kp");
+
+    if ((err = damaris_parameter_set("model_sample_size", &model_sample_size, sizeof(model_sample_size))) != DAMARIS_OK)
+        st_damaris_error(TW_LOC, err, "model_sample_size");
 
     if ((err = damaris_write("ross/nlp", &num_lp)) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, "num_lp");

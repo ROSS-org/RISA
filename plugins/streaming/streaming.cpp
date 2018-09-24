@@ -84,6 +84,7 @@ void setup_simulation_config(const std::string& event, int32_t src, int32_t step
  * First converts all data in a given sample into Flatbuffers format.
  * Call with "group" scope.
  */
+// TODO need to appropriately check for data depending on the type of instrumentation being performed
 void handle_data(const std::string& event, int32_t src, int32_t step, const char* args)
 {
     (void) event;
@@ -126,6 +127,30 @@ void handle_data(const std::string& event, int32_t src, int32_t step, const char
 
     if (sim_config.stream_data)
         client->write(builder);
+}
+
+// just testing out the flatbuffers model data in ross and transferring to damaris as a binary buffer
+// TODO right now this is per PE, should be merged into a single sample for all PEs?
+void handle_model_data(const std::string& event, int32_t src, int32_t step, const char* args)
+{
+    step--;
+    cout << "handle_data() rank " << src << " step " << step << endl;
+    int data_size = *(static_cast<int*>(DUtil::get_value_from_damaris("model/sample_size", 0, step, 0)));
+    char *binary_data = static_cast<char*>(DUtil::get_value_from_damaris("model/sample", 0, step, 0));
+    if (sim_config.write_data)
+    {
+        data_file.write(reinterpret_cast<const char*>(&data_size), sizeof(data_size));
+        data_file.write(binary_data, data_size);
+        cout << "wrote " << data_size << " bytes to file" << endl;
+    }
+    //auto data_sample = GetDamarisDataSample(binary_data);
+    //DamarisDataSampleT ds;
+    //data_sample->UnPackTo(&ds);
+    //flatbuffers::FlatBufferBuilder fbb;
+    //auto new_samp = DamarisDataSample::Pack(fbb, &ds);
+    //fbb.Finish(new_samp);
+    //auto s = flatbuffers::FlatBufferToString(fbb.GetBufferPointer(), DamarisDataSampleTypeTable(), true);
+    //cout << s << endl;
 }
 
 /**
