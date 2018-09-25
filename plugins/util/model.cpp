@@ -88,6 +88,19 @@ void st_damaris_sample_model_data()
     }
 }
 
+/**
+ * @brief Resets block counters when ending a Damaris iteration.
+ *
+ * A PE may notify Damaris of multiple samples for a given variable within a single iteration.
+ * Damaris refers to these as blocks or domains and needs to be passed the domain/block id
+ * when there is more than one per iteration. This resets the counter variable to 0 when cleaning
+ * up at the end of an iteration.
+ */
+void st_damaris_reset_block_counters()
+{
+    mfb.reset_block_counters();
+}
+
 // have C wrapper functions specific to data type
 // main function will use templates
 // this function can be called by a model to save a specific model variable

@@ -183,48 +183,34 @@ void st_damaris_ross_finalize()
  */
 void st_damaris_expose_data(tw_pe *me, int inst_type)
 {
+    printf("PE %ld: damaris_expose_data type: %d\n", g_tw_mynode, inst_type);
     int err;
 
-    double real_ts = (double)tw_clock_read() / g_tw_clock_rate;
-    st_damaris_start_sample(0.0, real_ts, me->GVT, inst_type);
-
-    if (engine_modes[inst_type])
+    if (engine_modes[inst_type] || model_modes[inst_type])
     {
-        // collect data for each entity
-        if (g_st_pe_data)
-            st_damaris_sample_pe_data(me, &last_pe_stats[0], inst_type);
-        if (g_st_kp_data)
-            st_damaris_sample_kp_data(inst_type);
-        if (g_st_lp_data)
-            st_damaris_sample_lp_data(inst_type);
+        double real_ts = (double)tw_clock_read() / g_tw_clock_rate;
+        st_damaris_start_sample(0.0, real_ts, me->GVT, inst_type);
+
+        if (engine_modes[inst_type])
+        {
+            printf("PE %ld: sampling sim engine data type: %d\n", g_tw_mynode, inst_type);
+            // collect data for each entity
+            if (g_st_pe_data)
+                st_damaris_sample_pe_data(me, &last_pe_stats[0], inst_type);
+            if (g_st_kp_data)
+                st_damaris_sample_kp_data(inst_type);
+            if (g_st_lp_data)
+                st_damaris_sample_lp_data(inst_type);
+        }
+
+        if (model_modes[inst_type])
+        {
+            printf("PE %ld: sampling model data type: %d\n", g_tw_mynode, inst_type);
+            st_damaris_sample_model_data();
+        }
+
+        st_damaris_finish_sample();
     }
-
-    if (model_modes[inst_type])
-    {
-        st_damaris_sample_model_data();
-    }
-
-    st_damaris_finish_sample();
-
-    if (inst_type == RT_INST)
-        rt_block_counter++;
-    if (inst_type == VT_INST)
-        vt_block_counter++;
-}
-
-/**
- * @brief Resets block counters when ending a Damaris iteration.
- *
- * A PE may notify Damaris of multiple samples for a given variable within a single iteration.
- * Damaris refers to these as blocks or domains and needs to be passed the domain/block id
- * when there is more than one per iteration. This resets the counter variable to 0 when cleaning
- * up at the end of an iteration.
- */
-static void reset_block_counter(int *counter)
-{
-    if (*counter > max_block_counter)
-        max_block_counter = *counter;
-    *counter = 0;
 }
 
 void st_damaris_signal_init()
@@ -256,11 +242,7 @@ void st_damaris_end_iteration()
     }
 
     iterations++;
-    //if (vt_block_counter > 0)
-    //    printf("PE %ld end iteration #%d vt_block_counter = %d\n", g_tw_mynode, iterations, vt_block_counter);
-
-    reset_block_counter(&rt_block_counter);
-    reset_block_counter(&vt_block_counter);
+    st_damaris_reset_block_counters();
 }
 
 /**

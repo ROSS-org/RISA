@@ -6,7 +6,7 @@ using namespace damaris;
 extern "C" {
 
 // keep data for this number of steps
-static int num_steps = 10;
+static int num_steps = 5;
 
 void damaris_gc(const std::string& event, int32_t src, int32_t step, const char* args)
 {

@@ -23,6 +23,8 @@ class FlatBufferHelper {
         double gvt_;
         rds::InstMode mode_;
         int max_sample_size_;
+        int rt_block_;
+        int vt_block_;
 
         template <typename T>
         rds::VariableType get_var_value_type() { return rds::VariableType_NONE; }
@@ -39,7 +41,9 @@ class FlatBufferHelper {
             real_ts_(0.0),
             gvt_(0.0),
             mode_(rds::InstMode_GVT),
-            max_sample_size_(524288) { }
+            max_sample_size_(524288),
+            rt_block_(0),
+            vt_block_(0) { }
 
         void start_sample(double vts, double rts, double gvt, rds::InstMode mode);
         void finish_sample();
@@ -57,6 +61,8 @@ class FlatBufferHelper {
 
         void start_lp_model_sample(int lpid);
         void finish_lp_model_sample();
+
+        void reset_block_counters();
 
         template <typename T>
         void save_model_variable(int lpid, const char* lp_type, const char* var_name, T *data, size_t num_elements)

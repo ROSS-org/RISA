@@ -116,6 +116,7 @@ void FlatBufferHelper::start_sample(double vts, double rts, double gvt, InstMode
 
 void FlatBufferHelper::finish_sample()
 {
+    int block = 0;
     auto ds = CreateDamarisDataSampleDirect(fbb_, virtual_ts_, real_ts_, gvt_, mode_, &pes_, &kps_, &lps_, &model_lps_);
     fbb_.Finish(ds);
 
@@ -134,10 +135,28 @@ void FlatBufferHelper::finish_sample()
     }
 
     cout << "size of model fb " << size << " max_sample_size_ " << max_sample_size_ << endl;
-    if ((err = damaris_write_block("ross/sample_size", 0, &size)) != DAMARIS_OK)
+    if (mode_ == InstMode_RT)
+    {
+        block = rt_block_;
+        rt_block_++;
+    }
+    if (mode_ == InstMode_VT)
+    {
+        block = vt_block_;
+        vt_block_++;
+    }
+
+    if ((err = damaris_write_block("ross/sample_size", block, &size)) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, "ross/sample_size");
-    if ((err = damaris_write_block("ross/sample", 0, &buf[0])) != DAMARIS_OK)
+    if ((err = damaris_write_block("ross/sample", block, &buf[0])) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, "ross/sample");
+}
+
+void FlatBufferHelper::reset_block_counters()
+{
+    std::cout << "rt_block_ = " << rt_block_ << "\nvt_block_ = " << vt_block_ << endl;
+    rt_block_ = 0;
+    vt_block_ = 0;
 }
 
 template <>
