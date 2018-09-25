@@ -140,8 +140,8 @@ void handle_model_data(const std::string& event, int32_t src, int32_t step, cons
     DamarisDataSampleT ds;
     for (int peid = 0; peid < sim_config.num_pe; peid++ )
     {
-        int data_size = *(static_cast<int*>(DUtil::get_value_from_damaris("model/sample_size", peid, step, 0)));
-        char *binary_data = static_cast<char*>(DUtil::get_value_from_damaris("model/sample", peid, step, 0));
+        int data_size = *(static_cast<int*>(DUtil::get_value_from_damaris("ross/sample_size", peid, step, 0)));
+        char *binary_data = static_cast<char*>(DUtil::get_value_from_damaris("ross/sample", peid, step, 0));
 
         auto data_sample = GetDamarisDataSample(binary_data);
         if (peid == 0)
@@ -152,6 +152,9 @@ void handle_model_data(const std::string& event, int32_t src, int32_t step, cons
 
         data_sample->UnPackTo(&ds);
         //combined_sample.model_data.insert(combined_sample.model_data.end(), ds.model_data.begin(), ds.model_data.end());
+        std::move(ds.pe_data.begin(), ds.pe_data.end(), std::back_inserter(combined_sample.pe_data));
+        std::move(ds.kp_data.begin(), ds.kp_data.end(), std::back_inserter(combined_sample.kp_data));
+        std::move(ds.lp_data.begin(), ds.lp_data.end(), std::back_inserter(combined_sample.lp_data));
         std::move(ds.model_data.begin(), ds.model_data.end(), std::back_inserter(combined_sample.model_data));
     }
 

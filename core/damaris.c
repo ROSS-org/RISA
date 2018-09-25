@@ -181,8 +181,8 @@ static void set_parameters(const char *config_file)
     if ((err = damaris_parameter_set("num_kp", &num_kp, sizeof(num_kp))) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, "num_kp");
 
-    if ((err = damaris_parameter_set("model_sample_size", &model_sample_size, sizeof(model_sample_size))) != DAMARIS_OK)
-        st_damaris_error(TW_LOC, err, "model_sample_size");
+    if ((err = damaris_parameter_set("sample_size", &model_sample_size, sizeof(model_sample_size))) != DAMARIS_OK)
+        st_damaris_error(TW_LOC, err, "sample_size");
 
     if ((err = damaris_write("ross/nlp", &num_lp)) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, "num_lp");
@@ -375,42 +375,31 @@ void st_damaris_ross_finalize()
  */
 void st_damaris_expose_data(tw_pe *me, int inst_type)
 {
-    // this will be used by all instrumentation modes
-    //if (g_tw_gvt_done % g_st_num_gvt != 0)
-    //    return;
-
     int err;
-    tw_statistics s;
-
-    //printf("%ld: damaris_expose_data\n", g_tw_mynode);
 
     double real_ts = (double)tw_clock_read() / g_tw_clock_rate;
-    if (g_tw_mynode == g_tw_masternode)
-    {
-        if ((err = damaris_write_block("ross/real_time", 0, &real_ts)) != DAMARIS_OK)
-            st_damaris_error(TW_LOC, err, "ross/real_time");
-        if ((err = damaris_write_block("ross/last_gvt", 0, &me->GVT)) != DAMARIS_OK)
-            st_damaris_error(TW_LOC, err, "ross/last_gvt");
-    }
+    st_damaris_start_sample(0.0, real_ts, me->GVT, inst_type);
 
     if (engine_modes[inst_type])
     {
-        bzero(&s, sizeof(s));
-        tw_get_stats(me, &s);
         // collect data for each entity
         if (g_st_pe_data)
-            expose_pe_data(me, &s, inst_type);
+            st_damaris_sample_pe_data(me, &last_pe_stats[0], inst_type);
+            //expose_pe_data(me, &s, inst_type);
         if (g_st_kp_data)
-            expose_kp_data(me, inst_type);
+            st_damaris_sample_kp_data(inst_type);
+            //expose_kp_data(me, inst_type);
         if (g_st_lp_data)
-            expose_lp_data(inst_type);
-        memcpy(&last_pe_stats[inst_type], &s, sizeof(tw_statistics));
+            st_damaris_sample_lp_data(inst_type);
+            //expose_lp_data(inst_type);
     }
 
     if (model_modes[inst_type])
     {
-        st_damaris_sample_model_data(0.0, real_ts, me->GVT, inst_type);
+        st_damaris_sample_model_data();
     }
+
+    st_damaris_finish_sample();
 
     if (inst_type == RT_INST)
         rt_block_counter++;
