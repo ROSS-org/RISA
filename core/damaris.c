@@ -196,17 +196,17 @@ void st_damaris_expose_data(tw_pe *me, int inst_type)
             printf("PE %ld: sampling sim engine data type: %d\n", g_tw_mynode, inst_type);
             // collect data for each entity
             if (g_st_pe_data)
-                st_damaris_sample_pe_data(me, &last_pe_stats[0], inst_type);
+                st_damaris_sample_pe_data(me, &last_pe_stats[inst_type], inst_type);
             if (g_st_kp_data)
-                st_damaris_sample_kp_data(inst_type);
+                st_damaris_sample_kp_data(inst_type, NULL);
             if (g_st_lp_data)
-                st_damaris_sample_lp_data(inst_type);
+                st_damaris_sample_lp_data(inst_type, NULL, 0);
         }
 
         if (model_modes[inst_type])
         {
             printf("PE %ld: sampling model data type: %d\n", g_tw_mynode, inst_type);
-            st_damaris_sample_model_data();
+            st_damaris_sample_model_data(NULL, 0);
         }
 
         st_damaris_finish_sample();

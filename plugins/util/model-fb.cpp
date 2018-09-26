@@ -31,28 +31,28 @@ void FlatBufferHelper::finish_lp_model_sample()
 void FlatBufferHelper::pe_sample(tw_pe *pe, tw_statistics *s, tw_statistics *last_pe_stats, int inst_type)
 {
     SimEngineMetricsBuilder metrics(fbb_);
-    metrics.add_nevent_processed(s->s_nevent_processed-last_pe_stats[inst_type].s_nevent_processed);
-    metrics.add_nevent_abort(s->s_nevent_abort-last_pe_stats[inst_type].s_nevent_abort);
-    metrics.add_nevent_rb(s->s_e_rbs-last_pe_stats[inst_type].s_e_rbs);
-    metrics.add_rb_total(s->s_rb_total-last_pe_stats[inst_type].s_rb_total);
-    metrics.add_rb_sec(s->s_rb_secondary-last_pe_stats[inst_type].s_rb_secondary);
-    metrics.add_fc_attempts(s->s_fc_attempts-last_pe_stats[inst_type].s_fc_attempts);
+    metrics.add_nevent_processed(s->s_nevent_processed-last_pe_stats->s_nevent_processed);
+    metrics.add_nevent_abort(s->s_nevent_abort-last_pe_stats->s_nevent_abort);
+    metrics.add_nevent_rb(s->s_e_rbs-last_pe_stats->s_e_rbs);
+    metrics.add_rb_total(s->s_rb_total-last_pe_stats->s_rb_total);
+    metrics.add_rb_sec(s->s_rb_secondary-last_pe_stats->s_rb_secondary);
+    metrics.add_fc_attempts(s->s_fc_attempts-last_pe_stats->s_fc_attempts);
     metrics.add_pq_qsize(tw_pq_get_size(pe->pq));
-    metrics.add_network_send(s->s_nsend_network-last_pe_stats[inst_type].s_nsend_network);
-    metrics.add_network_recv(s->s_nread_network-last_pe_stats[inst_type].s_nread_network);
-    metrics.add_num_gvt(g_tw_gvt_done - last_pe_stats[inst_type].s_ngvts);
-    metrics.add_event_ties(s->s_pe_event_ties-last_pe_stats[inst_type].s_pe_event_ties);
+    metrics.add_network_send(s->s_nsend_network-last_pe_stats->s_nsend_network);
+    metrics.add_network_recv(s->s_nread_network-last_pe_stats->s_nread_network);
+    metrics.add_num_gvt(g_tw_gvt_done - last_pe_stats->s_ngvts);
+    metrics.add_event_ties(s->s_pe_event_ties-last_pe_stats->s_pe_event_ties);
 
-    metrics.add_net_read_time((pe->stats.s_net_read - last_pe_stats[inst_type].s_net_read) / g_tw_clock_rate);
-    metrics.add_net_other_time((pe->stats.s_net_other - last_pe_stats[inst_type].s_net_other) / g_tw_clock_rate);
-    metrics.add_gvt_time((pe->stats.s_gvt - last_pe_stats[inst_type].s_gvt) / g_tw_clock_rate);
-    metrics.add_fc_time((pe->stats.s_fossil_collect - last_pe_stats[inst_type].s_fossil_collect) / g_tw_clock_rate);
-    metrics.add_event_abort_time((pe->stats.s_event_abort - last_pe_stats[inst_type].s_event_abort) / g_tw_clock_rate);
-    metrics.add_event_proc_time((pe->stats.s_event_process - last_pe_stats[inst_type].s_event_process) / g_tw_clock_rate);
-    metrics.add_pq_time((pe->stats.s_pq - last_pe_stats[inst_type].s_pq) / g_tw_clock_rate);
-    metrics.add_rb_time((pe->stats.s_rollback - last_pe_stats[inst_type].s_rollback) / g_tw_clock_rate);
-    metrics.add_cancel_q_time((pe->stats.s_cancel_q - last_pe_stats[inst_type].s_cancel_q) / g_tw_clock_rate);
-    metrics.add_avl_time((pe->stats.s_avl - last_pe_stats[inst_type].s_avl) / g_tw_clock_rate);
+    metrics.add_net_read_time((pe->stats.s_net_read - last_pe_stats->s_net_read) / g_tw_clock_rate);
+    metrics.add_net_other_time((pe->stats.s_net_other - last_pe_stats->s_net_other) / g_tw_clock_rate);
+    metrics.add_gvt_time((pe->stats.s_gvt - last_pe_stats->s_gvt) / g_tw_clock_rate);
+    metrics.add_fc_time((pe->stats.s_fossil_collect - last_pe_stats->s_fossil_collect) / g_tw_clock_rate);
+    metrics.add_event_abort_time((pe->stats.s_event_abort - last_pe_stats->s_event_abort) / g_tw_clock_rate);
+    metrics.add_event_proc_time((pe->stats.s_event_process - last_pe_stats->s_event_process) / g_tw_clock_rate);
+    metrics.add_pq_time((pe->stats.s_pq - last_pe_stats->s_pq) / g_tw_clock_rate);
+    metrics.add_rb_time((pe->stats.s_rollback - last_pe_stats->s_rollback) / g_tw_clock_rate);
+    metrics.add_cancel_q_time((pe->stats.s_cancel_q - last_pe_stats->s_cancel_q) / g_tw_clock_rate);
+    metrics.add_avl_time((pe->stats.s_avl - last_pe_stats->s_avl) / g_tw_clock_rate);
 
     auto data = metrics.Finish();
     int peid = static_cast<int>(pe->id);

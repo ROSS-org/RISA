@@ -35,39 +35,70 @@ void st_damaris_sample_pe_data(tw_pe *pe, tw_statistics *last_pe_stats, int inst
     bzero(&s, sizeof(s));
     tw_get_stats(pe, &s);
     mfb.pe_sample(pe, &s, last_pe_stats, inst_type);
-    memcpy(&last_pe_stats[inst_type], &s, sizeof(tw_statistics));
+    memcpy(last_pe_stats, &s, sizeof(tw_statistics));
 }
 
-void st_damaris_sample_kp_data(int inst_type)
+void st_damaris_sample_kp_data(int inst_type, tw_kpid *id)
 {
     tw_kp *kp;
-    for (unsigned int kpid = 0; kpid < g_tw_nkp; kpid++)
+    unsigned int num_kps = g_tw_nkp;
+    unsigned int kpid = 0;
+    if (id)
+    {
+        kpid = *id;
+        num_kps = kpid + 1;
+
+    }
+    for (kpid; kpid < num_kps; kpid++)
     {
         kp = tw_getkp(kpid);
         mfb.kp_sample(kp, inst_type);
     }
 }
 
-void st_damaris_sample_lp_data(int inst_type)
+void st_damaris_sample_lp_data(int inst_type, tw_lpid *lpids, int nlps)
 {
     tw_lp *lp;
-    for (unsigned int lpid = 0; lpid < g_tw_nlp; lpid++)
+    unsigned int lpid;
+    unsigned int num_lps = g_tw_nlp;
+    if (lpids)
+        num_lps = nlps;
+
+    for (unsigned int i = 0; i < num_lps; i++)
     {
+        if (lpids)
+            lpid = lpids[i];
+        else
+            lpid = i;
+
         lp = tw_getlp(lpid);
         mfb.lp_sample(lp, inst_type);
     }
 }
 
 // call from ROSS-damaris interface to save in flatbuffers format and expose to Damaris
-void st_damaris_sample_model_data()
+void st_damaris_sample_model_data(tw_lpid *lpids, int nlps)
 {
     //std::cout << "Reached st_damaris_sample_model_data()\n";
     tw_lpid lpid;
     tw_lp *lp;
+    unsigned int num_lps = g_tw_nlp;
+    if (lpids)
+        num_lps = nlps;
 
-    for (lpid = 0; lpid < g_tw_nlp; lpid++)
+    for (unsigned int i = 0; i < num_lps; i++)
     {
-        lp = tw_getlp(lpid);
+        if (lpids)
+        {
+            lpid = lpids[i];
+            lp = tw_getlocal_lp(lpid);
+        }
+        else
+        {
+            lpid = i;
+            lp = tw_getlp(lpid);
+        }
+
         // start the building of the ModelLP
         mfb.start_lp_model_sample(lp->gid);
 
