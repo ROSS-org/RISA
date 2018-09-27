@@ -10,6 +10,7 @@ class DUtil
 {
     public:
     static void *get_value_from_damaris(const std::string& varname, int32_t src, int32_t step, int32_t block_id);
+    static int get_num_blocks(const std::string& varname, int iteration);
 };
 
 } // end namespace util

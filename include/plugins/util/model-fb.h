@@ -69,6 +69,7 @@ class FlatBufferHelper {
         {
             cur_lp_type_ = lp_type;
 
+            //TODO use CreateSharedString?
             auto name = fbb_.CreateString(var_name);
             auto data_vec = fbb_.CreateVector(data, num_elements);
             auto var_union = get_variable_offset(data_vec);

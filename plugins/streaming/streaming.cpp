@@ -130,7 +130,7 @@ void handle_data(const std::string& event, int32_t src, int32_t step, const char
 }
 
 // just testing out the flatbuffers model data in ross and transferring to damaris as a binary buffer
-// TODO right now this is per PE, should be merged into a single sample for all PEs?
+// TODO need to handle multiple samples per damaris iteration (for RT and VT sampling modes)
 void handle_model_data(const std::string& event, int32_t src, int32_t step, const char* args)
 {
     step--;
@@ -163,6 +163,11 @@ void handle_model_data(const std::string& event, int32_t src, int32_t step, cons
 
     if (data_found)
     {
+        // TODO you can use your own memory allocator with flatbufferbuilder
+        // as is, it will dynamically allocate memory
+        // Since we already have the data in a flatbuffer compatible format, let
+        // the flatbufferbuilder become the owner of this buffer?
+        // actually no, we're having to combine flatbuffers anyway
         flatbuffers::FlatBufferBuilder fbb;
         auto new_samp = DamarisDataSample::Pack(fbb, &combined_sample);
         fbb.Finish(new_samp);

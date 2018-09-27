@@ -16,3 +16,12 @@ void *DUtil::get_value_from_damaris(const std::string& varname, int32_t src, int
     }
 }
 
+int DUtil::get_num_blocks(const std::string& varname, int iteration)
+{
+    boost::shared_ptr<Variable> v = VariableManager::Search(varname);
+    if (v)
+        return v->CountLocalBlocks(iteration);
+    else
+        return 0;
+}
+
