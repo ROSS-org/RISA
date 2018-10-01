@@ -166,8 +166,8 @@ void st_damaris_ross_finalize()
     int err;
     if (g_st_ross_rank)
     {
-        if ((err = damaris_signal("streaming_finalize")) != DAMARIS_OK)
-            st_damaris_error(TW_LOC, err, "streaming_finalize");
+        if ((err = damaris_signal("damaris_rank_finalize")) != DAMARIS_OK)
+            st_damaris_error(TW_LOC, err, "damaris_rank_finalize");
         damaris_stop();
     }
     //if (g_st_real_time_samp)
@@ -183,7 +183,7 @@ void st_damaris_ross_finalize()
  */
 void st_damaris_expose_data(tw_pe *me, int inst_type)
 {
-    printf("PE %ld: damaris_expose_data type: %d\n", g_tw_mynode, inst_type);
+    //printf("PE %ld: damaris_expose_data type: %d\n", g_tw_mynode, inst_type);
     int err;
 
     if (engine_modes[inst_type] || model_modes[inst_type])
@@ -193,7 +193,7 @@ void st_damaris_expose_data(tw_pe *me, int inst_type)
 
         if (engine_modes[inst_type])
         {
-            printf("PE %ld: sampling sim engine data type: %d\n", g_tw_mynode, inst_type);
+            //printf("PE %ld: sampling sim engine data type: %d\n", g_tw_mynode, inst_type);
             // collect data for each entity
             if (g_st_pe_data)
                 st_damaris_sample_pe_data(me, &last_pe_stats[inst_type], inst_type);
@@ -205,7 +205,7 @@ void st_damaris_expose_data(tw_pe *me, int inst_type)
 
         if (model_modes[inst_type])
         {
-            printf("PE %ld: sampling model data type: %d\n", g_tw_mynode, inst_type);
+            //printf("PE %ld: sampling model data type: %d\n", g_tw_mynode, inst_type);
             st_damaris_sample_model_data(NULL, 0);
         }
 
@@ -217,8 +217,8 @@ void st_damaris_signal_init()
 {
     int err;
     //printf("rank %ld signaling setup_simulation_config\n", g_tw_mynode);
-    if ((err = damaris_signal("setup_simulation_config")) != DAMARIS_OK)
-        st_damaris_error(TW_LOC, err, "setup_simulation_config");
+    if ((err = damaris_signal("damaris_rank_init")) != DAMARIS_OK)
+        st_damaris_error(TW_LOC, err, "damaris_rank_init");
 }
 
 /**
@@ -237,8 +237,8 @@ void st_damaris_end_iteration()
     {
         if ((err = damaris_end_iteration()) != DAMARIS_OK)
             st_damaris_error(TW_LOC, err, "end iteration");
-        if ((err = damaris_signal("handle_data")) != DAMARIS_OK)
-            st_damaris_error(TW_LOC, err, "handle_data");
+        if ((err = damaris_signal("end_iteration")) != DAMARIS_OK)
+            st_damaris_error(TW_LOC, err, "end_iteration");
     }
 
     iterations++;

@@ -206,9 +206,9 @@
     <!-- Do not edit anything under actions, as it could break your simulation! -->
     <actions>
         <event name="damaris_gc" action="damaris_gc" library="librdplugins.so" scope="group"/>
-        <event name="setup_simulation_config" action="setup_simulation_config" library="librdplugins.so" scope="group"/>
-        <event name="handle_data" action="handle_model_data" library="librdplugins.so" scope="group"/>
-        <event name="streaming_finalize" action="streaming_finalize" library="librdplugins.so" scope="group"/>
+        <event name="damaris_rank_init" action="damaris_rank_init" library="librdplugins.so" scope="group"/>
+        <event name="end_iteration" action="damaris_rank_end_iteration" library="librdplugins.so" scope="group"/>
+        <event name="damaris_rank_finalize" action="damaris_rank_finalize" library="librdplugins.so" scope="group"/>
     </actions>
 </simulation>
 

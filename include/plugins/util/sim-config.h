@@ -12,6 +12,7 @@ namespace po = boost::program_options;
 namespace ross_damaris {
 
 struct SimConfig {
+    int total_pe;
     int num_pe;
     std::vector<int> num_lp;
     int kp_per_pe;

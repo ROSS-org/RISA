@@ -28,6 +28,9 @@ SET(plugin_srcs
     util/config.cpp
     util/model-fb.cpp
     util/model.cpp
+    server/server.cpp
+    server/events.cpp
+    data/data-processing.cpp
     streaming/streaming.cpp
     streaming/stream-client.cpp)
 
