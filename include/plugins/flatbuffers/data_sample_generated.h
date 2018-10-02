@@ -66,16 +66,18 @@ inline const flatbuffers::TypeTable *DamarisDataSampleTypeTable();
 
 /// To identify what instrumentation mode the data comes from
 enum InstMode {
-  InstMode_GVT = 0,
-  InstMode_VT = 1,
-  InstMode_RT = 2,
-  InstMode_ET = 3,
-  InstMode_MIN = InstMode_GVT,
+  InstMode_none = 0,
+  InstMode_GVT = 1,
+  InstMode_VT = 2,
+  InstMode_RT = 3,
+  InstMode_ET = 4,
+  InstMode_MIN = InstMode_none,
   InstMode_MAX = InstMode_ET
 };
 
-inline const InstMode (&EnumValuesInstMode())[4] {
+inline const InstMode (&EnumValuesInstMode())[5] {
   static const InstMode values[] = {
+    InstMode_none,
     InstMode_GVT,
     InstMode_VT,
     InstMode_RT,
@@ -86,6 +88,7 @@ inline const InstMode (&EnumValuesInstMode())[4] {
 
 inline const char * const *EnumNamesInstMode() {
   static const char * const names[] = {
+    "none",
     "GVT",
     "VT",
     "RT",
@@ -98,6 +101,41 @@ inline const char * const *EnumNamesInstMode() {
 inline const char *EnumNameInstMode(InstMode e) {
   const size_t index = static_cast<int>(e);
   return EnumNamesInstMode()[index];
+}
+
+enum DataStatus {
+  DataStatus_none = 0,
+  DataStatus_speculative = 1,
+  DataStatus_committed = 2,
+  DataStatus_invalid = 3,
+  DataStatus_MIN = DataStatus_none,
+  DataStatus_MAX = DataStatus_invalid
+};
+
+inline const DataStatus (&EnumValuesDataStatus())[4] {
+  static const DataStatus values[] = {
+    DataStatus_none,
+    DataStatus_speculative,
+    DataStatus_committed,
+    DataStatus_invalid
+  };
+  return values;
+}
+
+inline const char * const *EnumNamesDataStatus() {
+  static const char * const names[] = {
+    "none",
+    "speculative",
+    "committed",
+    "invalid",
+    nullptr
+  };
+  return names;
+}
+
+inline const char *EnumNameDataStatus(DataStatus e) {
+  const size_t index = static_cast<int>(e);
+  return EnumNamesDataStatus()[index];
 }
 
 enum VariableType {
@@ -1328,7 +1366,7 @@ struct DamarisDataSampleT : public flatbuffers::NativeTable {
       : virtual_ts(0.0),
         real_ts(0.0),
         last_gvt(0.0),
-        mode(InstMode_GVT) {
+        mode(InstMode_none) {
   }
 };
 
@@ -1440,7 +1478,7 @@ inline flatbuffers::Offset<DamarisDataSample> CreateDamarisDataSample(
     double virtual_ts = 0.0,
     double real_ts = 0.0,
     double last_gvt = 0.0,
-    InstMode mode = InstMode_GVT,
+    InstMode mode = InstMode_none,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<PEData>>> pe_data = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<KPData>>> kp_data = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<LPData>>> lp_data = 0,
@@ -1462,7 +1500,7 @@ inline flatbuffers::Offset<DamarisDataSample> CreateDamarisDataSampleDirect(
     double virtual_ts = 0.0,
     double real_ts = 0.0,
     double last_gvt = 0.0,
-    InstMode mode = InstMode_GVT,
+    InstMode mode = InstMode_none,
     const std::vector<flatbuffers::Offset<PEData>> *pe_data = nullptr,
     const std::vector<flatbuffers::Offset<KPData>> *kp_data = nullptr,
     const std::vector<flatbuffers::Offset<LPData>> *lp_data = nullptr,
@@ -2033,16 +2071,40 @@ inline const flatbuffers::TypeTable *InstModeTypeTable() {
     { flatbuffers::ET_INT, 0, 0 },
     { flatbuffers::ET_INT, 0, 0 },
     { flatbuffers::ET_INT, 0, 0 },
+    { flatbuffers::ET_INT, 0, 0 },
     { flatbuffers::ET_INT, 0, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
     InstModeTypeTable
   };
   static const char * const names[] = {
+    "none",
     "GVT",
     "VT",
     "RT",
     "ET"
+  };
+  static const flatbuffers::TypeTable tt = {
+    flatbuffers::ST_ENUM, 5, type_codes, type_refs, nullptr, names
+  };
+  return &tt;
+}
+
+inline const flatbuffers::TypeTable *DataStatusTypeTable() {
+  static const flatbuffers::TypeCode type_codes[] = {
+    { flatbuffers::ET_INT, 0, 0 },
+    { flatbuffers::ET_INT, 0, 0 },
+    { flatbuffers::ET_INT, 0, 0 },
+    { flatbuffers::ET_INT, 0, 0 }
+  };
+  static const flatbuffers::TypeFunction type_refs[] = {
+    DataStatusTypeTable
+  };
+  static const char * const names[] = {
+    "none",
+    "speculative",
+    "committed",
+    "invalid"
   };
   static const flatbuffers::TypeTable tt = {
     flatbuffers::ST_ENUM, 4, type_codes, type_refs, nullptr, names

@@ -16,6 +16,13 @@ void *DUtil::get_value_from_damaris(const std::string& varname, int32_t src, int
     }
 }
 
+void DUtil::get_damaris_iterators(const std::string& varname, int32_t step, BlocksByIteration::iterator& begin, BlocksByIteration::iterator& end)
+{
+    boost::shared_ptr<Variable> v = VariableManager::Search(varname);
+    if (v)
+        v->GetBlocksByIteration(step, begin, end);
+}
+
 int DUtil::get_num_blocks(const std::string& varname, int iteration)
 {
     boost::shared_ptr<Variable> v = VariableManager::Search(varname);

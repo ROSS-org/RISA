@@ -4,14 +4,21 @@
  * This file defines all the possible events that Damaris will call for plugins.
  */
 #include <plugins/server/server.h>
+#include <plugins/flatbuffers/data_sample_generated.h>
+#include <plugins/util/damaris-util.h>
+
+#include <damaris/buffer/DataSpace.hpp>
+#include <damaris/buffer/Buffer.hpp>
 
 using namespace ross_damaris::server;
+using namespace ross_damaris::sample;
+using namespace ross_damaris::util;
 
 extern "C" {
 
 RDServer server;
 
-/** 
+/**
  * @brief Damaris event to set up simulation configuration
  *
  * Should be set in XML file as "group" scope
@@ -27,14 +34,56 @@ void damaris_rank_init(const std::string& event, int32_t src, int32_t step, cons
     cout << "end of damaris_rank_init()\n";
 }
 
-/** 
+/**
  * @brief Damaris event called at the end of each iteration
  *
- * Should be set in XML file as "group" scope
+ * Should be set in XML file as "group" scope.
+ * Removes data from Damaris control and stores it in our own boost multi-index.
  */
 void damaris_rank_end_iteration(const std::string& event, int32_t src, int32_t step, const char* args)
 {
-    cout << "damaris_rank_end_iteration()\n";
+    step--;
+    cout << "damaris_rank_end_iteration() rank " << src << " step " << step << endl;
+
+    damaris::BlocksByIteration::iterator begin, end;
+    DUtil::get_damaris_iterators("ross/sample", step, begin, end);
+
+    while (begin != end)
+    {
+        server.process_sample(*begin);
+
+        begin++;
+    }
+
+    //DamarisDataSampleT combined_sample;
+    //DamarisDataSampleT ds;
+    //bool data_found = false;
+    //for (int peid = 0; peid < sim_config.num_pe; peid++ )
+    //{
+    //    char *binary_data = static_cast<char*>(DUtil::get_value_from_damaris("ross/sample", peid, step, 0));
+    //}
+
+    //if (data_found)
+    //{
+    //    // TODO you can use your own memory allocator with flatbufferbuilder
+    //    // as is, it will dynamically allocate memory
+    //    // Since we already have the data in a flatbuffer compatible format, let
+    //    // the flatbufferbuilder become the owner of this buffer?
+    //    // actually no, we're having to combine flatbuffers anyway
+    //    flatbuffers::FlatBufferBuilder fbb;
+    //    auto new_samp = DamarisDataSample::Pack(fbb, &combined_sample);
+    //    fbb.Finish(new_samp);
+    //    //auto s = flatbuffers::FlatBufferToString(fbb.GetBufferPointer(), DamarisDataSampleTypeTable(), true);
+    //    //cout << s << endl;
+    //    if (sim_config.write_data)
+    //    {
+    //        uint8_t *buf = fbb.GetBufferPointer();
+    //        flatbuffers::uoffset_t size = fbb.GetSize();
+    //        data_file.write(reinterpret_cast<const char*>(&size), sizeof(size));
+    //        data_file.write(reinterpret_cast<const char*>(buf), size);
+    //        //cout << "wrote " << size << " bytes to file" << endl;
+    //    }
+    //}
 }
 
 /**
@@ -88,7 +137,7 @@ void damaris_rank_finalize(const std::string& event, int32_t src, int32_t step, 
 //    double real_ts =*(static_cast<double*>(DUtil::get_value_from_damaris("ross/real_time", 0, step, 0)));
 //    double last_gvt = *(static_cast<double*>(DUtil::get_value_from_damaris("ross/last_gvt", 0, step, 0)));
 //    auto data_sample = CreateDamarisDataSampleDirect(*builder, virtual_ts, real_ts, last_gvt, InstMode_GVT, &pe_data, &kp_data, &lp_data);
-//    
+//
 //    builder->Finish(data_sample);
 //
 //	//auto s = flatbuffers::FlatBufferToString(builder.GetBufferPointer(), DamarisDataSampleTypeTable(), true);

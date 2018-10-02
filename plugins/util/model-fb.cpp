@@ -146,8 +146,9 @@ void FlatBufferHelper::finish_sample()
         vt_block_++;
     }
 
-    if ((err = damaris_write_block("ross/sample_size", block, &size)) != DAMARIS_OK)
-        st_damaris_error(TW_LOC, err, "ross/sample_size");
+    //if ((err = damaris_write_block("ross/sample_size", block, &size)) != DAMARIS_OK)
+    //    st_damaris_error(TW_LOC, err, "ross/sample_size");
+    cout << "writing to damaris ross/sample to block " << block << endl;
     if ((err = damaris_write_block("ross/sample", block, &buf[0])) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, "ross/sample");
 }
