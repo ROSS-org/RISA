@@ -81,41 +81,41 @@ void RDServer::process_sample(boost::shared_ptr<damaris::Block> block)
         damaris::DataSpace<damaris::Buffer> ds(block->GetDataSpace());
         cout << "RefCount() " << ds.RefCount() << endl;
         cout << "GetSize() " << ds.GetSize() << endl;
-        auto data_sample = GetDamarisDataSample(ds.GetData());
+        auto data_fb = GetDamarisDataSample(ds.GetData());
         double ts;
-        switch (data_sample->mode())
+        switch (data_fb->mode())
         {
             case InstMode_GVT:
-                ts = data_sample->last_gvt();
+                ts = data_fb->last_gvt();
                 break;
             case InstMode_VT:
-                ts = data_sample->virtual_ts();
+                ts = data_fb->virtual_ts();
                 break;
             case InstMode_RT:
-                ts = data_sample->real_ts();
+                ts = data_fb->real_ts();
                 break;
             default:
                 break;
         }
 
         // first we need to check to see if this is data for an existing sampling point
-        auto sample_it = data_index_.get<by_sample_key>().find(boost::make_tuple(data_sample->mode(), ts));
-        if (sample_it != data_index_.get<by_sample_key>().end())
+        auto sample_it = data_manager_->find_data(data_fb->mode(), ts);
+        if (sample_it != data_manager_->end())
         {
             (*sample_it)->push_ds_ptr(ds);
         }
         else // couldn't find it
         {
-            boost::shared_ptr<DataSample> s(new DataSample(ts, data_sample->mode(), DataStatus_speculative));
-            //s->push_data_ptr(*data_sample);
-            s->push_ds_ptr(ds);
-            data_index_.insert(s);
+            DataSample s(ts, data_fb->mode(), DataStatus_speculative);
+            s.push_ds_ptr(ds);
+            data_manager_->insert_data(std::move(s));
+            data_manager_->print_manager_info();
         }
 
-        //auto obj = data_sample->UnPack();
+        //auto obj = data_fb->UnPack();
         //flatbuffers::FlatBufferBuilder fbb;
         //auto new_samp = DamarisDataSample::Pack(fbb, obj);
         //fbb.Finish(new_samp);
         //cout << "FB size: " << fbb.GetSize() << endl;
-        //auto mode = data_sample->mode();
+        //auto mode = data_fb->mode();
 }

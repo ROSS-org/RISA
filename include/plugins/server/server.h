@@ -15,6 +15,7 @@
 #include <damaris/buffer/Buffer.hpp>
 
 #include <plugins/util/sim-config.h>
+#include <plugins/data/DataManager.h>
 #include <plugins/data/DataSample.h>
 #include <plugins/data/SampleIndex.h>
 #include <plugins/streaming/stream-client.h>
@@ -28,7 +29,8 @@ public:
     RDServer() :
         resolver_(service_),
         client_(nullptr),
-        t_(nullptr) {  }
+        t_(nullptr),
+        data_manager_(boost::make_shared<data::DataManager>(data::DataManager())){  }
 
     void setup_simulation_config();
     void finalize();
@@ -52,7 +54,8 @@ private:
     std::thread *t_; // thread is to handle boost async IO operations
 
     // storage for data to be processed
-    data::SampleIndex data_index_;
+    //data::SampleIndex data_index_;
+    boost::shared_ptr<data::DataManager> data_manager_;
 
     void setup_data_processing();
     void setup_streaming();

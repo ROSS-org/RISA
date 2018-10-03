@@ -20,7 +20,9 @@ public:
         sampling_time_(ts),
         status_(status) {  }
 
-    ~DataSample() {  }
+    // move constructor
+    DataSample(DataSample&& s) = default;
+    ~DataSample() = default;
 
     virtual int get_mode() const { return mode_; }
     virtual double get_sampling_time() const { return sampling_time_; }
@@ -30,6 +32,9 @@ public:
     void push_ds_ptr(const damaris::DataSpace<damaris::Buffer> ds);
 
 private:
+    // prevent use of copy constructor
+    DataSample(DataSample& s) = default;
+
     sample::InstMode mode_;
     double sampling_time_;
     sample::DataStatus status_;
