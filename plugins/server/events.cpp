@@ -54,10 +54,8 @@ void damaris_rank_end_iteration(const std::string& event, int32_t src, int32_t s
 
         begin++;
     }
+    server.forward_data();
 
-    //DamarisDataSampleT combined_sample;
-    //DamarisDataSampleT ds;
-    //bool data_found = false;
     //for (int peid = 0; peid < sim_config.num_pe; peid++ )
     //{
     //    char *binary_data = static_cast<char*>(DUtil::get_value_from_damaris("ross/sample", peid, step, 0));

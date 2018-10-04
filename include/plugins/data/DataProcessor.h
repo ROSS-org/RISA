@@ -11,6 +11,9 @@
  * that gets started when initializing the Damaris rank.
  */
 
+#include <plugins/data/DataManager.h>
+#include <plugins/streaming/stream-client.h>
+
 namespace ross_damaris {
 namespace data {
 
@@ -23,12 +26,20 @@ public:
     void aggregate_data();
     void forward_model_data();
 
+    // for non-threaded version
+    // just aggregating into a single flatbuffer
+    // and putting into StreamClient buffer
+    void forward_data(sample::InstMode mode, double ts, streaming::StreamClient* client);
+
     // delete data from the multi-index with sampling time <= ts
     void delete_data(double ts);
+
+    void set_manager_ptr(boost::shared_ptr<DataManager>&& ptr);
 
 private:
     double last_processed_gvt_;
     double current_gvt_; // most recent GVT we know of, so we can update data status
+    boost::shared_ptr<DataManager> data_manager_;
 };
 
 } // end namespace data

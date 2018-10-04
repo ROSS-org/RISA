@@ -45,6 +45,8 @@ void RDServer::setup_simulation_config()
 
     if (sim_config_.stream_data)
         setup_streaming();
+
+    setup_data_processing();
 }
 
 void RDServer::setup_streaming()
@@ -59,6 +61,7 @@ void RDServer::setup_streaming()
 
 void RDServer::setup_data_processing()
 {
+    processor_.set_manager_ptr(std::move(data_manager_));
     // sets up thread that performs data processing tasks
 }
 
@@ -70,17 +73,15 @@ void RDServer::finalize()
     if (sim_config_.stream_data)
     {
         client_->close();
-        delete client_;
         t_->join();
-        delete t_;
+        //delete t_;
+        //delete client_;
     }
 }
 
 void RDServer::process_sample(boost::shared_ptr<damaris::Block> block)
 {
         damaris::DataSpace<damaris::Buffer> ds(block->GetDataSpace());
-        cout << "RefCount() " << ds.RefCount() << endl;
-        cout << "GetSize() " << ds.GetSize() << endl;
         auto data_fb = GetDamarisDataSample(ds.GetData());
         double ts;
         switch (data_fb->mode())
@@ -103,6 +104,7 @@ void RDServer::process_sample(boost::shared_ptr<damaris::Block> block)
         if (sample_it != data_manager_->end())
         {
             (*sample_it)->push_ds_ptr(ds);
+            cout << "num ds_ptrs " << (*sample_it)->get_ds_ptr_size() << endl;;
         }
         else // couldn't find it
         {
@@ -112,6 +114,9 @@ void RDServer::process_sample(boost::shared_ptr<damaris::Block> block)
             data_manager_->print_manager_info();
         }
 
+        cur_mode_ = data_fb->mode();
+        cur_ts_ = ts;
+
         //auto obj = data_fb->UnPack();
         //flatbuffers::FlatBufferBuilder fbb;
         //auto new_samp = DamarisDataSample::Pack(fbb, obj);
@@ -119,3 +124,15 @@ void RDServer::process_sample(boost::shared_ptr<damaris::Block> block)
         //cout << "FB size: " << fbb.GetSize() << endl;
         //auto mode = data_fb->mode();
 }
+
+void RDServer::forward_data()
+{
+    processor_.forward_data(cur_mode_, cur_ts_, client_);
+}
+
+void RDServer::write_to_client(flatbuffers::FlatBufferBuilder* fbb)
+{
+    if (sim_config_.stream_data)
+        client_->write(fbb);
+}
+

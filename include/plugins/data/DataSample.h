@@ -30,6 +30,8 @@ public:
 
     //void push_data_ptr(const sample::DamarisDataSample& sample);
     void push_ds_ptr(const damaris::DataSpace<damaris::Buffer> ds);
+    damaris::DataSpace<damaris::Buffer> get_data_at(int i) { return ds_ptrs_[i]; }
+    int get_ds_ptr_size() { return ds_ptrs_.size(); }
 
 private:
     // prevent use of copy constructor

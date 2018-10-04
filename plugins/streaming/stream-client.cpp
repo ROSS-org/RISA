@@ -11,11 +11,13 @@ using namespace std;
 
 void StreamClient::write(flatbuffers::FlatBufferBuilder* data)
 {
+    cout << "[StreamClient] putting data in buffer\n";
     sample_msg *msg = new sample_msg();
     msg->size = data->GetSize();
     msg->buffer = data->GetBufferPointer();
     msg->builder = data;
     write_msgs_.push_back(msg);
+    cout << "[StreamClient] write_msgs_ size " << write_msgs_.size() << endl;
 }
 
 void StreamClient::close()
@@ -40,7 +42,7 @@ void StreamClient::do_connect(tcp::resolver::iterator it)
             {
                 if (ec)
                 {
-                    cout << ec.category().name() << " error " << ec.value(); 
+                    cout << ec.category().name() << " error " << ec.value();
                     cout << ": StreamClient do_connect() " << ec.message();
                     cout << ". Closing Socket\n";
                     connected_ = false;
@@ -78,7 +80,7 @@ void StreamClient::do_write()
                 }
                 else
                 {
-                    cout << ec.category().name() << " error " << ec.value(); 
+                    cout << ec.category().name() << " error " << ec.value();
                     cout << ": StreamClient do_write() " << ec.message();
                     cout << ". Closing Socket\n";
                     connected_ = false;
@@ -91,7 +93,7 @@ void StreamClient::do_read()
 {
     if (!connected_)
         return;
-    boost::asio::async_read(socket_, 
+    boost::asio::async_read(socket_,
             boost::asio::buffer(dummy_buf_, 0),
             [this](boost::system::error_code ec, std::size_t /*len*/)
             {
@@ -104,7 +106,7 @@ void StreamClient::do_read()
                 }
                 else
                 {
-                    cout << ec.category().name() << " error " << ec.value(); 
+                    cout << ec.category().name() << " error " << ec.value();
                     cout << ": StreamClient do_read() " << ec.message();
                     cout << ". Closing Socket\n";
                     connected_ = false;
