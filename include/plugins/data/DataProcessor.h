@@ -12,7 +12,7 @@
  */
 
 #include <plugins/data/DataManager.h>
-#include <plugins/streaming/stream-client.h>
+#include <plugins/streaming/StreamClient.h>
 
 namespace ross_damaris {
 namespace data {

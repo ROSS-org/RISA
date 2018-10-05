@@ -4,7 +4,7 @@
 #include <fstream>
 #include <boost/asio.hpp>
 
-#include <plugins/streaming/stream-client.h>
+//#include <plugins/streaming/stream-client.h>
 #include <plugins/util/fb-util.h>
 #include <plugins/util/damaris-util.h>
 #include <plugins/util/sim-config.h>
@@ -50,7 +50,7 @@ void DataProcessor::forward_data(InstMode mode, double ts)
             std::move(ds.model_data.begin(), ds.model_data.end(), std::back_inserter(combined_sample.model_data));
         }
 
-        stream_client_->write(&combined_sample);
+        stream_client_->enqueue_data(&combined_sample);
     }
 }
 

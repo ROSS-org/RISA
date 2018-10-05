@@ -33,8 +33,7 @@ SET(plugin_srcs
     data/data-processing.cpp
     data/data-sample.cpp
     data/DataManager.cpp
-    streaming/streaming.cpp
-    streaming/stream-client.cpp)
+    streaming/StreamClient.cpp)
 
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR}/include)
 ADD_LIBRARY(rdplugins SHARED ${plugin_srcs})

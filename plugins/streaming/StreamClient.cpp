@@ -1,7 +1,7 @@
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/write.hpp>
 #include <boost/asio/ip/tcp.hpp>
-#include <plugins/streaming/stream-client.h>
+#include <plugins/streaming/StreamClient.h>
 
 using namespace boost::asio;
 using namespace boost::asio::ip;
@@ -9,29 +9,20 @@ using namespace boost::asio::ip;
 using namespace ross_damaris::streaming;
 using namespace std;
 
-void StreamClient::write(DamarisDataSampleT* samp)
+void StreamClient::enqueue_data(DamarisDataSampleT* samp)
 {
     flatbuffers::FlatBufferBuilder fbb_;
     auto samp_fb = DamarisDataSample::Pack(fbb_, samp);
     fbb_.Finish(samp_fb);
     sample_msg *msg = new sample_msg();
-    msg->size = fbb_.GetSize();
+    msg->size_ = fbb_.GetSize();
 
     // Get the fb to release the raw pointer to us,
     // so it doesn't disappear before we actually send it
     // now we're responsible for deleting this memory
     size_t size, offset;
-    msg->raw = fbb_.ReleaseRaw(size, offset);
-    msg->buffer = &msg->raw[offset];
-    write_msgs_.push_back(msg);
-}
-
-void StreamClient::write(flatbuffers::FlatBufferBuilder* data)
-{
-    sample_msg *msg = new sample_msg();
-    msg->size = data->GetSize();
-    msg->buffer = data->GetBufferPointer();
-    //msg->builder = data;
+    msg->raw_ = fbb_.ReleaseRaw(size, offset);
+    msg->data_ = &msg->raw_[offset];
     write_msgs_.push_back(msg);
 }
 
@@ -77,8 +68,8 @@ void StreamClient::do_write()
     if (write_msgs_.empty() || !connected_)
         return;
     std::vector<boost::asio::const_buffer> buf;
-    buf.push_back(boost::asio::buffer(&write_msgs_.front()->size, sizeof(flatbuffers::uoffset_t)));
-    buf.push_back(boost::asio::buffer(write_msgs_.front()->buffer, write_msgs_.front()->size));
+    buf.push_back(boost::asio::buffer(&write_msgs_.front()->size_, sizeof(flatbuffers::uoffset_t)));
+    buf.push_back(boost::asio::buffer(write_msgs_.front()->data_, write_msgs_.front()->size_));
     boost::asio::async_write(socket_, buf,
             [this](boost::system::error_code ec, std::size_t /*length*/)
             {

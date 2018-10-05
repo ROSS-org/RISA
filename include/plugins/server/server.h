@@ -19,7 +19,7 @@
 #include <plugins/data/DataSample.h>
 #include <plugins/data/DataProcessor.h>
 #include <plugins/data/SampleIndex.h>
-#include <plugins/streaming/stream-client.h>
+#include <plugins/streaming/StreamClient.h>
 #include <plugins/flatbuffers/data_sample_generated.h>
 
 namespace ross_damaris {
