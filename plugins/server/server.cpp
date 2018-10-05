@@ -55,13 +55,16 @@ void RDServer::setup_streaming()
     cout << "Attempting to setup connection to " << sim_config_.stream_addr << ":" << sim_config_.stream_port << endl;
     bip::tcp::resolver::query q(sim_config_.stream_addr, sim_config_.stream_port);
     auto it = resolver_.resolve(q);
-    client_ = new ross_damaris::streaming::StreamClient(service_, it);
+    //streaming::StreamClient c(service_, it);
+    client_.reset(new streaming::StreamClient(service_, it));
     t_ = new std::thread([this](){ this->service_.run(); });
 }
 
 void RDServer::setup_data_processing()
 {
     processor_.set_manager_ptr(std::move(data_manager_));
+    if (sim_config_.stream_data)
+        processor_.set_stream_ptr(std::move(client_));
     // sets up thread that performs data processing tasks
 }
 
@@ -75,7 +78,6 @@ void RDServer::finalize()
         client_->close();
         t_->join();
         //delete t_;
-        //delete client_;
     }
 }
 
@@ -104,7 +106,7 @@ void RDServer::process_sample(boost::shared_ptr<damaris::Block> block)
         if (sample_it != data_manager_->end())
         {
             (*sample_it)->push_ds_ptr(ds);
-            cout << "num ds_ptrs " << (*sample_it)->get_ds_ptr_size() << endl;;
+            cout << "num ds_ptrs " << (*sample_it)->get_ds_ptr_size() << endl;
         }
         else // couldn't find it
         {
@@ -127,12 +129,6 @@ void RDServer::process_sample(boost::shared_ptr<damaris::Block> block)
 
 void RDServer::forward_data()
 {
-    processor_.forward_data(cur_mode_, cur_ts_, client_);
-}
-
-void RDServer::write_to_client(flatbuffers::FlatBufferBuilder* fbb)
-{
-    if (sim_config_.stream_data)
-        client_->write(fbb);
+    processor_.forward_data(cur_mode_, cur_ts_);
 }
 

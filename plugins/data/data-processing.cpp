@@ -26,7 +26,7 @@ void DataProcessor::forward_model_data()
 
 }
 
-void DataProcessor::forward_data(InstMode mode, double ts, streaming::StreamClient* client)
+void DataProcessor::forward_data(InstMode mode, double ts)
 {
     auto it = data_manager_->find_data(mode, ts);
     if (it != data_manager_->end())
@@ -50,12 +50,7 @@ void DataProcessor::forward_data(InstMode mode, double ts, streaming::StreamClie
             std::move(ds.model_data.begin(), ds.model_data.end(), std::back_inserter(combined_sample.model_data));
         }
 
-        flatbuffers::FlatBufferBuilder *fbb = new flatbuffers::FlatBufferBuilder();
-        auto new_samp = DamarisDataSample::Pack(*fbb, &combined_sample);
-        fbb->Finish(new_samp);
-        client->write(fbb);
-        cout << "writing to stream client\n";
-        delete fbb;
+        stream_client_->write(&combined_sample);
     }
 }
 
@@ -69,4 +64,9 @@ void DataProcessor::delete_data(double ts)
 void DataProcessor::set_manager_ptr(boost::shared_ptr<DataManager>&& ptr)
 {
     data_manager_ = boost::shared_ptr<DataManager>(ptr);
+}
+
+void DataProcessor::set_stream_ptr(boost::shared_ptr<streaming::StreamClient>&& ptr)
+{
+    stream_client_ = boost::shared_ptr<streaming::StreamClient>(ptr);
 }

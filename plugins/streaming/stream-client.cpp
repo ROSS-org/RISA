@@ -9,15 +9,26 @@ using namespace boost::asio::ip;
 using namespace ross_damaris::streaming;
 using namespace std;
 
+void StreamClient::write(DamarisDataSampleT* samp)
+{
+    flatbuffers::FlatBufferBuilder fbb_;
+    auto samp_fb = DamarisDataSample::Pack(fbb_, samp);
+    fbb_.Finish(samp_fb);
+    sample_msg *msg = new sample_msg();
+    msg->size = fbb_.GetSize();
+    size_t size, offset;
+    auto raw = fbb_.ReleaseRaw(size, offset);
+    msg->buffer = &raw[offset];
+    write_msgs_.push_back(msg);
+}
+
 void StreamClient::write(flatbuffers::FlatBufferBuilder* data)
 {
-    cout << "[StreamClient] putting data in buffer\n";
     sample_msg *msg = new sample_msg();
     msg->size = data->GetSize();
     msg->buffer = data->GetBufferPointer();
-    msg->builder = data;
+    //msg->builder = data;
     write_msgs_.push_back(msg);
-    cout << "[StreamClient] write_msgs_ size " << write_msgs_.size() << endl;
 }
 
 void StreamClient::close()
@@ -70,7 +81,7 @@ void StreamClient::do_write()
                 if (!ec)
                 {
                     sample_msg *msg = write_msgs_.front();
-                    delete msg->builder;
+                    //delete msg->builder;
                     delete msg;
                     write_msgs_.pop_front();
                     if (!write_msgs_.empty())

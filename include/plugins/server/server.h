@@ -32,7 +32,6 @@ class RDServer {
 public:
     RDServer() :
         resolver_(service_),
-        client_(nullptr),
         t_(nullptr),
         cur_mode_(sample::InstMode_GVT),
         cur_ts_(0.0),
@@ -46,7 +45,6 @@ public:
 
     void process_sample(boost::shared_ptr<damaris::Block> block);
     void forward_data();
-    void write_to_client(flatbuffers::FlatBufferBuilder* fbb);
 
     boost::shared_ptr<data::DataManager> get_manager_pointer() { return data_manager_; }
 
@@ -60,7 +58,7 @@ private:
     // streaming-related members
     boost::asio::io_service service_;
     boost::asio::ip::tcp::resolver resolver_;
-    streaming::StreamClient *client_;
+    boost::shared_ptr<streaming::StreamClient> client_;
     std::thread *t_; // thread is to handle boost async IO operations
 
     // data processing members

@@ -29,12 +29,9 @@ struct sample_msg
 {
     flatbuffers::uoffset_t size;
     uint8_t *buffer;
-    flatbuffers::FlatBufferBuilder *builder;
 
     sample_msg() :
-        size(0),
-        buffer(nullptr),
-        builder(nullptr)
+        size(0)
     {  }
 };
 
@@ -48,7 +45,7 @@ class StreamClient
     bool connected_;
     sample_queue write_msgs_;
     std::array<char, 1> dummy_buf_;
-	
+
     void do_connect(tcp::resolver::iterator it);
     void do_write();
     void do_read();
@@ -69,6 +66,7 @@ class StreamClient
      * Data is placed in a FIFO queue
      */
     void write(flatbuffers::FlatBufferBuilder* data);
+    void write(DamarisDataSampleT* samp);
 
     /**
      * @brief Close the streaming connection
