@@ -28,8 +28,10 @@ void DataProcessor::forward_model_data()
 
 void DataProcessor::forward_data(InstMode mode, double ts)
 {
-    auto it = data_manager_->find_data(mode, ts);
-    if (it != data_manager_->end())
+    SamplesByKey::iterator it, end;
+    //auto it = data_manager_->find_data(mode, ts);
+    data_manager_->find_data(mode, last_processed_ts_, ts, it, end);
+    while (it != end)
     {
         DamarisDataSampleT combined_sample;
         DamarisDataSampleT ds;
@@ -51,7 +53,9 @@ void DataProcessor::forward_data(InstMode mode, double ts)
         }
 
         stream_client_->enqueue_data(&combined_sample);
+        it++;
     }
+    last_processed_ts_ = ts;
 }
 
 void DataProcessor::delete_data(double ts)

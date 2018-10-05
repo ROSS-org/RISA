@@ -19,6 +19,7 @@ static int rt_block_counter = 0;
 static int vt_block_counter = 0;
 static int max_block_counter = 0;
 static int iterations = 0;
+static double current_rt = 0.0;
 
 int g_st_damaris_enabled = 0;
 static char data_xml[4096];
@@ -188,12 +189,12 @@ void st_damaris_expose_data(tw_pe *me, int inst_type)
 
     if (engine_modes[inst_type] || model_modes[inst_type])
     {
-        double real_ts = (double)tw_clock_read() / g_tw_clock_rate;
-        st_damaris_start_sample(0.0, real_ts, me->GVT, inst_type);
+        current_rt += (g_st_rt_interval * 1000 / g_tw_clock_rate);
+        st_damaris_start_sample(0.0, current_rt, me->GVT, inst_type);
 
         if (engine_modes[inst_type])
         {
-            printf("PE %ld: sampling sim engine data type: %d\n", g_tw_mynode, inst_type);
+            printf("[%f] PE %ld: sampling sim engine data type: %d\n", current_rt, g_tw_mynode, inst_type);
             // collect data for each entity
             if (g_st_pe_data)
                 st_damaris_sample_pe_data(me, &last_pe_stats[inst_type], inst_type);
@@ -237,6 +238,7 @@ void st_damaris_end_iteration()
     {
         if ((err = damaris_end_iteration()) != DAMARIS_OK)
             st_damaris_error(TW_LOC, err, "end iteration");
+        printf("[%f] PE %ld damaris_end_iteration\n", g_tw_pe[0]->GVT, g_tw_mynode);
         if ((err = damaris_signal("end_iteration")) != DAMARIS_OK)
             st_damaris_error(TW_LOC, err, "end_iteration");
     }

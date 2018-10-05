@@ -20,6 +20,8 @@ namespace data {
 class DataProcessor {
 public:
     DataProcessor() :
+        rt_interval_(0.0),
+        last_processed_ts_(0.0),
         last_processed_gvt_(0.0),
         current_gvt_(0.0) {  }
 
@@ -34,10 +36,13 @@ public:
     // delete data from the multi-index with sampling time <= ts
     void delete_data(double ts);
 
+    void set_rt_interval(double interval) { rt_interval_ = interval; }
     void set_manager_ptr(boost::shared_ptr<DataManager>&& ptr);
     void set_stream_ptr(boost::shared_ptr<streaming::StreamClient>&& ptr);
 
 private:
+    double rt_interval_;
+    double last_processed_ts_;
     double last_processed_gvt_;
     double current_gvt_; // most recent GVT we know of, so we can update data status
     boost::shared_ptr<DataManager> data_manager_;

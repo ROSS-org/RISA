@@ -36,6 +36,17 @@ SamplesByKey::iterator DataManager::find_data(InstMode mode, double ts)
             boost::make_tuple(mode, ts));
 }
 
+// returns samples exclusive of lower and inclusive of upper
+void DataManager::find_data(InstMode mode, double lower, double upper,
+        SamplesByKey::iterator& begin, SamplesByKey::iterator& end)
+{
+    // don't want to include lower bound
+    begin = data_index_.get<by_sample_key>().upper_bound(
+            boost::make_tuple(mode, lower));
+    end = data_index_.get<by_sample_key>().upper_bound(
+            boost::make_tuple(mode, upper));
+}
+
 void DataManager::print_manager_info()
 {
     cout << "[DataManager] index size " << data_index_.size() << endl;

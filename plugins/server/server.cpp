@@ -65,6 +65,7 @@ void RDServer::setup_data_processing()
     processor_.set_manager_ptr(std::move(data_manager_));
     if (sim_config_.stream_data)
         processor_.set_stream_ptr(std::move(client_));
+    processor_.set_rt_interval(sim_config_.rt_interval);
     // sets up thread that performs data processing tasks
 }
 

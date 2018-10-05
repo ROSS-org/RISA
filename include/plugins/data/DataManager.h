@@ -16,6 +16,8 @@ public:
     // require move insertions over copy insertions?
     void insert_data(DataSample&& s);
     SamplesByKey::iterator find_data(sample::InstMode mode, double ts);
+    void find_data(sample::InstMode mode, double lower, double upper,
+            SamplesByKey::iterator& begin, SamplesByKey::iterator& end);
     void delete_data();
 
     SamplesByKey::iterator end() { return data_index_.get<by_sample_key>().end(); }
