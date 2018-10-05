@@ -28,11 +28,23 @@ using namespace ross_damaris::sample;
 struct sample_msg
 {
     flatbuffers::uoffset_t size;
-    uint8_t *buffer;
+    // when fb releases the pointer, raw may not be the actual start
+    // of the data, since it fills starting from the end
+    uint8_t *buffer; // points to actual start of data
+    uint8_t *raw; // points to start of fb dynamically allocated memory
 
     sample_msg() :
-        size(0)
+        size(0),
+        buffer(nullptr),
+        raw(nullptr)
     {  }
+
+    ~sample_msg()
+    {
+        // only need to delete the raw pointer, not buffer
+        if (raw)
+            delete[] raw;
+    }
 };
 
 class StreamClient

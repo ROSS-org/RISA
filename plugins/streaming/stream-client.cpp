@@ -16,9 +16,13 @@ void StreamClient::write(DamarisDataSampleT* samp)
     fbb_.Finish(samp_fb);
     sample_msg *msg = new sample_msg();
     msg->size = fbb_.GetSize();
+
+    // Get the fb to release the raw pointer to us,
+    // so it doesn't disappear before we actually send it
+    // now we're responsible for deleting this memory
     size_t size, offset;
-    auto raw = fbb_.ReleaseRaw(size, offset);
-    msg->buffer = &raw[offset];
+    msg->raw = fbb_.ReleaseRaw(size, offset);
+    msg->buffer = &msg->raw[offset];
     write_msgs_.push_back(msg);
 }
 
@@ -81,7 +85,6 @@ void StreamClient::do_write()
                 if (!ec)
                 {
                     sample_msg *msg = write_msgs_.front();
-                    //delete msg->builder;
                     delete msg;
                     write_msgs_.pop_front();
                     if (!write_msgs_.empty())
