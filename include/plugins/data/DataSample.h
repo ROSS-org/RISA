@@ -4,6 +4,7 @@
 #include <plugins/flatbuffers/data_sample_generated.h>
 #include <damaris/buffer/DataSpace.hpp>
 #include <damaris/buffer/Buffer.hpp>
+#include <unordered_map>
 
 namespace ross_damaris {
 namespace data {
@@ -29,7 +30,7 @@ public:
     virtual int get_status() const { return status_; }
 
     //void push_data_ptr(const sample::DamarisDataSample& sample);
-    void push_ds_ptr(const damaris::DataSpace<damaris::Buffer> ds);
+    void push_ds_ptr(int id, const damaris::DataSpace<damaris::Buffer> ds);
     damaris::DataSpace<damaris::Buffer> get_data_at(int i) { return ds_ptrs_[i]; }
     int get_ds_ptr_size() { return ds_ptrs_.size(); }
 
@@ -43,7 +44,7 @@ private:
     //std::vector<sample::DamarisDataSample> data_ptrs_;
     // to ensure we can keep access to the data pointers without Damaris deleting them automatically
     // maybe, idk
-    std::vector<damaris::DataSpace<damaris::Buffer>> ds_ptrs_;
+    std::unordered_map<int, damaris::DataSpace<damaris::Buffer>> ds_ptrs_;
 };
 
 } // end namespace data

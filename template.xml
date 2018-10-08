@@ -13,16 +13,16 @@
         <parameter name="num_kp" type="int" value="0" />
         <parameter name="sample_size" type="int" value="524288" />
 
-        <layout name="pe_id_layout" type="double" dimensions="2" /> 
+        <layout name="pe_id_layout" type="double" dimensions="2" />
         <layout name="dummy_layout" type="double" dimensions="2" />
 
-        <layout name="lp_id_layout" type="double" dimensions="num_lp+1" /> 
+        <layout name="lp_id_layout" type="double" dimensions="num_lp+1" />
         <layout name="lp_int_layout" type="int" dimensions="num_lp" />
         <layout name="lp_long_layout" type="long" dimensions="num_lp" />
         <layout name="lp_float_layout" type="float" dimensions="num_lp" />
         <layout name="lp_double_layout" type="double" dimensions="num_lp" />
 
-        <layout name="kp_id_layout" type="double" dimensions="num_kp+1" /> 
+        <layout name="kp_id_layout" type="double" dimensions="num_kp+1" />
         <layout name="kp_int_layout" type="int" dimensions="num_kp" />
         <layout name="kp_long_layout" type="long" dimensions="num_kp" />
         <layout name="kp_float_layout" type="float" dimensions="num_kp" />
@@ -38,6 +38,13 @@
             <variable name="inst_config" layout="inst_config_layout" visualizable="false" time-varying="false" />
             <variable name="nlp" layout="int" visualizable="false" time-varying="false" />
             <variable name="nkp" layout="int" visualizable="false" time-varying="false" />
+
+            <!-- for dealing with RB related stuff -->
+            <group name="vt_rb">
+                <variable name="ts" layout="double" time-varying="true" />
+                <variable name="kp_gid" layout="int" time-varying="true" />
+                <variable name="event_id" layout="int" time-varying="true" />
+            </group>
         </group>
         <!--<group name="model">
             <variable name="sample_size" layout="int" visualizable="false" time-varying="true" />

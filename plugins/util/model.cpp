@@ -7,9 +7,11 @@
 // may not need flatbuffers stuff in this file
 using namespace ross_damaris::sample;
 using namespace ross_damaris::util;
+using namespace std;
 
 // setup model's flatbuffers table
 FlatBufferHelper mfb;
+static int block = 0;
 
 void st_damaris_start_sample(double vts, double rts, double gvt, int inst_type)
 {
@@ -22,6 +24,15 @@ void st_damaris_start_sample(double vts, double rts, double gvt, int inst_type)
         mode = InstMode_VT;
 
     mfb.start_sample(vts, rts, gvt, mode);
+}
+
+// only to be called for VT sampling with model data
+void st_damaris_start_sample_vt(double vts, double rts, double gvt, int inst_type,
+        int entity_id, int event_id)
+{
+    InstMode mode = InstMode_VT;
+
+    mfb.start_sample(vts, rts, gvt, mode, entity_id, event_id);
 }
 
 void st_damaris_finish_sample()
@@ -67,13 +78,31 @@ void st_damaris_sample_lp_data(int inst_type, tw_lpid *lpids, int nlps)
     for (unsigned int i = 0; i < num_lps; i++)
     {
         if (lpids)
+        {
             lpid = lpids[i];
+            lp = tw_getlocal_lp(lpid);
+        }
         else
+        {
             lpid = i;
+            lp = tw_getlp(lpid);
+        }
 
-        lp = tw_getlp(lpid);
         mfb.lp_sample(lp, inst_type);
     }
+}
+
+void st_damaris_invalidate_sample(double ts, int kp_gid, int event_id)
+{
+    int err;
+
+    if ((err = damaris_write_block("ross/vt_rb/ts", block, &ts)) != DAMARIS_OK)
+        st_damaris_error(TW_LOC, err, "ross/vt_rb/ts");
+    if ((err = damaris_write_block("ross/vt_rb/kp_gid", block, &kp_gid)) != DAMARIS_OK)
+        st_damaris_error(TW_LOC, err, "ross/vt_rb/kp_gid");
+    if ((err = damaris_write_block("ross/vt_rb/event_id", block, &event_id)) != DAMARIS_OK)
+        st_damaris_error(TW_LOC, err, "ross/vt_rb/event_id");
+    block++;
 }
 
 // call from ROSS-damaris interface to save in flatbuffers format and expose to Damaris
@@ -130,6 +159,7 @@ void st_damaris_sample_model_data(tw_lpid *lpids, int nlps)
 void st_damaris_reset_block_counters()
 {
     mfb.reset_block_counters();
+    block = 0;
 }
 
 // have C wrapper functions specific to data type

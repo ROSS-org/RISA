@@ -114,6 +114,9 @@ table DamarisDataSample {
     lp_data:[LPData];
     model_data:[ModelLP];
     //model_data:int (hash: "fnv1_32", cpp_type: "ModelData");
+    /// next two used for internal info
+    entity_id:int = -1;
+    event_id:int = -1;
 }
 
 root_type DamarisDataSample;

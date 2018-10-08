@@ -1362,11 +1362,15 @@ struct DamarisDataSampleT : public flatbuffers::NativeTable {
   std::vector<std::unique_ptr<KPDataT>> kp_data;
   std::vector<std::unique_ptr<LPDataT>> lp_data;
   std::vector<std::unique_ptr<ModelLPT>> model_data;
+  int32_t entity_id;
+  int32_t event_id;
   DamarisDataSampleT()
       : virtual_ts(0.0),
         real_ts(0.0),
         last_gvt(0.0),
-        mode(InstMode_none) {
+        mode(InstMode_none),
+        entity_id(-1),
+        event_id(-1) {
   }
 };
 
@@ -1383,7 +1387,9 @@ struct DamarisDataSample FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_PE_DATA = 12,
     VT_KP_DATA = 14,
     VT_LP_DATA = 16,
-    VT_MODEL_DATA = 18
+    VT_MODEL_DATA = 18,
+    VT_ENTITY_ID = 20,
+    VT_EVENT_ID = 22
   };
   double virtual_ts() const {
     return GetField<double>(VT_VIRTUAL_TS, 0.0);
@@ -1409,6 +1415,13 @@ struct DamarisDataSample FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::Vector<flatbuffers::Offset<ModelLP>> *model_data() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<ModelLP>> *>(VT_MODEL_DATA);
   }
+  /// next two used for internal info
+  int32_t entity_id() const {
+    return GetField<int32_t>(VT_ENTITY_ID, -1);
+  }
+  int32_t event_id() const {
+    return GetField<int32_t>(VT_EVENT_ID, -1);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<double>(verifier, VT_VIRTUAL_TS) &&
@@ -1427,6 +1440,8 @@ struct DamarisDataSample FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyOffset(verifier, VT_MODEL_DATA) &&
            verifier.VerifyVector(model_data()) &&
            verifier.VerifyVectorOfTables(model_data()) &&
+           VerifyField<int32_t>(verifier, VT_ENTITY_ID) &&
+           VerifyField<int32_t>(verifier, VT_EVENT_ID) &&
            verifier.EndTable();
   }
   DamarisDataSampleT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -1461,6 +1476,12 @@ struct DamarisDataSampleBuilder {
   void add_model_data(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<ModelLP>>> model_data) {
     fbb_.AddOffset(DamarisDataSample::VT_MODEL_DATA, model_data);
   }
+  void add_entity_id(int32_t entity_id) {
+    fbb_.AddElement<int32_t>(DamarisDataSample::VT_ENTITY_ID, entity_id, -1);
+  }
+  void add_event_id(int32_t event_id) {
+    fbb_.AddElement<int32_t>(DamarisDataSample::VT_EVENT_ID, event_id, -1);
+  }
   explicit DamarisDataSampleBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -1482,11 +1503,15 @@ inline flatbuffers::Offset<DamarisDataSample> CreateDamarisDataSample(
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<PEData>>> pe_data = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<KPData>>> kp_data = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<LPData>>> lp_data = 0,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<ModelLP>>> model_data = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<ModelLP>>> model_data = 0,
+    int32_t entity_id = -1,
+    int32_t event_id = -1) {
   DamarisDataSampleBuilder builder_(_fbb);
   builder_.add_last_gvt(last_gvt);
   builder_.add_real_ts(real_ts);
   builder_.add_virtual_ts(virtual_ts);
+  builder_.add_event_id(event_id);
+  builder_.add_entity_id(entity_id);
   builder_.add_model_data(model_data);
   builder_.add_lp_data(lp_data);
   builder_.add_kp_data(kp_data);
@@ -1504,7 +1529,9 @@ inline flatbuffers::Offset<DamarisDataSample> CreateDamarisDataSampleDirect(
     const std::vector<flatbuffers::Offset<PEData>> *pe_data = nullptr,
     const std::vector<flatbuffers::Offset<KPData>> *kp_data = nullptr,
     const std::vector<flatbuffers::Offset<LPData>> *lp_data = nullptr,
-    const std::vector<flatbuffers::Offset<ModelLP>> *model_data = nullptr) {
+    const std::vector<flatbuffers::Offset<ModelLP>> *model_data = nullptr,
+    int32_t entity_id = -1,
+    int32_t event_id = -1) {
   return ross_damaris::sample::CreateDamarisDataSample(
       _fbb,
       virtual_ts,
@@ -1514,7 +1541,9 @@ inline flatbuffers::Offset<DamarisDataSample> CreateDamarisDataSampleDirect(
       pe_data ? _fbb.CreateVector<flatbuffers::Offset<PEData>>(*pe_data) : 0,
       kp_data ? _fbb.CreateVector<flatbuffers::Offset<KPData>>(*kp_data) : 0,
       lp_data ? _fbb.CreateVector<flatbuffers::Offset<LPData>>(*lp_data) : 0,
-      model_data ? _fbb.CreateVector<flatbuffers::Offset<ModelLP>>(*model_data) : 0);
+      model_data ? _fbb.CreateVector<flatbuffers::Offset<ModelLP>>(*model_data) : 0,
+      entity_id,
+      event_id);
 }
 
 flatbuffers::Offset<DamarisDataSample> CreateDamarisDataSample(flatbuffers::FlatBufferBuilder &_fbb, const DamarisDataSampleT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -1904,6 +1933,8 @@ inline void DamarisDataSample::UnPackTo(DamarisDataSampleT *_o, const flatbuffer
   { auto _e = kp_data(); if (_e) { _o->kp_data.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->kp_data[_i] = std::unique_ptr<KPDataT>(_e->Get(_i)->UnPack(_resolver)); } } };
   { auto _e = lp_data(); if (_e) { _o->lp_data.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->lp_data[_i] = std::unique_ptr<LPDataT>(_e->Get(_i)->UnPack(_resolver)); } } };
   { auto _e = model_data(); if (_e) { _o->model_data.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->model_data[_i] = std::unique_ptr<ModelLPT>(_e->Get(_i)->UnPack(_resolver)); } } };
+  { auto _e = entity_id(); _o->entity_id = _e; };
+  { auto _e = event_id(); _o->event_id = _e; };
 }
 
 inline flatbuffers::Offset<DamarisDataSample> DamarisDataSample::Pack(flatbuffers::FlatBufferBuilder &_fbb, const DamarisDataSampleT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -1922,6 +1953,8 @@ inline flatbuffers::Offset<DamarisDataSample> CreateDamarisDataSample(flatbuffer
   auto _kp_data = _o->kp_data.size() ? _fbb.CreateVector<flatbuffers::Offset<KPData>> (_o->kp_data.size(), [](size_t i, _VectorArgs *__va) { return CreateKPData(*__va->__fbb, __va->__o->kp_data[i].get(), __va->__rehasher); }, &_va ) : 0;
   auto _lp_data = _o->lp_data.size() ? _fbb.CreateVector<flatbuffers::Offset<LPData>> (_o->lp_data.size(), [](size_t i, _VectorArgs *__va) { return CreateLPData(*__va->__fbb, __va->__o->lp_data[i].get(), __va->__rehasher); }, &_va ) : 0;
   auto _model_data = _o->model_data.size() ? _fbb.CreateVector<flatbuffers::Offset<ModelLP>> (_o->model_data.size(), [](size_t i, _VectorArgs *__va) { return CreateModelLP(*__va->__fbb, __va->__o->model_data[i].get(), __va->__rehasher); }, &_va ) : 0;
+  auto _entity_id = _o->entity_id;
+  auto _event_id = _o->event_id;
   return ross_damaris::sample::CreateDamarisDataSample(
       _fbb,
       _virtual_ts,
@@ -1931,7 +1964,9 @@ inline flatbuffers::Offset<DamarisDataSample> CreateDamarisDataSample(flatbuffer
       _pe_data,
       _kp_data,
       _lp_data,
-      _model_data);
+      _model_data,
+      _entity_id,
+      _event_id);
 }
 
 inline bool VerifyVariableType(flatbuffers::Verifier &verifier, const void *obj, VariableType type) {
@@ -2365,7 +2400,9 @@ inline const flatbuffers::TypeTable *DamarisDataSampleTypeTable() {
     { flatbuffers::ET_SEQUENCE, 1, 1 },
     { flatbuffers::ET_SEQUENCE, 1, 2 },
     { flatbuffers::ET_SEQUENCE, 1, 3 },
-    { flatbuffers::ET_SEQUENCE, 1, 4 }
+    { flatbuffers::ET_SEQUENCE, 1, 4 },
+    { flatbuffers::ET_INT, 0, -1 },
+    { flatbuffers::ET_INT, 0, -1 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
     InstModeTypeTable,
@@ -2382,10 +2419,12 @@ inline const flatbuffers::TypeTable *DamarisDataSampleTypeTable() {
     "pe_data",
     "kp_data",
     "lp_data",
-    "model_data"
+    "model_data",
+    "entity_id",
+    "event_id"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_TABLE, 8, type_codes, type_refs, nullptr, names
+    flatbuffers::ST_TABLE, 10, type_codes, type_refs, nullptr, names
   };
   return &tt;
 }

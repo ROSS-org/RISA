@@ -22,6 +22,8 @@ class FlatBufferHelper {
         double real_ts_;
         double gvt_;
         rds::InstMode mode_;
+        int entity_id_;
+        int event_id_;
         int max_sample_size_;
         int rt_block_;
         int vt_block_;
@@ -46,6 +48,8 @@ class FlatBufferHelper {
             vt_block_(0) { }
 
         void start_sample(double vts, double rts, double gvt, rds::InstMode mode);
+        void start_sample(double vts, double rts, double gvt, rds::InstMode mode,
+                int entity_id, int event_id);
         void finish_sample();
 
         void pe_sample(tw_pe *pe, tw_statistics *s, tw_statistics *last_pe_stats, int inst_type);

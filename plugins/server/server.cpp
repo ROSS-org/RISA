@@ -102,17 +102,19 @@ void RDServer::process_sample(boost::shared_ptr<damaris::Block> block)
                 break;
         }
 
+        int id = data_fb->entity_id();
+
         // first we need to check to see if this is data for an existing sampling point
         auto sample_it = data_manager_->find_data(data_fb->mode(), ts);
         if (sample_it != data_manager_->end())
         {
-            (*sample_it)->push_ds_ptr(ds);
+            (*sample_it)->push_ds_ptr(id, ds);
             cout << "num ds_ptrs " << (*sample_it)->get_ds_ptr_size() << endl;
         }
         else // couldn't find it
         {
             DataSample s(ts, data_fb->mode(), DataStatus_speculative);
-            s.push_ds_ptr(ds);
+            s.push_ds_ptr(id, ds);
             data_manager_->insert_data(std::move(s));
             data_manager_->print_manager_info();
         }

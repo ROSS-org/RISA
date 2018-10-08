@@ -4,7 +4,6 @@
 #include <fstream>
 #include <boost/asio.hpp>
 
-//#include <plugins/streaming/stream-client.h>
 #include <plugins/util/fb-util.h>
 #include <plugins/util/damaris-util.h>
 #include <plugins/util/sim-config.h>

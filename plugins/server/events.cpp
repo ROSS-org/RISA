@@ -57,6 +57,13 @@ void damaris_rank_end_iteration(const std::string& event, int32_t src, int32_t s
         begin++;
     }
 
+    if (DUtil::get_num_blocks("ross/vt_rb/ts", step) > 0)
+    {
+        // some of our model data has been invalidated
+        // get data for kp_gid, event_id
+
+    }
+
     // TODO this is just for now
     // eventually the data processor will be its own thread
     // and it will make the determination itself when and what data

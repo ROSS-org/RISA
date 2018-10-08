@@ -7,7 +7,7 @@ using namespace ross_damaris::data;
 //    data_ptrs_.push_back(s);
 //}
 
-void DataSample::push_ds_ptr(const damaris::DataSpace<damaris::Buffer> ds)
+void DataSample::push_ds_ptr(int id, const damaris::DataSpace<damaris::Buffer> ds)
 {
-    ds_ptrs_.push_back(ds);
+    ds_ptrs_[id] = ds;
 }

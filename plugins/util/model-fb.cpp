@@ -101,6 +101,12 @@ void FlatBufferHelper::lp_sample(tw_lp *lp, int inst_type)
 
 void FlatBufferHelper::start_sample(double vts, double rts, double gvt, InstMode mode)
 {
+    start_sample(vts, rts, gvt, mode, g_tw_mynode, -1);
+}
+
+void FlatBufferHelper::start_sample(double vts, double rts, double gvt,
+        InstMode mode, int entity_id, int event_id)
+{
     // new sample, so just make sure we don't have any lingering data from previous sample
     fbb_.Clear();
     pes_.clear();
@@ -112,12 +118,15 @@ void FlatBufferHelper::start_sample(double vts, double rts, double gvt, InstMode
     real_ts_ = rts;
     gvt_ = gvt;
     mode_ = mode;
+    entity_id_ = entity_id;
+    event_id_ = event_id;
 }
 
 void FlatBufferHelper::finish_sample()
 {
     int block = 0;
-    auto ds = CreateDamarisDataSampleDirect(fbb_, virtual_ts_, real_ts_, gvt_, mode_, &pes_, &kps_, &lps_, &model_lps_);
+    auto ds = CreateDamarisDataSampleDirect(fbb_, virtual_ts_, real_ts_, gvt_, mode_,
+            &pes_, &kps_, &lps_, &model_lps_, entity_id_, event_id_);
     fbb_.Finish(ds);
 
     // now get the pointer and size and expose to Damaris
@@ -134,7 +143,7 @@ void FlatBufferHelper::finish_sample()
             st_damaris_error(TW_LOC, err, "sample_size");
     }
 
-    cout << "size of model fb " << size << " max_sample_size_ " << max_sample_size_ << endl;
+    //cout << "size of model fb " << size << " max_sample_size_ " << max_sample_size_ << endl;
     if (mode_ == InstMode_RT)
     {
         block = rt_block_;
@@ -148,14 +157,14 @@ void FlatBufferHelper::finish_sample()
 
     //if ((err = damaris_write_block("ross/sample_size", block, &size)) != DAMARIS_OK)
     //    st_damaris_error(TW_LOC, err, "ross/sample_size");
-    cout << "writing to damaris ross/sample to block " << block << endl;
+    cout << "PE " << g_tw_mynode << ": writing to damaris ross/sample to block " << block << endl;
     if ((err = damaris_write_block("ross/sample", block, &buf[0])) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, "ross/sample");
 }
 
 void FlatBufferHelper::reset_block_counters()
 {
-    std::cout << "rt_block_ = " << rt_block_ << "\nvt_block_ = " << vt_block_ << endl;
+    //std::cout << "rt_block_ = " << rt_block_ << "\nvt_block_ = " << vt_block_ << endl;
     rt_block_ = 0;
     vt_block_ = 0;
 }
