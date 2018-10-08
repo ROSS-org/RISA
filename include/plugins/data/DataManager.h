@@ -9,16 +9,38 @@
 namespace ross_damaris {
 namespace data {
 
+/**
+ * @brief Manages data in a Boost MultiIndex container
+ */
 class DataManager {
 public:
-    //DataManager() {  }
-
     // require move insertions over copy insertions?
-    void insert_data(DataSample&& s);
+    /**
+     * @brief Inserts data to the multi-index
+     * @param s A DataSample rvalue
+     * @return A boolean value. true if s was inserted, false otherwise.
+     */
+    bool insert_data(DataSample&& s);
+
+    /**
+     * @brief Find a DataSample, given the mode and timestamp.
+     * @param mode The Instrumentation mode.
+     * @param ts The timestamp of the sample.
+     * @return An iterator to the associated sample, if found.
+     */
     SamplesByKey::iterator find_data(sample::InstMode mode, double ts);
+
+    /**
+     * @brief Find DataSamples and get begin and end iterators.
+     * @param mode The instrumentation mode.
+     * @param lower The lower bound timestamp (exclusive) of samples.
+     * @param upper The upper bound timestamp (inclusive) of samples.
+     * @param begin The beginning iterator is stored here.
+     * @param end The end of the iterators for the found samples.
+     */
     void find_data(sample::InstMode mode, double lower, double upper,
             SamplesByKey::iterator& begin, SamplesByKey::iterator& end);
-    void delete_data();
+    //void delete_data();
 
     SamplesByKey::iterator end() { return data_index_.get<by_sample_key>().end(); }
 

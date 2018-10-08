@@ -21,13 +21,11 @@ const SamplesByKey::iterator& DataManager::get_recent_key_iterator()
     return recent_key_it_;
 }
 
-//template <typename iterator>
-//std::pair<iterator, bool> DataManager::insert_data(DataSample&& s)
-void DataManager::insert_data(DataSample&& s)
+bool DataManager::insert_data(DataSample&& s)
 {
     boost::shared_ptr<DataSample> s_ptr = boost::make_shared<DataSample>(std::move(s));
     auto mypair = data_index_.insert(std::move(s_ptr));
-    cout << "insert return: " << mypair.second << endl;
+    return mypair.second;
 }
 
 SamplesByKey::iterator DataManager::find_data(InstMode mode, double ts)

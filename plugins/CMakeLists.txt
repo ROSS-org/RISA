@@ -31,7 +31,7 @@ SET(plugin_srcs
     server/server.cpp
     server/events.cpp
     data/DataProcessor.cpp
-    data/data-sample.cpp
+    data/DataSample.cpp
     data/DataManager.cpp
     streaming/StreamClient.cpp)
 
