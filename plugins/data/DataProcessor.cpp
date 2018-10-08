@@ -1,13 +1,23 @@
-#include "damaris/data/VariableManager.hpp"
-#include "damaris/data/Variable.hpp"
+/**
+ * @file DataProcessor.cpp
+ *
+ * The DataProcessor handles the bulk of the data processing.
+ * This includes data reduction, as well as garbage collection
+ * for the multi-index.
+ * This functionality will likely run on its own thread
+ * that gets started when initializing the Damaris rank.
+ */
+
 #include <iostream>
 #include <fstream>
 #include <boost/asio.hpp>
+#include "damaris/data/VariableManager.hpp"
+#include "damaris/data/Variable.hpp"
 
+#include <plugins/data/DataProcessor.h>
 #include <plugins/util/fb-util.h>
 #include <plugins/util/damaris-util.h>
 #include <plugins/util/sim-config.h>
-#include <plugins/data/DataProcessor.h>
 
 using namespace ross_damaris;
 using namespace ross_damaris::sample;
@@ -62,8 +72,6 @@ void DataProcessor::delete_data(double ts)
 
 }
 
-// pass in rvalue so we don't create an extra shared_ptr,
-// that will just be deleted at end of function
 void DataProcessor::set_manager_ptr(boost::shared_ptr<DataManager>&& ptr)
 {
     data_manager_ = boost::shared_ptr<DataManager>(ptr);

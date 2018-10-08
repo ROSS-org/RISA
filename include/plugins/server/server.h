@@ -62,7 +62,7 @@ private:
     std::thread *t_; // thread is to handle boost async IO operations
 
     // data processing members
-    data::DataProcessor processor_;
+    boost::shared_ptr<data::DataProcessor> processor_;
 
     // storage for data to be processed
     //data::SampleIndex data_index_;

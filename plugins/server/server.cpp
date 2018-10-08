@@ -62,10 +62,11 @@ void RDServer::setup_streaming()
 
 void RDServer::setup_data_processing()
 {
-    processor_.set_manager_ptr(std::move(data_manager_));
-    if (sim_config_.stream_data)
-        processor_.set_stream_ptr(std::move(client_));
-    processor_.set_rt_interval(sim_config_.rt_interval);
+    processor_.reset(new data::DataProcessor(std::move(data_manager_),
+                std::move(client_)));
+    //processor_.set_manager_ptr(std::move(data_manager_));
+    //if (sim_config_.stream_data)
+    //    processor_.set_stream_ptr(std::move(client_));
     // sets up thread that performs data processing tasks
 }
 
@@ -132,6 +133,6 @@ void RDServer::process_sample(boost::shared_ptr<damaris::Block> block)
 
 void RDServer::forward_data()
 {
-    processor_.forward_data(cur_mode_, cur_ts_);
+    processor_->forward_data(cur_mode_, cur_ts_);
 }
 

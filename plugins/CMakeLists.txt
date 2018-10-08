@@ -30,7 +30,7 @@ SET(plugin_srcs
     util/model.cpp
     server/server.cpp
     server/events.cpp
-    data/data-processing.cpp
+    data/DataProcessor.cpp
     data/data-sample.cpp
     data/DataManager.cpp
     streaming/StreamClient.cpp)
