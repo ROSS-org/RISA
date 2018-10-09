@@ -1,5 +1,5 @@
 /**
- * @file server.cpp
+ * @file RDServer.cpp
  *
  * This is the main representation of Damaris ranks.
  * This rank will get split into 3 threads:
@@ -9,78 +9,72 @@
  *    3) handle streaming functionality (StreamClient class takes over here)
  */
 
-#include <plugins/server/server.h>
+#include <plugins/server/RDServer.h>
 #include <plugins/util/damaris-util.h>
 
 using namespace ross_damaris::server;
 using namespace ross_damaris::util;
 using namespace ross_damaris::sample;
 using namespace ross_damaris::data;
+using namespace ross_damaris::config;
 namespace bip = boost::asio::ip;
 
-void RDServer::setup_simulation_config()
+RDServer::RDServer() :
+        cur_mode_(sample::InstMode_GVT),
+        cur_ts_(0.0),
+        client_(boost::make_shared<streaming::StreamClient>(streaming::StreamClient())),
+        sim_config_(boost::make_shared<config::SimConfig>(config::SimConfig())),
+        data_manager_(boost::make_shared<data::DataManager>(data::DataManager()))
 {
-    sim_config_.total_pe = damaris::Environment::CountTotalClients();
+    sim_config_->total_pe_ = damaris::Environment::CountTotalClients();
     // TODO ClientsPerNode is number of ROSS PEs per Damaris server, I think
     // need to double check
-    sim_config_.num_pe = damaris::Environment::ClientsPerNode();
+    sim_config_->num_local_pe_ = damaris::Environment::ClientsPerNode();
 
-    for (int i = 0; i < sim_config_.num_pe; i++)
+    // TODO should this be for this Server's PEs or all PEs?
+    for (int i = 0; i < sim_config_->num_local_pe_; i++)
     {
         auto val = *(static_cast<int*>(DUtil::get_value_from_damaris("ross/nlp", i, 0, 0)));
-        sim_config_.num_lp.push_back(val);
+        sim_config_->num_lp_.push_back(val);
     }
-    sim_config_.kp_per_pe = *(static_cast<int*>(DUtil::get_value_from_damaris("ross/nkp", 1, 0, 0)));
+    sim_config_->num_kp_pe_ = *(static_cast<int*>(DUtil::get_value_from_damaris(
+                    "ross/nkp", 1, 0, 0)));
 
-    auto opts = set_options();
+    auto opts = SimConfig::set_options();
     po::variables_map vars;
-    string config_file = &((char *)DUtil::get_value_from_damaris("ross/inst_config", 0, 0, 0))[0];
+    string config_file = &((char *)DUtil::get_value_from_damaris(
+                "ross/inst_config", 0, 0, 0))[0];
     ifstream ifs(config_file.c_str());
-    parse_file(ifs, opts, vars);
-    sim_config_.set_parameters(vars);
-    sim_config_.print_parameters();
+    SimConfig::parse_file(ifs, opts, vars);
+    sim_config_->set_parameters(vars);
+    sim_config_->print_parameters();
 
-    if (sim_config_.write_data)
+    if (sim_config_->write_data_)
         data_file_.open("test-fb.bin", ios::out | ios::trunc | ios::binary);
 
-    if (sim_config_.stream_data)
-        setup_streaming();
+    if (sim_config_->stream_data_)
+    {
+        client_->set_config_ptr(std::move(sim_config_));
+        client_->connect();
+    }
 
     setup_data_processing();
-}
-
-void RDServer::setup_streaming()
-{
-    // sets up thread that performs streaming functionality
-    cout << "Attempting to setup connection to " << sim_config_.stream_addr << ":" << sim_config_.stream_port << endl;
-    bip::tcp::resolver::query q(sim_config_.stream_addr, sim_config_.stream_port);
-    auto it = resolver_.resolve(q);
-    //streaming::StreamClient c(service_, it);
-    client_.reset(new streaming::StreamClient(service_, it));
-    t_ = new std::thread([this](){ this->service_.run(); });
 }
 
 void RDServer::setup_data_processing()
 {
     processor_.reset(new data::DataProcessor(std::move(data_manager_),
-                std::move(client_)));
-    //processor_.set_manager_ptr(std::move(data_manager_));
-    //if (sim_config_.stream_data)
-    //    processor_.set_stream_ptr(std::move(client_));
+                std::move(client_), std::move(sim_config_)));
     // sets up thread that performs data processing tasks
 }
 
 void RDServer::finalize()
 {
-    if (sim_config_.write_data)
+    if (sim_config_->write_data_)
         data_file_.close();
 
-    if (sim_config_.stream_data)
-    {
+    if (sim_config_->stream_data_)
         client_->close();
-        t_->join();
-        //delete t_;
-    }
 }
 
 void RDServer::process_sample(boost::shared_ptr<damaris::Block> block)

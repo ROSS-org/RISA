@@ -3,7 +3,7 @@
  *
  * This file defines all the possible events that Damaris will call for plugins.
  */
-#include <plugins/server/server.h>
+#include <plugins/server/RDServer.h>
 #include <plugins/flatbuffers/data_sample_generated.h>
 #include <plugins/util/damaris-util.h>
 
@@ -16,7 +16,7 @@ using namespace ross_damaris::util;
 
 extern "C" {
 
-RDServer server;
+boost::shared_ptr<RDServer> server;
 
 /**
  * @brief Damaris event to set up simulation configuration
@@ -30,7 +30,7 @@ void damaris_rank_init(const std::string& event, int32_t src, int32_t step, cons
     (void) step;
     (void) args;
     cout << "damaris_rank_init() step " << step << endl;
-    server.setup_simulation_config();
+    server.reset(new RDServer());
     cout << "end of damaris_rank_init()\n";
 }
 
@@ -52,7 +52,7 @@ void damaris_rank_end_iteration(const std::string& event, int32_t src, int32_t s
     {
         cout << "src: " << (*begin)->GetSource() << " iteration: " << (*begin)->GetIteration()
             << " domain id: " << (*begin)->GetID() << endl;
-        server.process_sample(*begin);
+        server->process_sample(*begin);
 
         begin++;
     }
@@ -68,7 +68,7 @@ void damaris_rank_end_iteration(const std::string& event, int32_t src, int32_t s
     // eventually the data processor will be its own thread
     // and it will make the determination itself when and what data
     // to forward on for streaming/writing
-    server.forward_data();
+    server->forward_data();
 }
 
 /**
@@ -84,7 +84,7 @@ void damaris_rank_finalize(const std::string& event, int32_t src, int32_t step, 
     (void) step;
     (void) args;
     cout << "damaris_rank_finalize() step " << step << endl;
-    server.finalize();
+    server->finalize();
     cout << "end of damaris_rank_finalize()\n";
 }
 

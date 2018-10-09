@@ -13,6 +13,7 @@
 
 #include <plugins/data/DataManager.h>
 #include <plugins/streaming/StreamClient.h>
+#include <plugins/util/SimConfig.h>
 
 namespace ross_damaris {
 namespace data {
@@ -28,10 +29,12 @@ namespace data {
 class DataProcessor {
 public:
     DataProcessor(boost::shared_ptr<DataManager>&& dm_ptr,
-            boost::shared_ptr<streaming::StreamClient>&& sc_ptr) :
+            boost::shared_ptr<streaming::StreamClient>&& sc_ptr,
+            boost::shared_ptr<config::SimConfig>&& conf_ptr) :
         last_processed_ts_(0.0),
         data_manager_(boost::shared_ptr<DataManager>(dm_ptr)),
-        stream_client_(boost::shared_ptr<streaming::StreamClient>(sc_ptr)) {  }
+        stream_client_(boost::shared_ptr<streaming::StreamClient>(sc_ptr)),
+        sim_config_(boost::shared_ptr<config::SimConfig>(conf_ptr)) {  }
 
     DataProcessor() :
         last_processed_ts_(0.0),
@@ -82,6 +85,7 @@ private:
     double last_processed_ts_;
     boost::shared_ptr<DataManager> data_manager_;
     boost::shared_ptr<streaming::StreamClient> stream_client_;
+    boost::shared_ptr<config::SimConfig> sim_config_;
 };
 
 } // end namespace data

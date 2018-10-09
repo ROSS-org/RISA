@@ -7,21 +7,38 @@ using namespace boost::asio;
 using namespace boost::asio::ip;
 
 using namespace ross_damaris::streaming;
+using namespace ross_damaris::config;
+using namespace ross_damaris::sample;
 using namespace std;
+
+void StreamClient::connect()
+{
+        cout << "[StreamClient] Attempting to setup connection to " <<
+            sim_config_->stream_addr() << ":" << sim_config_->stream_port() << endl;
+        tcp::resolver::query q(sim_config_->stream_addr(), sim_config_->stream_port());
+        auto it = resolver_.resolve(q);
+        do_connect(it);
+        t_ = new std::thread([this](){ this->service_.run(); });
+}
+
+void StreamClient::set_config_ptr(boost::shared_ptr<SimConfig>&& ptr)
+{
+    sim_config_ = boost::shared_ptr<SimConfig>(ptr);
+}
 
 void StreamClient::enqueue_data(DamarisDataSampleT* samp)
 {
-    flatbuffers::FlatBufferBuilder fbb_;
-    auto samp_fb = DamarisDataSample::Pack(fbb_, samp);
-    fbb_.Finish(samp_fb);
+    flatbuffers::FlatBufferBuilder fbb;
+    auto samp_fb = DamarisDataSample::Pack(fbb, samp);
+    fbb.Finish(samp_fb);
     sample_msg *msg = new sample_msg();
-    msg->size_ = fbb_.GetSize();
+    msg->size_ = fbb.GetSize();
 
     // Get the fb to release the raw pointer to us,
     // so it doesn't disappear before we actually send it
     // now we're responsible for deleting this memory
     size_t size, offset;
-    msg->raw_ = fbb_.ReleaseRaw(size, offset);
+    msg->raw_ = fbb.ReleaseRaw(size, offset);
     msg->data_ = &msg->raw_[offset];
     write_msgs_.push_back(msg);
 }
@@ -31,11 +48,11 @@ void StreamClient::close()
     if (!connected_)
         return;
     if (!write_msgs_.empty())
-        cout << "StreamClient closing socket, but there are still messages waiting to be streamed!\n";
+        cout << "[StreamClient] closing socket, but there are still messages queued!\n";
 
     service_.post(
             [this]() {
-                cout << "StreamClient closing socket\n";
+                cout << "[StreamClient] closing socket\n";
                 connected_ = false;
                 socket_.close();
             });
@@ -56,7 +73,7 @@ void StreamClient::do_connect(tcp::resolver::iterator it)
                 }
                 else
                 {
-                    cout << "StreamClient successfully connected!\n" << endl;
+                    cout << "[StreamClient] successfully connected!\n" << endl;
                     connected_ = true;
                     do_read();
                 }
@@ -68,7 +85,8 @@ void StreamClient::do_write()
     if (write_msgs_.empty() || !connected_)
         return;
     std::vector<boost::asio::const_buffer> buf;
-    buf.push_back(boost::asio::buffer(&write_msgs_.front()->size_, sizeof(flatbuffers::uoffset_t)));
+    buf.push_back(boost::asio::buffer(&write_msgs_.front()->size_,
+                sizeof(flatbuffers::uoffset_t)));
     buf.push_back(boost::asio::buffer(write_msgs_.front()->data_, write_msgs_.front()->size_));
     boost::asio::async_write(socket_, buf,
             [this](boost::system::error_code ec, std::size_t /*length*/)
@@ -94,6 +112,8 @@ void StreamClient::do_write()
             });
 }
 
+// right now the do_read calls keeps the io_service from running out of work
+// could potentially change to use asio::io_service::work
 void StreamClient::do_read()
 {
     if (!connected_)

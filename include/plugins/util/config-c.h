@@ -7,7 +7,7 @@
 #define EXTERNC
 #endif
 
-// this header describes any wrapper functions for C++ calls 
+// this header describes any wrapper functions for C++ calls
 // needed by the C side of the ROSS-Damaris interface
 
 /**

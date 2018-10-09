@@ -7,6 +7,9 @@
 namespace ross_damaris {
 namespace util {
 
+/**
+ * @brief A collection of helpful utility functions for accessing Damaris data.
+ */
 class DUtil
 {
     public:

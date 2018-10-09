@@ -16,25 +16,54 @@
 #include <thread>
 #include <boost/asio.hpp>
 #include <plugins/flatbuffers/data_sample_generated.h>
+#include <plugins/util/SimConfig.h>
 
 
 namespace ross_damaris {
 namespace streaming {
 
-using boost::asio::ip::tcp;
-using namespace ross_damaris::sample;
+namespace bip = boost::asio::ip;
 
-// need to figure out the sized prefixed flatbuffer, to make this easier
+/**
+ * @brief Handles streaming flatbuffer data to external vis tools
+ */
 class StreamClient
 {
 public:
-    StreamClient(boost::asio::io_service& service, tcp::resolver::iterator it)
-        : service_(service),
-          socket_(service),
-          connected_(false)
+    StreamClient() :
+        socket_(service_),
+        resolver_(service_),
+        connected_(false),
+        t_(nullptr),
+        sim_config_(nullptr) {  }
+
+    StreamClient(StreamClient&& sc) :
+        socket_(service_),
+        resolver_(service_),
+        connected_(sc.connected_),
+        t_(sc.t_),
+        sim_config_(std::move(sc.sim_config_)),
+        write_msgs_(std::move(sc.write_msgs_)) {  }
+
+    ~StreamClient()
     {
-        do_connect(it);
+        if (t_)
+        {
+            t_->join();
+            delete t_;
+        }
     }
+
+    /**
+     * @brief Attempts to connect to specified address/port,
+     * starting a new thread in the process.
+     */
+    void connect();
+
+    /**
+     * @brief get shared ownership to the SimConfig
+     */
+    void set_config_ptr(boost::shared_ptr<config::SimConfig>&& ptr);
 
     /**
      * @brief put in StreamClient's buffer of data to send
@@ -43,7 +72,7 @@ public:
      * StreamClient then takes ownership of the data and places it in a FIFO
      * queue to be sent.
      */
-    void enqueue_data(DamarisDataSampleT* samp);
+    void enqueue_data(sample::DamarisDataSampleT* samp);
 
     /**
      * @brief Close the streaming connection
@@ -76,12 +105,16 @@ private:
     typedef std::deque<sample_msg*> sample_queue;
     sample_queue write_msgs_;
 
-    boost::asio::io_service& service_;
-    tcp::socket socket_;
+    boost::shared_ptr<config::SimConfig> sim_config_;
+    boost::asio::io_service service_;
+    bip::tcp::resolver resolver_;
+    bip::tcp::socket socket_;
+    std::thread *t_;
+
     bool connected_;
     std::array<char, 1> dummy_buf_;
 
-    void do_connect(tcp::resolver::iterator it);
+    void do_connect(bip::tcp::resolver::iterator it);
     void do_write();
     void do_read();
 

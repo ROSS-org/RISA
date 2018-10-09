@@ -24,11 +24,10 @@ INCLUDE_DIRECTORIES(../include)
 SET(plugin_srcs
     util/garbage-collection.cpp
     util/damaris-util.cpp
-    util/fb-util.cpp
-    util/config.cpp
-    util/model-fb.cpp
+    util/SimConfig.cpp
+    util/FlatBufferHelper.cpp
     util/model.cpp
-    server/server.cpp
+    server/RDServer.cpp
     server/events.cpp
     data/DataProcessor.cpp
     data/DataSample.cpp

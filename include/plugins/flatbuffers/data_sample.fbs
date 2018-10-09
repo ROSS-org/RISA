@@ -13,6 +13,7 @@ enum InstMode:int {
     ET
 }
 
+/// To determine the status of a particular data sample
 enum DataStatus:int {
     none,
     speculative,
@@ -20,8 +21,7 @@ enum DataStatus:int {
     invalid
 }
 
-/// Sim engine metrics that are collected by Damaris
-/// These should have the same variable names as supplied in Damaris XML file!
+/// Sim engine metrics that are collected by ROSS instrumentation
 table SimEngineMetrics {
     nevent_processed:int;
     nevent_abort:int;
@@ -86,6 +86,7 @@ table DoubleVar {
     value:[double];
 }
 
+/// To be used by model metrics
 union VariableType {
     IntVar,
     LongVar,

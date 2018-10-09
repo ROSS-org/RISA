@@ -15,9 +15,7 @@
 #include "damaris/data/Variable.hpp"
 
 #include <plugins/data/DataProcessor.h>
-#include <plugins/util/fb-util.h>
 #include <plugins/util/damaris-util.h>
-#include <plugins/util/sim-config.h>
 
 using namespace ross_damaris;
 using namespace ross_damaris::sample;

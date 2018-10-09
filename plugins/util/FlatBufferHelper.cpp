@@ -1,5 +1,5 @@
 #include <core/model-c.h>
-#include <plugins/util/model-fb.h>
+#include <plugins/util/FlatBufferHelper.h>
 #include <plugins/flatbuffers/data_sample_generated.h>
 #include <ross.h>
 #include <iostream>
