@@ -44,6 +44,10 @@ public:
      * @return A Damaris DataSpace (essentially a shared_ptr).
      */
     damaris::DataSpace<damaris::Buffer> get_data_at(int id) { return ds_ptrs_[id]; }
+    std::unordered_map<int, damaris::DataSpace<damaris::Buffer>>::iterator
+        ds_ptrs_begin() { return ds_ptrs_.begin(); }
+    std::unordered_map<int, damaris::DataSpace<damaris::Buffer>>::iterator
+        ds_ptrs_end() { return ds_ptrs_.end(); }
 
     /**
      * @brief get number of DataSpaces associated with this sampling point

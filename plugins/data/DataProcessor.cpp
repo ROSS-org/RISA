@@ -33,6 +33,7 @@ void DataProcessor::forward_model_data()
 
 }
 
+// For now, we're only supporting model data in VT mode
 void DataProcessor::forward_data(InstMode mode, double ts)
 {
     SamplesByKey::iterator it, end;
@@ -42,21 +43,27 @@ void DataProcessor::forward_data(InstMode mode, double ts)
     {
         DamarisDataSampleT combined_sample;
         DamarisDataSampleT ds;
-        bool data_found = false;
-        for (int i = 0; i < (*it)->get_ds_ptr_size(); i++)
+        auto ds_it = (*it)->ds_ptrs_begin();
+        auto ds_end = (*it)->ds_ptrs_end();
+        auto dataspace = (*ds_it).second;
+        auto data_fb = GetDamarisDataSample(dataspace.GetData());
+        data_fb->UnPackTo(&combined_sample);
+        ds_it++;
+        //for (int i = 0; i < (*it)->get_ds_ptr_size(); i++)
+        while (ds_it != ds_end)
         {
-            auto dataspace = (*it)->get_data_at(i);
-            auto data_fb = GetDamarisDataSample(dataspace.GetData());
-            if (i == 0)
-            {
-                data_fb->UnPackTo(&combined_sample);
-                continue;
-            }
+            dataspace = (*ds_it).second;
+            data_fb = GetDamarisDataSample(dataspace.GetData());
             data_fb->UnPackTo(&ds);
-            std::move(ds.pe_data.begin(), ds.pe_data.end(), std::back_inserter(combined_sample.pe_data));
-            std::move(ds.kp_data.begin(), ds.kp_data.end(), std::back_inserter(combined_sample.kp_data));
-            std::move(ds.lp_data.begin(), ds.lp_data.end(), std::back_inserter(combined_sample.lp_data));
-            std::move(ds.model_data.begin(), ds.model_data.end(), std::back_inserter(combined_sample.model_data));
+            std::move(ds.pe_data.begin(), ds.pe_data.end(),
+                    std::back_inserter(combined_sample.pe_data));
+            std::move(ds.kp_data.begin(), ds.kp_data.end(),
+                    std::back_inserter(combined_sample.kp_data));
+            std::move(ds.lp_data.begin(), ds.lp_data.end(),
+                    std::back_inserter(combined_sample.lp_data));
+            std::move(ds.model_data.begin(), ds.model_data.end(),
+                    std::back_inserter(combined_sample.model_data));
+            ds_it++;
         }
 
         stream_client_->enqueue_data(&combined_sample);
