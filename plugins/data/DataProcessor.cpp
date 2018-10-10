@@ -34,8 +34,11 @@ void DataProcessor::forward_model_data()
 }
 
 // For now, we're only supporting model data in VT mode
-void DataProcessor::forward_data(InstMode mode, double ts)
+void DataProcessor::forward_data(InstMode mode, double ts, int32_t step)
 {
+    if (mode == InstMode_VT)
+        invalidate_data(ts, step);
+
     SamplesByKey::iterator it, end;
     //auto it = data_manager_->find_data(mode, ts);
     data_manager_->find_data(mode, last_processed_ts_, ts, it, end);
@@ -43,33 +46,78 @@ void DataProcessor::forward_data(InstMode mode, double ts)
     {
         DamarisDataSampleT combined_sample;
         DamarisDataSampleT ds;
-        auto ds_it = (*it)->ds_ptrs_begin();
-        auto ds_end = (*it)->ds_ptrs_end();
+        auto outer_it = (*it)->ds_ptrs_begin();
+        auto outer_end = (*it)->ds_ptrs_end();
+        auto ds_it = (*outer_it).second.begin();
+        auto ds_end = (*outer_it).second.end();
         auto dataspace = (*ds_it).second;
         auto data_fb = GetDamarisDataSample(dataspace.GetData());
         data_fb->UnPackTo(&combined_sample);
         ds_it++;
-        //for (int i = 0; i < (*it)->get_ds_ptr_size(); i++)
-        while (ds_it != ds_end)
+        while (outer_it != outer_end)
         {
-            dataspace = (*ds_it).second;
-            data_fb = GetDamarisDataSample(dataspace.GetData());
-            data_fb->UnPackTo(&ds);
-            std::move(ds.pe_data.begin(), ds.pe_data.end(),
-                    std::back_inserter(combined_sample.pe_data));
-            std::move(ds.kp_data.begin(), ds.kp_data.end(),
-                    std::back_inserter(combined_sample.kp_data));
-            std::move(ds.lp_data.begin(), ds.lp_data.end(),
-                    std::back_inserter(combined_sample.lp_data));
-            std::move(ds.model_data.begin(), ds.model_data.end(),
-                    std::back_inserter(combined_sample.model_data));
-            ds_it++;
+            while (ds_it != ds_end)
+            {
+                dataspace = (*ds_it).second;
+                data_fb = GetDamarisDataSample(dataspace.GetData());
+                data_fb->UnPackTo(&ds);
+                std::move(ds.pe_data.begin(), ds.pe_data.end(),
+                        std::back_inserter(combined_sample.pe_data));
+                std::move(ds.kp_data.begin(), ds.kp_data.end(),
+                        std::back_inserter(combined_sample.kp_data));
+                std::move(ds.lp_data.begin(), ds.lp_data.end(),
+                        std::back_inserter(combined_sample.lp_data));
+                std::move(ds.model_data.begin(), ds.model_data.end(),
+                        std::back_inserter(combined_sample.model_data));
+                ds_it++;
+            }
+            outer_it++;
+            if (outer_it != outer_end)
+            {
+                ds_it = (*outer_it).second.begin();
+                ds_end = (*outer_it).second.end();
+            }
         }
 
         stream_client_->enqueue_data(&combined_sample);
         it++;
     }
     last_processed_ts_ = ts;
+}
+
+// only for VTS
+void DataProcessor::invalidate_data(double ts, int32_t step)
+{
+    // first lets invalidate the data
+    int num_blocks = DUtil::get_num_blocks("ross/vt_rb/ts", step);
+    if (num_blocks > 0)
+    {
+        // some of our model data has been invalidated
+        // get data for kp_gid, event_id
+        damaris::BlocksByIteration::iterator begin, end;
+        DUtil::get_damaris_iterators("ross/vt_rb/ts", step, begin, end);
+        while (begin != end)
+        {
+            double ts = *(static_cast<double*>((*begin)->GetDataSpace().GetData()));
+            int kpid = *(static_cast<int*>(DUtil::get_value_from_damaris("ross/vt_rb/kp_gid",
+                        (*begin)->GetSource(), (*begin)->GetIteration(), (*begin)->GetID())));
+            int event_id = *(static_cast<int*>(DUtil::get_value_from_damaris("ross/vt_rb/event_id",
+                        (*begin)->GetSource(), (*begin)->GetIteration(), (*begin)->GetID())));
+
+            auto sample_it = data_manager_->find_data(InstMode_VT, ts);
+            if (sample_it != data_manager_->end())
+            {
+                //auto dataspace = (*sample_it)->get_data_at(kpid);
+                bool removed = (*sample_it)->remove_ds_ptr(kpid, event_id);
+                if (!removed)
+                    cout << "[DataProcessor] nothing was removed!\n";
+            }
+
+            begin++;
+        }
+    }
+
+
 }
 
 void DataProcessor::delete_data(double ts)

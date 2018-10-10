@@ -57,7 +57,7 @@ public:
      *
      * May be removed once DataProcessor functionality is more built up.
      */
-    void forward_data();
+    void forward_data(int32_t step);
 
     boost::shared_ptr<data::DataManager> get_manager_pointer() { return data_manager_; }
 

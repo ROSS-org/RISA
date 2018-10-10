@@ -20,7 +20,7 @@ public:
     DataSample() :
         mode_(sample::InstMode_none),
         sampling_time_(0.0),
-        status_(sample::DataStatus_none) {  }
+        status_(sample::DataStatus_speculative) {  }
 
     DataSample(double ts, sample::InstMode mode, sample::DataStatus status) :
         mode_(mode),
@@ -39,15 +39,32 @@ public:
     void push_ds_ptr(int id, const damaris::DataSpace<damaris::Buffer> ds);
 
     /**
+     * @brief add a DataSpace associated with this sampling point
+     * @param id The id of the entity (KP or PE) associated with this sample.
+     * @param event_id the event_id for this sample
+     * @param ds A Damaris DataSpace (essentially a shared_ptr).
+     */
+    void push_ds_ptr(int id, int event_id, const damaris::DataSpace<damaris::Buffer> ds);
+
+    bool remove_ds_ptr(int id);
+    bool remove_ds_ptr(int id, int event_id);
+
+    /**
      * @brief get the requested DataSpace
      * @param id Id of the entity to search for.
      * @return A Damaris DataSpace (essentially a shared_ptr).
      */
-    damaris::DataSpace<damaris::Buffer> get_data_at(int id) { return ds_ptrs_[id]; }
-    std::unordered_map<int, damaris::DataSpace<damaris::Buffer>>::iterator
-        ds_ptrs_begin() { return ds_ptrs_.begin(); }
-    std::unordered_map<int, damaris::DataSpace<damaris::Buffer>>::iterator
-        ds_ptrs_end() { return ds_ptrs_.end(); }
+    damaris::DataSpace<damaris::Buffer> get_dataspace(int id);
+    damaris::DataSpace<damaris::Buffer> get_dataspace(int id, int event_id);
+
+    std::unordered_map<int, std::unordered_map<int,
+        damaris::DataSpace<damaris::Buffer>>>::iterator ds_ptrs_begin();
+    std::unordered_map<int, std::unordered_map<int,
+        damaris::DataSpace<damaris::Buffer>>>::iterator ds_ptrs_end();
+
+    std::unordered_map<int, damaris::DataSpace<damaris::Buffer>>::iterator start_iteration();
+    std::unordered_map<int, damaris::DataSpace<damaris::Buffer>>::iterator get_next_iterator();
+    std::unordered_map<int, damaris::DataSpace<damaris::Buffer>>::iterator end_iterator();
 
     /**
      * @brief get number of DataSpaces associated with this sampling point
@@ -65,8 +82,12 @@ private:
     /** is the Data speculative, committed, or invalid? */
     sample::DataStatus status_;
 
-    /** map of DataSpaces to their entity id (KP or PE) */
-    std::unordered_map<int, damaris::DataSpace<damaris::Buffer>> ds_ptrs_;
+    /** map of DataSpaces to their entity id (PE) */
+    std::unordered_map<int,
+        std::unordered_map<int, damaris::DataSpace<damaris::Buffer>>> ds_ptrs_;
+    std::unordered_map<int, std::unordered_map<
+        int, damaris::DataSpace<damaris::Buffer>>> outer_it_;
+    std::unordered_map<int, damaris::DataSpace<damaris::Buffer>> inner_it_;
 };
 
 } // end namespace data

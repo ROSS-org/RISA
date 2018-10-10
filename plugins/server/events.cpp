@@ -9,6 +9,7 @@
 
 #include <damaris/buffer/DataSpace.hpp>
 #include <damaris/buffer/Buffer.hpp>
+#include <damaris/data/Variable.hpp>
 
 using namespace ross_damaris::server;
 using namespace ross_damaris::sample;
@@ -57,18 +58,11 @@ void damaris_rank_end_iteration(const std::string& event, int32_t src, int32_t s
         begin++;
     }
 
-    if (DUtil::get_num_blocks("ross/vt_rb/ts", step) > 0)
-    {
-        // some of our model data has been invalidated
-        // get data for kp_gid, event_id
-
-    }
-
     // TODO this is just for now
     // eventually the data processor will be its own thread
     // and it will make the determination itself when and what data
     // to forward on for streaming/writing
-    server->forward_data();
+    server->forward_data(step);
 }
 
 /**

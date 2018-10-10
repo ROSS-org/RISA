@@ -125,6 +125,8 @@ void FlatBufferHelper::start_sample(double vts, double rts, double gvt,
 void FlatBufferHelper::finish_sample()
 {
     int block = 0;
+    std::cout << "FBHelper finishing sample, entity_id " << entity_id_ << " event_id "
+        << event_id_ << endl;
     auto ds = CreateDamarisDataSampleDirect(fbb_, virtual_ts_, real_ts_, gvt_, mode_,
             &pes_, &kps_, &lps_, &model_lps_, entity_id_, event_id_);
     fbb_.Finish(ds);

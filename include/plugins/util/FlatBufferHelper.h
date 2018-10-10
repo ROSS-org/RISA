@@ -43,6 +43,8 @@ class FlatBufferHelper {
             real_ts_(0.0),
             gvt_(0.0),
             mode_(rds::InstMode_GVT),
+            entity_id_(-1),
+            event_id_(-1),
             max_sample_size_(524288),
             rt_block_(0),
             vt_block_(0) { }

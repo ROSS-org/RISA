@@ -103,13 +103,13 @@ void RDServer::process_sample(boost::shared_ptr<damaris::Block> block)
         auto sample_it = data_manager_->find_data(data_fb->mode(), ts);
         if (sample_it != data_manager_->end())
         {
-            (*sample_it)->push_ds_ptr(id, ds);
+            (*sample_it)->push_ds_ptr(id, data_fb->event_id(), ds);
             cout << "num ds_ptrs " << (*sample_it)->get_ds_ptr_size() << endl;
         }
         else // couldn't find it
         {
             DataSample s(ts, data_fb->mode(), DataStatus_speculative);
-            s.push_ds_ptr(id, ds);
+            s.push_ds_ptr(id, data_fb->event_id(), ds);
             data_manager_->insert_data(std::move(s));
             data_manager_->print_manager_info();
         }
@@ -125,8 +125,8 @@ void RDServer::process_sample(boost::shared_ptr<damaris::Block> block)
         //auto mode = data_fb->mode();
 }
 
-void RDServer::forward_data()
+void RDServer::forward_data(int32_t step)
 {
-    processor_->forward_data(cur_mode_, cur_ts_);
+    processor_->forward_data(cur_mode_, cur_ts_, step);
 }
 

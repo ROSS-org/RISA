@@ -61,7 +61,8 @@ public:
      * Probably Temporary. Combines flatbuffers for a given
      * sample and puts in StreamClient buffer.
      */
-    void forward_data(sample::InstMode mode, double ts);
+    void forward_data(sample::InstMode mode, double ts, int32_t step);
+    void invalidate_data(double ts, int32_t step);
 
     /**
      * @brief NOT IMPLEMENTED YET

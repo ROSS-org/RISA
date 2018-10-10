@@ -103,18 +103,17 @@ inline const char *EnumNameInstMode(InstMode e) {
   return EnumNamesInstMode()[index];
 }
 
+/// To determine the status of a particular data sample
 enum DataStatus {
-  DataStatus_none = 0,
-  DataStatus_speculative = 1,
-  DataStatus_committed = 2,
-  DataStatus_invalid = 3,
-  DataStatus_MIN = DataStatus_none,
+  DataStatus_speculative = 0,
+  DataStatus_committed = 1,
+  DataStatus_invalid = 2,
+  DataStatus_MIN = DataStatus_speculative,
   DataStatus_MAX = DataStatus_invalid
 };
 
-inline const DataStatus (&EnumValuesDataStatus())[4] {
+inline const DataStatus (&EnumValuesDataStatus())[3] {
   static const DataStatus values[] = {
-    DataStatus_none,
     DataStatus_speculative,
     DataStatus_committed,
     DataStatus_invalid
@@ -124,7 +123,6 @@ inline const DataStatus (&EnumValuesDataStatus())[4] {
 
 inline const char * const *EnumNamesDataStatus() {
   static const char * const names[] = {
-    "none",
     "speculative",
     "committed",
     "invalid",
@@ -138,6 +136,7 @@ inline const char *EnumNameDataStatus(DataStatus e) {
   return EnumNamesDataStatus()[index];
 }
 
+/// To be used by model metrics
 enum VariableType {
   VariableType_NONE = 0,
   VariableType_IntVar = 1,
@@ -318,8 +317,7 @@ struct SimEngineMetricsT : public flatbuffers::NativeTable {
   }
 };
 
-/// Sim engine metrics that are collected by Damaris
-/// These should have the same variable names as supplied in Damaris XML file!
+/// Sim engine metrics that are collected by ROSS instrumentation
 struct SimEngineMetrics FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef SimEngineMetricsT NativeTableType;
   static const flatbuffers::TypeTable *MiniReflectTypeTable() {
@@ -1364,13 +1362,15 @@ struct DamarisDataSampleT : public flatbuffers::NativeTable {
   std::vector<std::unique_ptr<ModelLPT>> model_data;
   int32_t entity_id;
   int32_t event_id;
+  DataStatus status;
   DamarisDataSampleT()
       : virtual_ts(0.0),
         real_ts(0.0),
         last_gvt(0.0),
         mode(InstMode_none),
         entity_id(-1),
-        event_id(-1) {
+        event_id(-1),
+        status(DataStatus_speculative) {
   }
 };
 
@@ -1389,7 +1389,8 @@ struct DamarisDataSample FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_LP_DATA = 16,
     VT_MODEL_DATA = 18,
     VT_ENTITY_ID = 20,
-    VT_EVENT_ID = 22
+    VT_EVENT_ID = 22,
+    VT_STATUS = 24
   };
   double virtual_ts() const {
     return GetField<double>(VT_VIRTUAL_TS, 0.0);
@@ -1415,12 +1416,15 @@ struct DamarisDataSample FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::Vector<flatbuffers::Offset<ModelLP>> *model_data() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<ModelLP>> *>(VT_MODEL_DATA);
   }
-  /// next two used for internal info
+  /// next three used for internal info
   int32_t entity_id() const {
     return GetField<int32_t>(VT_ENTITY_ID, -1);
   }
   int32_t event_id() const {
     return GetField<int32_t>(VT_EVENT_ID, -1);
+  }
+  DataStatus status() const {
+    return static_cast<DataStatus>(GetField<int32_t>(VT_STATUS, 0));
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -1442,6 +1446,7 @@ struct DamarisDataSample FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyVectorOfTables(model_data()) &&
            VerifyField<int32_t>(verifier, VT_ENTITY_ID) &&
            VerifyField<int32_t>(verifier, VT_EVENT_ID) &&
+           VerifyField<int32_t>(verifier, VT_STATUS) &&
            verifier.EndTable();
   }
   DamarisDataSampleT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -1482,6 +1487,9 @@ struct DamarisDataSampleBuilder {
   void add_event_id(int32_t event_id) {
     fbb_.AddElement<int32_t>(DamarisDataSample::VT_EVENT_ID, event_id, -1);
   }
+  void add_status(DataStatus status) {
+    fbb_.AddElement<int32_t>(DamarisDataSample::VT_STATUS, static_cast<int32_t>(status), 0);
+  }
   explicit DamarisDataSampleBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -1505,11 +1513,13 @@ inline flatbuffers::Offset<DamarisDataSample> CreateDamarisDataSample(
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<LPData>>> lp_data = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<ModelLP>>> model_data = 0,
     int32_t entity_id = -1,
-    int32_t event_id = -1) {
+    int32_t event_id = -1,
+    DataStatus status = DataStatus_speculative) {
   DamarisDataSampleBuilder builder_(_fbb);
   builder_.add_last_gvt(last_gvt);
   builder_.add_real_ts(real_ts);
   builder_.add_virtual_ts(virtual_ts);
+  builder_.add_status(status);
   builder_.add_event_id(event_id);
   builder_.add_entity_id(entity_id);
   builder_.add_model_data(model_data);
@@ -1531,7 +1541,8 @@ inline flatbuffers::Offset<DamarisDataSample> CreateDamarisDataSampleDirect(
     const std::vector<flatbuffers::Offset<LPData>> *lp_data = nullptr,
     const std::vector<flatbuffers::Offset<ModelLP>> *model_data = nullptr,
     int32_t entity_id = -1,
-    int32_t event_id = -1) {
+    int32_t event_id = -1,
+    DataStatus status = DataStatus_speculative) {
   return ross_damaris::sample::CreateDamarisDataSample(
       _fbb,
       virtual_ts,
@@ -1543,7 +1554,8 @@ inline flatbuffers::Offset<DamarisDataSample> CreateDamarisDataSampleDirect(
       lp_data ? _fbb.CreateVector<flatbuffers::Offset<LPData>>(*lp_data) : 0,
       model_data ? _fbb.CreateVector<flatbuffers::Offset<ModelLP>>(*model_data) : 0,
       entity_id,
-      event_id);
+      event_id,
+      status);
 }
 
 flatbuffers::Offset<DamarisDataSample> CreateDamarisDataSample(flatbuffers::FlatBufferBuilder &_fbb, const DamarisDataSampleT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -1935,6 +1947,7 @@ inline void DamarisDataSample::UnPackTo(DamarisDataSampleT *_o, const flatbuffer
   { auto _e = model_data(); if (_e) { _o->model_data.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->model_data[_i] = std::unique_ptr<ModelLPT>(_e->Get(_i)->UnPack(_resolver)); } } };
   { auto _e = entity_id(); _o->entity_id = _e; };
   { auto _e = event_id(); _o->event_id = _e; };
+  { auto _e = status(); _o->status = _e; };
 }
 
 inline flatbuffers::Offset<DamarisDataSample> DamarisDataSample::Pack(flatbuffers::FlatBufferBuilder &_fbb, const DamarisDataSampleT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -1955,6 +1968,7 @@ inline flatbuffers::Offset<DamarisDataSample> CreateDamarisDataSample(flatbuffer
   auto _model_data = _o->model_data.size() ? _fbb.CreateVector<flatbuffers::Offset<ModelLP>> (_o->model_data.size(), [](size_t i, _VectorArgs *__va) { return CreateModelLP(*__va->__fbb, __va->__o->model_data[i].get(), __va->__rehasher); }, &_va ) : 0;
   auto _entity_id = _o->entity_id;
   auto _event_id = _o->event_id;
+  auto _status = _o->status;
   return ross_damaris::sample::CreateDamarisDataSample(
       _fbb,
       _virtual_ts,
@@ -1966,7 +1980,8 @@ inline flatbuffers::Offset<DamarisDataSample> CreateDamarisDataSample(flatbuffer
       _lp_data,
       _model_data,
       _entity_id,
-      _event_id);
+      _event_id,
+      _status);
 }
 
 inline bool VerifyVariableType(flatbuffers::Verifier &verifier, const void *obj, VariableType type) {
@@ -2129,20 +2144,18 @@ inline const flatbuffers::TypeTable *DataStatusTypeTable() {
   static const flatbuffers::TypeCode type_codes[] = {
     { flatbuffers::ET_INT, 0, 0 },
     { flatbuffers::ET_INT, 0, 0 },
-    { flatbuffers::ET_INT, 0, 0 },
     { flatbuffers::ET_INT, 0, 0 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
     DataStatusTypeTable
   };
   static const char * const names[] = {
-    "none",
     "speculative",
     "committed",
     "invalid"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 4, type_codes, type_refs, nullptr, names
+    flatbuffers::ST_ENUM, 3, type_codes, type_refs, nullptr, names
   };
   return &tt;
 }
@@ -2402,14 +2415,16 @@ inline const flatbuffers::TypeTable *DamarisDataSampleTypeTable() {
     { flatbuffers::ET_SEQUENCE, 1, 3 },
     { flatbuffers::ET_SEQUENCE, 1, 4 },
     { flatbuffers::ET_INT, 0, -1 },
-    { flatbuffers::ET_INT, 0, -1 }
+    { flatbuffers::ET_INT, 0, -1 },
+    { flatbuffers::ET_INT, 0, 5 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
     InstModeTypeTable,
     PEDataTypeTable,
     KPDataTypeTable,
     LPDataTypeTable,
-    ModelLPTypeTable
+    ModelLPTypeTable,
+    DataStatusTypeTable
   };
   static const char * const names[] = {
     "virtual_ts",
@@ -2421,10 +2436,11 @@ inline const flatbuffers::TypeTable *DamarisDataSampleTypeTable() {
     "lp_data",
     "model_data",
     "entity_id",
-    "event_id"
+    "event_id",
+    "status"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_TABLE, 10, type_codes, type_refs, nullptr, names
+    flatbuffers::ST_TABLE, 11, type_codes, type_refs, nullptr, names
   };
   return &tt;
 }

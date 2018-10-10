@@ -15,7 +15,6 @@ enum InstMode:int {
 
 /// To determine the status of a particular data sample
 enum DataStatus:int {
-    none,
     speculative,
     committed,
     invalid
@@ -115,9 +114,10 @@ table DamarisDataSample {
     lp_data:[LPData];
     model_data:[ModelLP];
     //model_data:int (hash: "fnv1_32", cpp_type: "ModelData");
-    /// next two used for internal info
+    /// next three used for internal info
     entity_id:int = -1;
     event_id:int = -1;
+    status:DataStatus = speculative;
 }
 
 root_type DamarisDataSample;
