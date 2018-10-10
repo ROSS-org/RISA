@@ -10,7 +10,7 @@ void DataSample::push_ds_ptr(int id, const damaris::DataSpace<damaris::Buffer> d
 
 void DataSample::push_ds_ptr(int id, int event_id, const damaris::DataSpace<damaris::Buffer> ds)
 {
-    std::cout << "push_ds_ptr id " << id << " event_id " << event_id << "\n";
+    std::cout << "[DataSample] push_ds_ptr id " << id << " event_id " << event_id << "\n";
     std::unordered_map<int, damaris::DataSpace<damaris::Buffer>>& entity_map = ds_ptrs_[id];
     entity_map[event_id] = ds;
 }
@@ -33,6 +33,7 @@ bool DataSample::remove_ds_ptr(int id)
 
 bool DataSample::remove_ds_ptr(int id, int event_id)
 {
+    std::cout << "[DataSample] remove_ds_ptr id " << id << " event_id " << event_id << "\n";
     auto entity_map = ds_ptrs_[id];
     auto rv = entity_map.erase(event_id);
     if (entity_map.empty())

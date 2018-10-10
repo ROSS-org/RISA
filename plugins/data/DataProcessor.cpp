@@ -36,8 +36,8 @@ void DataProcessor::forward_model_data()
 // For now, we're only supporting model data in VT mode
 void DataProcessor::forward_data(InstMode mode, double ts, int32_t step)
 {
-    if (mode == InstMode_VT)
-        invalidate_data(ts, step);
+    //if (mode == InstMode_VT)
+    //    invalidate_data(ts, step);
 
     SamplesByKey::iterator it, end;
     //auto it = data_manager_->find_data(mode, ts);

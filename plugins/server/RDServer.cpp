@@ -22,6 +22,7 @@ namespace bip = boost::asio::ip;
 RDServer::RDServer() :
         cur_mode_(sample::InstMode_GVT),
         cur_ts_(0.0),
+        last_gvt_(0.0),
         client_(boost::make_shared<streaming::StreamClient>(streaming::StreamClient())),
         sim_config_(boost::make_shared<config::SimConfig>(config::SimConfig())),
         data_manager_(boost::make_shared<data::DataManager>(data::DataManager()))
@@ -77,6 +78,13 @@ void RDServer::finalize()
         client_->close();
 }
 
+void RDServer::update_gvt(int32_t step)
+{
+    last_gvt_ = *(static_cast<double*>(DUtil::get_value_from_damaris("ross/last_gvt",
+                    0, step, 0)));
+    cout << "[RDServer] last GVT " << last_gvt_ << endl;
+}
+
 void RDServer::process_sample(boost::shared_ptr<damaris::Block> block)
 {
         damaris::DataSpace<damaris::Buffer> ds(block->GetDataSpace());
@@ -104,14 +112,14 @@ void RDServer::process_sample(boost::shared_ptr<damaris::Block> block)
         if (sample_it != data_manager_->end())
         {
             (*sample_it)->push_ds_ptr(id, data_fb->event_id(), ds);
-            cout << "num ds_ptrs " << (*sample_it)->get_ds_ptr_size() << endl;
+            //cout << "num ds_ptrs " << (*sample_it)->get_ds_ptr_size() << endl;
         }
         else // couldn't find it
         {
             DataSample s(ts, data_fb->mode(), DataStatus_speculative);
             s.push_ds_ptr(id, data_fb->event_id(), ds);
             data_manager_->insert_data(std::move(s));
-            data_manager_->print_manager_info();
+            //data_manager_->print_manager_info();
         }
 
         cur_mode_ = data_fb->mode();
@@ -127,6 +135,9 @@ void RDServer::process_sample(boost::shared_ptr<damaris::Block> block)
 
 void RDServer::forward_data(int32_t step)
 {
-    processor_->forward_data(cur_mode_, cur_ts_, step);
+    if (cur_mode_ == InstMode_VT)
+        processor_->forward_data(cur_mode_, last_gvt_, step);
+    else
+        processor_->forward_data(cur_mode_, cur_ts_, step);
 }
 

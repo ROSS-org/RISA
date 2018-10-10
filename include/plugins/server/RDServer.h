@@ -43,6 +43,8 @@ public:
      */
     void finalize();
 
+    void update_gvt(int32_t step);
+
     /**
      * @brief Initial data processing to place into DataManager
      *
@@ -78,6 +80,7 @@ private:
     boost::shared_ptr<data::DataManager> data_manager_;
     sample::InstMode cur_mode_;
     double cur_ts_;
+    double last_gvt_;
 
     void setup_data_processing();
 };

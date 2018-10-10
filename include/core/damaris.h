@@ -53,7 +53,7 @@ void st_damaris_expose_data(tw_pe *me, int inst_type);
  * Iterations should always end at GVT (though it doesn't have to be every GVT), because
  * the call to damaris_end_iteration() contains a collective call.
  */
-void st_damaris_end_iteration(void);
+void st_damaris_end_iteration(tw_stime gvt);
 
 /**
  * @brief Make Damaris error checking easier.

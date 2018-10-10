@@ -194,7 +194,7 @@ void st_damaris_expose_data(tw_pe *me, int inst_type)
 
         if (engine_modes[inst_type])
         {
-            printf("[%f] PE %ld: sampling sim engine data type: %d\n", current_rt, g_tw_mynode, inst_type);
+            //printf("[%f] PE %ld: sampling sim engine data type: %d\n", current_rt, g_tw_mynode, inst_type);
             // collect data for each entity
             if (g_st_pe_data)
                 st_damaris_sample_pe_data(me, &last_pe_stats[inst_type], inst_type);
@@ -206,7 +206,7 @@ void st_damaris_expose_data(tw_pe *me, int inst_type)
 
         if (model_modes[inst_type])
         {
-            printf("PE %ld: sampling model data type: %d\n", g_tw_mynode, inst_type);
+            //printf("PE %ld: sampling model data type: %d\n", g_tw_mynode, inst_type);
             st_damaris_sample_model_data(NULL, 0);
         }
 
@@ -228,7 +228,7 @@ void st_damaris_signal_init()
  * Iterations should always end at GVT (though it doesn't have to be every GVT), because
  * the call to damaris_end_iteration() contains a collective call.
  */
-void st_damaris_end_iteration()
+void st_damaris_end_iteration(tw_stime gvt)
 {
     int err;
     if ((err = damaris_signal("damaris_gc")) != DAMARIS_OK)
@@ -236,6 +236,9 @@ void st_damaris_end_iteration()
 
     if (g_tw_gvt_done % g_st_num_gvt == 0)
     {
+        if ((err = damaris_write("ross/last_gvt", &gvt)) != DAMARIS_OK)
+            st_damaris_error(TW_LOC, err, "ross/last_gvt");
+
         if ((err = damaris_end_iteration()) != DAMARIS_OK)
             st_damaris_error(TW_LOC, err, "end iteration");
         printf("[%f] PE %ld damaris_end_iteration\n", g_tw_pe[0]->GVT, g_tw_mynode);

@@ -125,8 +125,6 @@ void FlatBufferHelper::start_sample(double vts, double rts, double gvt,
 void FlatBufferHelper::finish_sample()
 {
     int block = 0;
-    std::cout << "FBHelper finishing sample, entity_id " << entity_id_ << " event_id "
-        << event_id_ << endl;
     auto ds = CreateDamarisDataSampleDirect(fbb_, virtual_ts_, real_ts_, gvt_, mode_,
             &pes_, &kps_, &lps_, &model_lps_, entity_id_, event_id_);
     fbb_.Finish(ds);
@@ -159,7 +157,7 @@ void FlatBufferHelper::finish_sample()
 
     //if ((err = damaris_write_block("ross/sample_size", block, &size)) != DAMARIS_OK)
     //    st_damaris_error(TW_LOC, err, "ross/sample_size");
-    cout << "PE " << g_tw_mynode << ": writing to damaris ross/sample to block " << block << endl;
+    //cout << "PE " << g_tw_mynode << ": writing to damaris ross/sample to block " << block << endl;
     if ((err = damaris_write_block("ross/sample", block, &buf[0])) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, "ross/sample");
 }

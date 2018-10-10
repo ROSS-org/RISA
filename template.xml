@@ -38,6 +38,7 @@
             <variable name="inst_config" layout="inst_config_layout" visualizable="false" time-varying="false" />
             <variable name="nlp" layout="int" visualizable="false" time-varying="false" />
             <variable name="nkp" layout="int" visualizable="false" time-varying="false" />
+            <variable name="last_gvt" layout="double" time-varying="true" />
 
             <!-- for dealing with RB related stuff -->
             <group name="vt_rb">
