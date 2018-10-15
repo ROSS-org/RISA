@@ -30,9 +30,9 @@ void damaris_rank_init(const std::string& event, int32_t src, int32_t step, cons
     (void) src;
     (void) step;
     (void) args;
-    cout << "damaris_rank_init() step " << step << endl;
+    //cout << "damaris_rank_init() step " << step << endl;
     server.reset(new RDServer());
-    cout << "end of damaris_rank_init()\n";
+    //cout << "end of damaris_rank_init()\n";
 }
 
 /**
@@ -79,9 +79,9 @@ void damaris_rank_finalize(const std::string& event, int32_t src, int32_t step, 
     (void) src;
     (void) step;
     (void) args;
-    cout << "damaris_rank_finalize() step " << step << endl;
+    //cout << "damaris_rank_finalize() step " << step << endl;
     server->finalize();
-    cout << "end of damaris_rank_finalize()\n";
+    //cout << "end of damaris_rank_finalize()\n";
 }
 
 }

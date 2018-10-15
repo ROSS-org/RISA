@@ -48,7 +48,7 @@ RDServer::RDServer() :
     ifstream ifs(config_file.c_str());
     SimConfig::parse_file(ifs, opts, vars);
     sim_config_->set_parameters(vars);
-    sim_config_->print_parameters();
+    //sim_config_->print_parameters();
 
     if (sim_config_->write_data_)
         data_file_.open("test-fb.bin", ios::out | ios::trunc | ios::binary);
@@ -82,7 +82,7 @@ void RDServer::update_gvt(int32_t step)
 {
     last_gvt_ = *(static_cast<double*>(DUtil::get_value_from_damaris("ross/last_gvt",
                     0, step, 0)));
-    cout << "[RDServer] last GVT " << last_gvt_ << endl;
+    //cout << "[RDServer] last GVT " << last_gvt_ << endl;
 }
 
 void RDServer::process_sample(boost::shared_ptr<damaris::Block> block)

@@ -241,7 +241,7 @@ void st_damaris_end_iteration(tw_stime gvt)
 
         if ((err = damaris_end_iteration()) != DAMARIS_OK)
             st_damaris_error(TW_LOC, err, "end iteration");
-        printf("[%f] PE %ld damaris_end_iteration\n", g_tw_pe[0]->GVT, g_tw_mynode);
+        //printf("[%f] PE %ld damaris_end_iteration\n", g_tw_pe[0]->GVT, g_tw_mynode);
         if ((err = damaris_signal("end_iteration")) != DAMARIS_OK)
             st_damaris_error(TW_LOC, err, "end_iteration");
     }
