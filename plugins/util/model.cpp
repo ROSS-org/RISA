@@ -35,9 +35,9 @@ void st_damaris_start_sample_vt(double vts, double rts, double gvt, int inst_typ
     mfb.start_sample(vts, rts, gvt, mode, entity_id, event_id);
 }
 
-void st_damaris_finish_sample()
+void *st_damaris_finish_sample(size_t *offset)
 {
-    mfb.finish_sample();
+        return mfb.finish_sample(offset);
 }
 
 void st_damaris_sample_pe_data(tw_pe *pe, tw_statistics *last_pe_stats, int inst_type)
@@ -162,6 +162,16 @@ void st_damaris_reset_block_counters()
     block = 0;
 }
 
+void st_damaris_set_rc_data(uint8_t *raw, size_t offset)
+{
+    mfb.set_rc_data(raw, offset);
+}
+
+void st_damaris_delete_rc_data()
+{
+    mfb.delete_rc_data();
+}
+
 // have C wrapper functions specific to data type
 // main function will use templates
 // this function can be called by a model to save a specific model variable
@@ -183,5 +193,25 @@ void st_damaris_save_model_variable_float(int lpid, const char* lp_type, const c
 void st_damaris_save_model_variable_double(int lpid, const char* lp_type, const char* var_name, double *data, size_t num_elements)
 {
     mfb.save_model_variable(lpid, lp_type, var_name, data, num_elements);
+}
+
+const int* st_damaris_get_model_variable_int(int lpid, const char* lp_type, const char* var_name, size_t *num_elements)
+{
+    return mfb.get_model_variable<int>(lpid, lp_type, var_name, num_elements);
+}
+
+const long* st_damaris_get_model_variable_long(int lpid, const char* lp_type, const char* var_name, size_t *num_elements)
+{
+    return mfb.get_model_variable<long>(lpid, lp_type, var_name, num_elements);
+}
+
+const float* st_damaris_get_model_variable_float(int lpid, const char* lp_type, const char* var_name, size_t *num_elements)
+{
+    return mfb.get_model_variable<float>(lpid, lp_type, var_name, num_elements);
+}
+
+const double* st_damaris_get_model_variable_double(int lpid, const char* lp_type, const char* var_name, size_t *num_elements)
+{
+    return mfb.get_model_variable<double>(lpid, lp_type, var_name, num_elements);
 }
 

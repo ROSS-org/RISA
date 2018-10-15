@@ -210,7 +210,7 @@ void st_damaris_expose_data(tw_pe *me, int inst_type)
             st_damaris_sample_model_data(NULL, 0);
         }
 
-        st_damaris_finish_sample();
+        st_damaris_finish_sample(NULL);
     }
 }
 

@@ -122,7 +122,7 @@ void FlatBufferHelper::start_sample(double vts, double rts, double gvt,
     event_id_ = event_id;
 }
 
-void FlatBufferHelper::finish_sample()
+uint8_t *FlatBufferHelper::finish_sample(size_t* offset)
 {
     int block = 0;
     auto ds = CreateDamarisDataSampleDirect(fbb_, virtual_ts_, real_ts_, gvt_, mode_,
@@ -130,8 +130,19 @@ void FlatBufferHelper::finish_sample()
     fbb_.Finish(ds);
 
     // now get the pointer and size and expose to Damaris
-    uint8_t *buf = fbb_.GetBufferPointer();
+    uint8_t *buf;
+    uint8_t *raw;
     int size = fbb_.GetSize();
+    if (offset == NULL)
+    {
+        buf = fbb_.GetBufferPointer();
+    }
+    else
+    {
+        size_t tmp;
+        raw = fbb_.ReleaseRaw(tmp, *offset);
+        buf = &raw[*offset];
+    }
     int err;
     // I think damaris parameters may not actually use the default value that you can supposedly set in the XML file...
     // OR damaris doesn't like it when the amount we write is not exactly the same size as we tell it
@@ -160,6 +171,25 @@ void FlatBufferHelper::finish_sample()
     //cout << "PE " << g_tw_mynode << ": writing to damaris ross/sample to block " << block << endl;
     if ((err = damaris_write_block("ross/sample", block, &buf[0])) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, "ross/sample");
+
+    if (offset == NULL)
+        return NULL;
+    else
+        return raw;
+}
+
+void FlatBufferHelper::set_rc_data(uint8_t *raw, size_t offset)
+{
+    cur_rc_raw_ = raw;
+    uint8_t *data = &raw[offset];
+    cur_rc_fb_ = GetDamarisDataSample(data);
+}
+
+void FlatBufferHelper::delete_rc_data()
+{
+    cur_rc_fb_ = NULL;
+    // since we have this data, we know we stole ownership of it, so we need to delete
+    delete[] cur_rc_raw_;
 }
 
 void FlatBufferHelper::reset_block_counters()
@@ -215,6 +245,38 @@ template <>
 VariableType FlatBufferHelper::get_var_value_type<double>()
 {
     return VariableType_DoubleVar;
+}
+
+template <>
+const int* FlatBufferHelper::get_variable_data<int>(const ModelVariable *v, size_t *num_elements)
+{
+    auto var_value = v->var_value_as_IntVar()->value();
+    *num_elements = var_value->size();
+    return var_value->data();
+}
+
+template <>
+const long* FlatBufferHelper::get_variable_data<long>(const ModelVariable *v, size_t *num_elements)
+{
+    auto var_value = v->var_value_as_LongVar()->value();
+    *num_elements = var_value->size();
+    return var_value->data();
+}
+
+template <>
+const float* FlatBufferHelper::get_variable_data<float>(const ModelVariable *v, size_t *num_elements)
+{
+    auto var_value = v->var_value_as_FloatVar()->value();
+    *num_elements = var_value->size();
+    return var_value->data();
+}
+
+template <>
+const double* FlatBufferHelper::get_variable_data<double>(const ModelVariable *v, size_t *num_elements)
+{
+    auto var_value = v->var_value_as_DoubleVar()->value();
+    *num_elements = var_value->size();
+    return var_value->data();
 }
 
 } // end namespace util
