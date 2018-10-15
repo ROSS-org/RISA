@@ -49,3 +49,8 @@ void DataManager::print_manager_info()
 {
     cout << "[DataManager] index size " << data_index_.size() << endl;
 }
+
+void DataManager::clear()
+{
+    data_index_.clear();
+}

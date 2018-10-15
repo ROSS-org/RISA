@@ -76,6 +76,8 @@ void RDServer::finalize()
 
     if (sim_config_->stream_data_)
         client_->close();
+
+    data_manager_->clear();
 }
 
 void RDServer::update_gvt(int32_t step)

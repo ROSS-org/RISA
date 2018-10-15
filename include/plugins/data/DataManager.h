@@ -49,6 +49,7 @@ public:
     const SamplesByKey::iterator& get_recent_key_iterator();
 
     void print_manager_info();
+    void clear();
 
 private:
     SampleIndex data_index_;
