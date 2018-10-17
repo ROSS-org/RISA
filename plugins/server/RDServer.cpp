@@ -27,24 +27,41 @@ RDServer::RDServer() :
         sim_config_(boost::make_shared<config::SimConfig>(config::SimConfig())),
         data_manager_(boost::make_shared<data::DataManager>(data::DataManager()))
 {
-    sim_config_->total_pe_ = damaris::Environment::CountTotalClients();
-    // TODO ClientsPerNode is number of ROSS PEs per Damaris server, I think
-    // need to double check
-    sim_config_->num_local_pe_ = damaris::Environment::ClientsPerNode();
+    //cout << "IsClient() " << damaris::Environment::IsClient() << endl;
+    //cout << "IsServer() " << damaris::Environment::IsServer() << endl;
+    //cout << "IsDedicatedCore() " << damaris::Environment::IsDedicatedCore() << endl;
+    //cout << "IsDedicatedNode() " << damaris::Environment::IsDedicatedNode() << endl;
+    //cout << "ClientsPerNode() " << damaris::Environment::ClientsPerNode() << endl;
+    //cout << "CoresPerNode() " << damaris::Environment::CoresPerNode() << endl;
+    //cout << "ServersPerNode() " << damaris::Environment::ServersPerNode() << endl;
+    //cout << "CountTotalClients() " << damaris::Environment::CountTotalClients() << endl;
+    //cout << "CountTotalServers() " << damaris::Environment::CountTotalServers() << endl;
+    // I think CountTotalClients() is computed incorrectly in Damaris if you have
+    // more than one Damaris Rank per node
+    // CountTotalServers() seems to only be Damaris Ranks
+    sim_config_->num_local_pe_ = damaris::Environment::ClientsPerNode() /
+            damaris::Environment::ServersPerNode();
+    //cout << "My PEs: " << sim_config_->num_local_pe_ << endl;
+    sim_config_->total_pe_ = sim_config_->num_local_pe_ *
+            damaris::Environment::CountTotalServers();
+    //cout << "Total PEs: " << sim_config_->total_pe_ << endl;
 
+    int my_id = damaris::Environment::GetEntityProcessID();
     // TODO should this be for this Server's PEs or all PEs?
-    for (int i = 0; i < sim_config_->num_local_pe_; i++)
+    my_pes_ = damaris::Environment::GetKnownLocalClients();
+    for (int pe : my_pes_)
     {
-        auto val = *(static_cast<int*>(DUtil::get_value_from_damaris("ross/nlp", i, 0, 0)));
+        cout << "[" << my_id << "] pe: " << pe << endl;
+        auto val = *(static_cast<int*>(DUtil::get_value_from_damaris("ross/nlp", pe, 0, 0)));
         sim_config_->num_lp_.push_back(val);
+        sim_config_->num_kp_pe_ = *(static_cast<int*>(DUtil::get_value_from_damaris(
+                        "ross/nkp", pe, 0, 0)));
     }
-    sim_config_->num_kp_pe_ = *(static_cast<int*>(DUtil::get_value_from_damaris(
-                    "ross/nkp", 1, 0, 0)));
 
     auto opts = SimConfig::set_options();
     po::variables_map vars;
     string config_file = &((char *)DUtil::get_value_from_damaris(
-                "ross/inst_config", 0, 0, 0))[0];
+                "ross/inst_config", my_pes_.front(), 0, 0))[0];
     ifstream ifs(config_file.c_str());
     SimConfig::parse_file(ifs, opts, vars);
     sim_config_->set_parameters(vars);
@@ -83,7 +100,7 @@ void RDServer::finalize()
 void RDServer::update_gvt(int32_t step)
 {
     last_gvt_ = *(static_cast<double*>(DUtil::get_value_from_damaris("ross/last_gvt",
-                    0, step, 0)));
+                    my_pes_.front(), step, 0)));
     //cout << "[RDServer] last GVT " << last_gvt_ << endl;
 }
 

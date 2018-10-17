@@ -17,6 +17,7 @@
 #include <boost/asio.hpp>
 #include <plugins/flatbuffers/data_sample_generated.h>
 #include <plugins/util/SimConfig.h>
+#include <damaris/env/Environment.hpp>
 
 
 namespace ross_damaris {
@@ -35,13 +36,16 @@ public:
         resolver_(service_),
         connected_(false),
         t_(nullptr),
-        sim_config_(nullptr) {  }
+        sim_config_(nullptr) {
+            process_id_ = damaris::Environment::GetEntityProcessID();
+        }
 
     StreamClient(StreamClient&& sc) :
         socket_(service_),
         resolver_(service_),
         connected_(sc.connected_),
         t_(sc.t_),
+        process_id_(sc.process_id_),
         sim_config_(std::move(sc.sim_config_)),
         write_msgs_(std::move(sc.write_msgs_)) {  }
 
@@ -102,6 +106,7 @@ private:
         }
     };
 
+    int process_id_;
     typedef std::deque<sample_msg*> sample_queue;
     sample_queue write_msgs_;
 

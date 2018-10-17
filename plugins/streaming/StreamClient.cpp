@@ -13,7 +13,7 @@ using namespace std;
 
 void StreamClient::connect()
 {
-        cout << "[StreamClient] Attempting to setup connection to " <<
+        cout << "[StreamClient " << process_id_ << "] Attempting to setup connection to " <<
             sim_config_->stream_addr() << ":" << sim_config_->stream_port() << endl;
         tcp::resolver::query q(sim_config_->stream_addr(), sim_config_->stream_port());
         auto it = resolver_.resolve(q);
@@ -48,11 +48,11 @@ void StreamClient::close()
     if (!connected_)
         return;
     if (!write_msgs_.empty())
-        cout << "[StreamClient] closing socket, but there are still messages queued!\n";
+        cout << "[StreamClient " << process_id_ << "] closing socket, but there are still messages queued!\n";
 
     service_.post(
             [this]() {
-                cout << "[StreamClient] closing socket\n";
+                cout << "[StreamClient " << process_id_ << "] closing socket\n";
                 connected_ = false;
                 socket_.close();
             });
@@ -66,14 +66,14 @@ void StreamClient::do_connect(tcp::resolver::iterator it)
                 if (ec)
                 {
                     cout << ec.category().name() << " error " << ec.value();
-                    cout << ": StreamClient do_connect() " << ec.message();
+                    cout << ": StreamClient " << process_id_ << " do_connect() " << ec.message();
                     cout << ". Closing Socket\n";
                     connected_ = false;
                     socket_.close();
                 }
                 else
                 {
-                    cout << "[StreamClient] successfully connected!\n" << endl;
+                    cout << "[StreamClient " << process_id_ << "] successfully connected!\n" << endl;
                     connected_ = true;
                     do_read();
                 }
@@ -104,7 +104,7 @@ void StreamClient::do_write()
                 else
                 {
                     cout << ec.category().name() << " error " << ec.value();
-                    cout << ": StreamClient do_write() " << ec.message();
+                    cout << ": StreamClient " << process_id_ << " do_write() " << ec.message();
                     cout << ". Closing Socket\n";
                     connected_ = false;
                     socket_.close();
@@ -132,7 +132,7 @@ void StreamClient::do_read()
                 else
                 {
                     cout << ec.category().name() << " error " << ec.value();
-                    cout << ": StreamClient do_read() " << ec.message();
+                    cout << ": StreamClient " << process_id_ << " do_read() " << ec.message();
                     cout << ". Closing Socket\n";
                     connected_ = false;
                     socket_.close();

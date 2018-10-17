@@ -81,6 +81,7 @@ private:
     sample::InstMode cur_mode_;
     double cur_ts_;
     double last_gvt_;
+    std::list<int> my_pes_;
 
     void setup_data_processing();
 };

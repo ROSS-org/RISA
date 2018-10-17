@@ -3,7 +3,7 @@
     language="c" xmlns="http://damaris.gforge.inria.fr/damaris/model">
     <architecture>
         <domains count="100"/>
-        <dedicated cores="1" nodes="0"/>
+        <dedicated cores="2" nodes="0"/>
         <buffer name="buffer" size="67108864"/>
         <queue name="queue" size="100"/>
     </architecture>
