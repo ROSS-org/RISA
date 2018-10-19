@@ -12,10 +12,10 @@ int main(int argc, char *argv[])
 {
     int buf_size = 1762114;
 	char *data = new char[buf_size];
-    flatbuffers::uoffset_t length;
+    int length;
 	streampos total_size;
     streampos pos = 0;
-	
+
 	ifstream file(argv[1], ios::in | ios::binary | ios::ate);
 	if (file.is_open())
 	{
@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
 	}
 
 
-	
+
 
     return 0;
 }

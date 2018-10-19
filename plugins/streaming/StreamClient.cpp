@@ -32,7 +32,7 @@ void StreamClient::enqueue_data(DamarisDataSampleT* samp)
     auto samp_fb = DamarisDataSample::Pack(fbb, samp);
     fbb.Finish(samp_fb);
     sample_msg *msg = new sample_msg();
-    msg->size_ = fbb.GetSize();
+    msg->size_ = static_cast<int>(fbb.GetSize());
 
     // Get the fb to release the raw pointer to us,
     // so it doesn't disappear before we actually send it
@@ -86,7 +86,7 @@ void StreamClient::do_write()
         return;
     std::vector<boost::asio::const_buffer> buf;
     buf.push_back(boost::asio::buffer(&write_msgs_.front()->size_,
-                sizeof(flatbuffers::uoffset_t)));
+                sizeof(write_msgs_.front()->size_)));
     buf.push_back(boost::asio::buffer(write_msgs_.front()->data_, write_msgs_.front()->size_));
     boost::asio::async_write(socket_, buf,
             [this](boost::system::error_code ec, std::size_t /*length*/)
