@@ -21,7 +21,7 @@ void FlatBufferHelper::finish_lp_model_sample()
     auto model_lp = CreateModelLPDirect(fbb_, cur_lpid_, cur_lp_type_.c_str(), &cur_lp_vars_);
     model_lps_.push_back(model_lp);
 
-    // cleanup cur lp tracking info
+    // clean up cur lp tracking info
     cur_lp_type_ = "";
     cur_lpid_ = -1;
     cur_lp_vars_.clear();

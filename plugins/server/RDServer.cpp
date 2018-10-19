@@ -27,15 +27,16 @@ RDServer::RDServer() :
         sim_config_(boost::make_shared<config::SimConfig>(config::SimConfig())),
         data_manager_(boost::make_shared<data::DataManager>(data::DataManager()))
 {
+    int my_id = damaris::Environment::GetEntityProcessID();
     //cout << "IsClient() " << damaris::Environment::IsClient() << endl;
     //cout << "IsServer() " << damaris::Environment::IsServer() << endl;
     //cout << "IsDedicatedCore() " << damaris::Environment::IsDedicatedCore() << endl;
     //cout << "IsDedicatedNode() " << damaris::Environment::IsDedicatedNode() << endl;
-    //cout << "ClientsPerNode() " << damaris::Environment::ClientsPerNode() << endl;
-    //cout << "CoresPerNode() " << damaris::Environment::CoresPerNode() << endl;
-    //cout << "ServersPerNode() " << damaris::Environment::ServersPerNode() << endl;
-    //cout << "CountTotalClients() " << damaris::Environment::CountTotalClients() << endl;
-    //cout << "CountTotalServers() " << damaris::Environment::CountTotalServers() << endl;
+    //cout << "[" << my_id << "] ClientsPerNode() " << damaris::Environment::ClientsPerNode() << endl;
+    //cout << "[" << my_id << "] CoresPerNode() " << damaris::Environment::CoresPerNode() << endl;
+    //cout << "[" << my_id << "] ServersPerNode() " << damaris::Environment::ServersPerNode() << endl;
+    //cout << "[" << my_id << "] CountTotalClients() " << damaris::Environment::CountTotalClients() << endl;
+    //cout << "[" << my_id << "] CountTotalServers() " << damaris::Environment::CountTotalServers() << endl;
     // I think CountTotalClients() is computed incorrectly in Damaris if you have
     // more than one Damaris Rank per node
     // CountTotalServers() seems to only be Damaris Ranks
@@ -46,12 +47,11 @@ RDServer::RDServer() :
             damaris::Environment::CountTotalServers();
     //cout << "Total PEs: " << sim_config_->total_pe_ << endl;
 
-    int my_id = damaris::Environment::GetEntityProcessID();
     // TODO should this be for this Server's PEs or all PEs?
     my_pes_ = damaris::Environment::GetKnownLocalClients();
     for (int pe : my_pes_)
     {
-        cout << "[" << my_id << "] pe: " << pe << endl;
+        //cout << "[" << my_id << "] pe: " << pe << endl;
         auto val = *(static_cast<int*>(DUtil::get_value_from_damaris("ross/nlp", pe, 0, 0)));
         sim_config_->num_lp_.push_back(val);
         sim_config_->num_kp_pe_ = *(static_cast<int*>(DUtil::get_value_from_damaris(

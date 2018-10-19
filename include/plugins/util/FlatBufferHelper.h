@@ -53,7 +53,7 @@ public:
         cur_lp_type_ = lp_type;
 
         //TODO use CreateSharedString?
-        auto name = fbb_.CreateString(var_name);
+        auto name = fbb_.CreateSharedString(var_name);
         auto data_vec = fbb_.CreateVector(data, num_elements);
         auto var_union = get_variable_offset(data_vec);
         auto variable = rds::CreateModelVariable(fbb_, name, get_var_value_type<T>(),
