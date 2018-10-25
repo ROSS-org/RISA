@@ -23,6 +23,7 @@ RDServer::RDServer() :
         cur_mode_(sample::InstMode_GVT),
         cur_ts_(0.0),
         last_gvt_(0.0),
+        use_threads_(true),
         client_(boost::make_shared<streaming::StreamClient>(streaming::StreamClient())),
         sim_config_(boost::make_shared<config::SimConfig>(config::SimConfig())),
         data_manager_(boost::make_shared<data::DataManager>(data::DataManager()))
@@ -82,7 +83,7 @@ RDServer::RDServer() :
 void RDServer::setup_data_processing()
 {
     processor_.reset(new data::DataProcessor(std::move(data_manager_),
-                std::move(client_), std::move(sim_config_)));
+                std::move(client_), std::move(sim_config_), use_threads_));
     // sets up thread that performs data processing tasks
 }
 
@@ -101,7 +102,8 @@ void RDServer::update_gvt(int32_t step)
 {
     last_gvt_ = *(static_cast<double*>(DUtil::get_value_from_damaris("ross/last_gvt",
                     my_pes_.front(), step, 0)));
-    //cout << "[RDServer] last GVT " << last_gvt_ << endl;
+    processor_->last_gvt(last_gvt_);
+    cout << "[RDServer] last GVT " << last_gvt_ << endl;
 }
 
 void RDServer::process_sample(boost::shared_ptr<damaris::Block> block)
@@ -154,6 +156,9 @@ void RDServer::process_sample(boost::shared_ptr<damaris::Block> block)
 
 void RDServer::forward_data(int32_t step)
 {
+    if (use_threads_)
+        return;
+
     if (cur_mode_ == InstMode_VT)
         processor_->forward_data(cur_mode_, last_gvt_, step);
     else

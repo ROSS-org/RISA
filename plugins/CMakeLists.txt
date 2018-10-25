@@ -30,6 +30,7 @@ SET(plugin_srcs
     server/RDServer.cpp
     server/events.cpp
     data/DataProcessor.cpp
+    data/AnalysisThread.cpp
     data/DataSample.cpp
     data/DataManager.cpp
     streaming/StreamClient.cpp)

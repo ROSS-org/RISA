@@ -17,6 +17,7 @@ using namespace ross_damaris::util;
 
 extern "C" {
 
+// TODO maybe should be unique_ptr
 boost::shared_ptr<RDServer> server;
 
 /**

@@ -4,8 +4,6 @@
 #include <plugins/data/SampleIndex.h>
 #include <plugins/flatbuffers/data_sample_generated.h>
 
-// TODO this class may be eventually templatized, so keep in mind
-
 namespace ross_damaris {
 namespace data {
 
@@ -14,7 +12,11 @@ namespace data {
  */
 class DataManager {
 public:
-    // require move insertions over copy insertions?
+    DataManager() :
+        most_recent_gvt_(0.0),
+        most_recent_rts_(0.0),
+        most_recent_vts_(0.0) {  }
+
     /**
      * @brief Inserts data to the multi-index
      * @param s A DataSample rvalue
@@ -42,6 +44,14 @@ public:
             SamplesByKey::iterator& begin, SamplesByKey::iterator& end);
     //void delete_data();
 
+    /**
+     * @brief delete data prior to given timestamp
+     *
+     * Notify DataManager to delete data prior to the given
+     * timestamp.
+     */
+    void delete_data(double ts, sample::InstMode mode);
+
     SamplesByKey::iterator end() { return data_index_.get<by_sample_key>().end(); }
 
     const SamplesByMode::iterator& get_recent_mode_iterator();
@@ -51,7 +61,12 @@ public:
     void print_manager_info();
     void clear();
 
+    double most_recent_gvt() { return most_recent_gvt_; }
+    double most_recent_rts() { return most_recent_rts_; }
+    double most_recent_vts() { return most_recent_vts_; }
+
 private:
+    // TODO need to control access by multiple threads
     SampleIndex data_index_;
 
     // these variables save the most recent iterators
@@ -59,6 +74,10 @@ private:
     SamplesByMode::iterator recent_mode_it_;
     SamplesByTime::iterator recent_time_it_;
     SamplesByKey::iterator recent_key_it_;
+
+    double most_recent_gvt_;
+    double most_recent_rts_;
+    double most_recent_vts_;
 };
 
 } // end namespace data

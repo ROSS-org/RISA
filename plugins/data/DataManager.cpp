@@ -45,6 +45,13 @@ void DataManager::find_data(InstMode mode, double lower, double upper,
             boost::make_tuple(mode, upper));
 }
 
+void DataManager::delete_data(double ts, sample::InstMode mode)
+{
+    SamplesByKey::iterator begin, end;
+    find_data(mode, 0, ts, begin, end);
+    data_index_.get<by_sample_key>().erase(begin, end);
+}
+
 void DataManager::print_manager_info()
 {
     cout << "[DataManager] index size " << data_index_.size() << endl;

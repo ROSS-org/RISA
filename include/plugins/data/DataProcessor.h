@@ -14,6 +14,7 @@
 #include <plugins/data/DataManager.h>
 #include <plugins/streaming/StreamClient.h>
 #include <plugins/util/SimConfig.h>
+#include <plugins/data/AnalysisThread.h>
 
 namespace ross_damaris {
 namespace data {
@@ -30,16 +31,30 @@ class DataProcessor {
 public:
     DataProcessor(boost::shared_ptr<DataManager>&& dm_ptr,
             boost::shared_ptr<streaming::StreamClient>&& sc_ptr,
-            boost::shared_ptr<config::SimConfig>&& conf_ptr) :
+            boost::shared_ptr<config::SimConfig>&& conf_ptr,
+            bool use_threads = false) :
         last_processed_ts_(0.0),
         data_manager_(boost::shared_ptr<DataManager>(dm_ptr)),
         stream_client_(boost::shared_ptr<streaming::StreamClient>(sc_ptr)),
-        sim_config_(boost::shared_ptr<config::SimConfig>(conf_ptr)) {  }
+        sim_config_(boost::shared_ptr<config::SimConfig>(conf_ptr)),
+        analysis_thread_(std::move(dm_ptr), std::move(sc_ptr), std::move(conf_ptr)),
+        use_threads_(use_threads)
+    {
+        if (use_threads_)
+            threads_.push_back(std::thread(&AnalysisThread::start_processing,
+                        &analysis_thread_));
+    }
 
     DataProcessor() :
         last_processed_ts_(0.0),
         data_manager_(nullptr),
-        stream_client_(nullptr) {  }
+        stream_client_(nullptr)
+        {  }
+
+    ~DataProcessor()
+    {
+        std::for_each(threads_.begin(), threads_.end(), std::mem_fn(&std::thread::join));
+    }
 
     /**
      * @brief NOT IMPLEMENTED YET
@@ -65,14 +80,6 @@ public:
     void invalidate_data(double ts, int32_t step);
 
     /**
-     * @brief NOT IMPLEMENTED YET
-     *
-     * Notify DataManager to delete data prior to the given
-     * timestamp.
-     */
-    void delete_data(double ts);
-
-    /**
      * @brief get shared ownership to the DataManager
      */
     void set_manager_ptr(boost::shared_ptr<DataManager>&& ptr);
@@ -82,11 +89,18 @@ public:
      */
     void set_stream_ptr(boost::shared_ptr<streaming::StreamClient>&& ptr);
 
+    void last_gvt(double gvt) { last_gvt_ = gvt; }
+
 private:
     double last_processed_ts_;
+    double last_gvt_;
     boost::shared_ptr<DataManager> data_manager_;
     boost::shared_ptr<streaming::StreamClient> stream_client_;
     boost::shared_ptr<config::SimConfig> sim_config_;
+    bool use_threads_;
+    std::vector<std::thread> threads_;
+    AnalysisThread analysis_thread_;
+
 };
 
 } // end namespace data

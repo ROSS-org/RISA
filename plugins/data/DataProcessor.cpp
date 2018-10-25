@@ -23,19 +23,14 @@ using namespace ross_damaris::streaming;
 using namespace ross_damaris::util;
 using namespace ross_damaris::data;
 
-void DataProcessor::aggregate_data()
-{
-
-}
-
-void DataProcessor::forward_model_data()
-{
-
-}
-
 // For now, we're only supporting model data in VT mode
 void DataProcessor::forward_data(InstMode mode, double ts, int32_t step)
 {
+    // TODO figure out why I removed this. it seems to be correct without it
+    // (and incorrect with it), but not sure why...
+    // It may be that when we have multiple samples for same KP and same time,
+    // we overwrite them? Or perhaps the earlier samples are kept and latter (and thus
+    // correct) samples are discarded.
     //if (mode == InstMode_VT)
     //    invalidate_data(ts, step);
 
@@ -86,6 +81,9 @@ void DataProcessor::forward_data(InstMode mode, double ts, int32_t step)
 }
 
 // only for VTS
+// TODO if we don't actually need this data for invalidation, get rid of this
+// TODO also perhaps this should be moved to the RDServer? Or the DataManager,
+// and RD server gives it the info necessary to delete
 void DataProcessor::invalidate_data(double ts, int32_t step)
 {
     // first lets invalidate the data
@@ -117,11 +115,6 @@ void DataProcessor::invalidate_data(double ts, int32_t step)
         }
     }
 
-
-}
-
-void DataProcessor::delete_data(double ts)
-{
 
 }
 

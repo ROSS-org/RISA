@@ -13,7 +13,8 @@ namespace data {
  * @brief Represents a data sample for a given time point and instrumentation mode.
  *
  * A DataSample may have more than one Damaris DataSpace associated with it.
- * This typically happens with data when it is first received from ROSS.
+ * This typically happens with data when it is first received from ROSS, since
+ * a full sample will be built up from multiple flatbuffers.
  */
 class DataSample {
 public:
@@ -82,7 +83,9 @@ private:
     /** is the Data speculative, committed, or invalid? */
     sample::DataStatus status_;
 
-    /** map of DataSpaces to their entity id (PE) */
+    /** map of DataSpaces to their entity id (PE or KP) */
+    // if mapping to PE, the key for the inner map is always -1
+    // if mapping to KP gid, the key for the inner map is based on event_id
     std::unordered_map<int,
         std::unordered_map<int, damaris::DataSpace<damaris::Buffer>>> ds_ptrs_;
     std::unordered_map<int, std::unordered_map<

@@ -51,7 +51,7 @@ public:
 
     ~StreamClient()
     {
-        if (t_)
+        if (t_ && t_->joinable())
         {
             t_->join();
             delete t_;

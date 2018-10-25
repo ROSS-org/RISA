@@ -82,6 +82,7 @@ private:
     double cur_ts_;
     double last_gvt_;
     std::list<int> my_pes_;
+    bool use_threads_;
 
     void setup_data_processing();
 };
