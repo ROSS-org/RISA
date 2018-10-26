@@ -6,14 +6,15 @@
 #include <plugins/data/DataManager.h>
 #include <plugins/streaming/StreamClient.h>
 #include <plugins/util/SimConfig.h>
+#include <abt.h>
 
 namespace ross_damaris {
 namespace data {
 
-class AnalysisThread
+class ArgobotsManager
 {
 public:
-    AnalysisThread(boost::shared_ptr<DataManager>&& dm_ptr,
+    ArgobotsManager(boost::shared_ptr<DataManager>&& dm_ptr,
             boost::shared_ptr<streaming::StreamClient>&& sc_ptr,
             boost::shared_ptr<config::SimConfig>&& conf_ptr) :
         last_processed_gvt_(0.0),
@@ -23,9 +24,10 @@ public:
         stream_client_(boost::shared_ptr<streaming::StreamClient>(sc_ptr)),
         sim_config_(boost::shared_ptr<config::SimConfig>(conf_ptr))
     {
+        my_xstream_ = (ABT_xstream*)malloc(sizeof(ABT_xstream));
     }
 
-    AnalysisThread() :
+    ArgobotsManager() :
         last_processed_gvt_(0.0),
         last_processed_rts_(0.0),
         last_processed_vts_(0.0),
@@ -44,6 +46,8 @@ private:
     boost::shared_ptr<DataManager> data_manager_;
     boost::shared_ptr<streaming::StreamClient> stream_client_;
     boost::shared_ptr<config::SimConfig> sim_config_;
+
+    ABT_xstream *my_xstream_;
 
     void set_last_processed(sample::InstMode mode, double ts)
     {

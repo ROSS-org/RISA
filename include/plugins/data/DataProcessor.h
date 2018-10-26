@@ -14,7 +14,7 @@
 #include <plugins/data/DataManager.h>
 #include <plugins/streaming/StreamClient.h>
 #include <plugins/util/SimConfig.h>
-#include <plugins/data/AnalysisThread.h>
+#include <plugins/data/ArgobotsManager.h>
 
 namespace ross_damaris {
 namespace data {
@@ -22,10 +22,8 @@ namespace data {
 /**
  * @brief Handles the bulk of the data processing for ROSS-Damaris.
  *
- * Specifically handles data aggregation, forwarding of model data (once
- * determined that the data is committed), determining which high-resolution
- * PDES performance data to send. It will put any flatbuffers to be streamed
- * into the StreamClient's data buffer.
+ * This class is responsible for starting a new thread for data
+ * analysis tasks.
  */
 class DataProcessor {
 public:
@@ -38,22 +36,28 @@ public:
         stream_client_(boost::shared_ptr<streaming::StreamClient>(sc_ptr)),
         sim_config_(boost::shared_ptr<config::SimConfig>(conf_ptr)),
         analysis_thread_(std::move(dm_ptr), std::move(sc_ptr), std::move(conf_ptr)),
-        use_threads_(use_threads)
+        use_threads_(use_threads),
+        t_(nullptr)
     {
         if (use_threads_)
-            threads_.push_back(std::thread(&AnalysisThread::start_processing,
-                        &analysis_thread_));
+            t_ = new std::thread(&ArgobotsManager::start_processing,
+                        &analysis_thread_);
     }
 
     DataProcessor() :
         last_processed_ts_(0.0),
         data_manager_(nullptr),
-        stream_client_(nullptr)
+        stream_client_(nullptr),
+        t_(nullptr)
         {  }
 
     ~DataProcessor()
     {
-        std::for_each(threads_.begin(), threads_.end(), std::mem_fn(&std::thread::join));
+        if (t_ && t_->joinable())
+        {
+            t_->join();
+            delete t_;
+        }
     }
 
     /**
@@ -98,8 +102,8 @@ private:
     boost::shared_ptr<streaming::StreamClient> stream_client_;
     boost::shared_ptr<config::SimConfig> sim_config_;
     bool use_threads_;
-    std::vector<std::thread> threads_;
-    AnalysisThread analysis_thread_;
+    std::thread *t_;
+    ArgobotsManager analysis_thread_;
 
 };
 

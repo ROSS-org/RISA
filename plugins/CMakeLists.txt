@@ -17,7 +17,12 @@ IF (Boost_FOUND)
     ADD_DEFINITIONS(-DBOOST_LOG_DYN_LINK)
 ENDIF(Boost_FOUND)
 
-INCLUDE_DIRECTORIES(${DAMARIS_INCLUDE} ${FLATBUF_INCLUDE})
+SET(ENV{PKG_CONFIG_PATH} "$ENV{PKG_CONFIG_PATH}:/home/rossc3/argobots-install/lib/pkgconfig")
+MESSAGE("pkg config path: $ENV{PKG_CONFIG_PATH}")
+FIND_PACKAGE(PkgConfig REQUIRED)
+PKG_CHECK_MODULES(ARGOBOTS REQUIRED argobots)
+
+INCLUDE_DIRECTORIES(${DAMARIS_INCLUDE} ${FLATBUF_INCLUDE} ${ARGOBOTS_INCLUDE_DIRS})
 ADD_DEFINITIONS(-std=c++11)
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
 INCLUDE_DIRECTORIES(../include)
@@ -30,7 +35,7 @@ SET(plugin_srcs
     server/RDServer.cpp
     server/events.cpp
     data/DataProcessor.cpp
-    data/AnalysisThread.cpp
+    data/ArgobotsManager.cpp
     data/DataSample.cpp
     data/DataManager.cpp
     streaming/StreamClient.cpp)
@@ -38,6 +43,6 @@ SET(plugin_srcs
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR}/include)
 ADD_LIBRARY(rdplugins SHARED ${plugin_srcs})
 SET_PROPERTY(TARGET rdplugins PROPERTY POSITION_INDEPENDENT_CODE ON)
-TARGET_LINK_LIBRARIES(rdplugins ${Boost_LIBRARIES})
+TARGET_LINK_LIBRARIES(rdplugins ${Boost_LIBRARIES} ${ARGOBOTS_LDFLAGS})
 
 INSTALL(TARGETS rdplugins EXPORT rdplugins ARCHIVE DESTINATION lib LIBRARY DESTINATION lib)

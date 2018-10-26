@@ -1,24 +1,27 @@
-#include <plugins/data/AnalysisThread.h>
+#include <plugins/data/ArgobotsManager.h>
 
 using namespace ross_damaris::data;
 using namespace ross_damaris::sample;
 
-void AnalysisThread::start_processing()
+void ArgobotsManager::start_processing()
 {
+    ABT_init(0, NULL);
+    ABT_xstream_self(my_xstream_);
     std::cout << "Thread " << std::this_thread::get_id() << " start_processing()\n";
     // TODO this can have a loop that does various types of processing
-    while (true)
-    {
-        if (last_processed_gvt_ <= data_manager_->most_recent_gvt())
-        {
-            //std::cout << "[AnalysisThread] aggregate_data()\n";
-            aggregate_data(InstMode_GVT, last_processed_gvt_, data_manager_->most_recent_gvt());
-        }
-        // TODO how to break out for simulation end?
-    }
+    //while (true)
+    //{
+    //    if (last_processed_gvt_ <= data_manager_->most_recent_gvt())
+    //    {
+    //        //std::cout << "[ArgobotsManager] aggregate_data()\n";
+    //        aggregate_data(InstMode_GVT, last_processed_gvt_, data_manager_->most_recent_gvt());
+    //    }
+    //    // TODO how to break out for simulation end?
+    //}
+    ABT_finalize();
 }
 
-void AnalysisThread::aggregate_data(InstMode mode, double lower_ts, double upper_ts)
+void ArgobotsManager::aggregate_data(InstMode mode, double lower_ts, double upper_ts)
 {
     // want to aggregate data regularly
     // currently only worried about sim engine data here, not model
@@ -49,7 +52,7 @@ void AnalysisThread::aggregate_data(InstMode mode, double lower_ts, double upper
         else if (sim_config_->lp_data())
             combine_lp_flatbuffers(mode, lower_ts, upper_ts);
         else
-            cout << "[AnalysisThread] aggregate_data(): how did we get here?\n";
+            cout << "[ArgobotsManager] aggregate_data(): how did we get here?\n";
     }
     else if (mode == InstMode_VT)
     {
@@ -58,7 +61,7 @@ void AnalysisThread::aggregate_data(InstMode mode, double lower_ts, double upper
 }
 
 
-void AnalysisThread::combine_pe_flatbuffers(sample::InstMode mode,
+void ArgobotsManager::combine_pe_flatbuffers(sample::InstMode mode,
         double lower_ts, double upper_ts)
 {
     SamplesByKey::iterator it, end;
@@ -94,19 +97,19 @@ void AnalysisThread::combine_pe_flatbuffers(sample::InstMode mode,
     set_last_processed(mode, upper_ts);
 }
 
-void AnalysisThread::combine_kp_flatbuffers(sample::InstMode mode,
+void ArgobotsManager::combine_kp_flatbuffers(sample::InstMode mode,
         double lower_ts, double upper_ts)
 {
 
 }
 
-void AnalysisThread::combine_lp_flatbuffers(sample::InstMode mode,
+void ArgobotsManager::combine_lp_flatbuffers(sample::InstMode mode,
         double lower_ts, double upper_ts)
 {
 
 }
 
-void AnalysisThread::forward_model_data()
+void ArgobotsManager::forward_model_data()
 {
 
 }
