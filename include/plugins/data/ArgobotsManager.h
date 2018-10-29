@@ -14,28 +14,37 @@ namespace data {
 class ArgobotsManager
 {
 public:
-    ArgobotsManager(boost::shared_ptr<DataManager>&& dm_ptr,
-            boost::shared_ptr<streaming::StreamClient>&& sc_ptr,
-            boost::shared_ptr<config::SimConfig>&& conf_ptr) :
-        last_processed_gvt_(0.0),
-        last_processed_rts_(0.0),
-        last_processed_vts_(0.0),
-        data_manager_(boost::shared_ptr<DataManager>(dm_ptr)),
-        stream_client_(boost::shared_ptr<streaming::StreamClient>(sc_ptr)),
-        sim_config_(boost::shared_ptr<config::SimConfig>(conf_ptr))
-    {
-        my_xstream_ = (ABT_xstream*)malloc(sizeof(ABT_xstream));
-    }
-
     ArgobotsManager() :
         last_processed_gvt_(0.0),
         last_processed_rts_(0.0),
         last_processed_vts_(0.0),
         data_manager_(nullptr),
         stream_client_(nullptr),
-        sim_config_(nullptr) {  }
+        sim_config_(nullptr)
+    {
+        primary_xstream_ = (ABT_xstream*)malloc(sizeof(ABT_xstream));
+        proc_xstream_ = (ABT_xstream*)malloc(sizeof(ABT_xstream));
+        pool_ = (ABT_pool*)malloc(sizeof(ABT_pool));
+        scheduler_ = (ABT_sched*)malloc(sizeof(ABT_sched));
+    }
 
+    //~ArgobotsManager()
+    //{
+    //    std::cout << "~ArgobotsManager()\n";
+    //    // TODO when trying to free these, we get weird segfaults, aborts,
+    //    // or double free errors
+    //    //free(primary_xstream_);
+    //    //free(proc_xstream_);
+    //    //free(pool_);
+    //    //free(scheduler_);
+    //}
+
+    void set_shared_ptrs(boost::shared_ptr<DataManager>& dm_ptr,
+            boost::shared_ptr<streaming::StreamClient>& sc_ptr,
+            boost::shared_ptr<config::SimConfig>& conf_ptr);
     void start_processing();
+    void create_init_data_proc_task(int32_t step);
+    void finalize();
 
 
 private:
@@ -47,7 +56,12 @@ private:
     boost::shared_ptr<streaming::StreamClient> stream_client_;
     boost::shared_ptr<config::SimConfig> sim_config_;
 
-    ABT_xstream *my_xstream_;
+    // This ends up being Main Damaris thread, so do not assign any
+    // actual argobots tasks to this.
+    ABT_xstream *primary_xstream_;
+    ABT_xstream *proc_xstream_;
+    ABT_pool *pool_;
+    ABT_sched *scheduler_;
 
     void set_last_processed(sample::InstMode mode, double ts)
     {

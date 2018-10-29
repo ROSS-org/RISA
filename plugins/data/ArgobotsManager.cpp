@@ -1,13 +1,40 @@
 #include <plugins/data/ArgobotsManager.h>
+#include <plugins/data/analysis-tasks.h>
 
 using namespace ross_damaris::data;
 using namespace ross_damaris::sample;
 
+void ArgobotsManager::set_shared_ptrs(boost::shared_ptr<DataManager>& dm_ptr,
+            boost::shared_ptr<streaming::StreamClient>& sc_ptr,
+            boost::shared_ptr<config::SimConfig>& conf_ptr)
+{
+    data_manager_ = boost::shared_ptr<DataManager>(dm_ptr);
+    stream_client_ = boost::shared_ptr<streaming::StreamClient>(sc_ptr);
+    sim_config_ = boost::shared_ptr<config::SimConfig>(conf_ptr);
+}
+
 void ArgobotsManager::start_processing()
 {
+    cout << "[ArgobotsManager] start_processing()\n";
     ABT_init(0, NULL);
-    ABT_xstream_self(my_xstream_);
-    std::cout << "Thread " << std::this_thread::get_id() << " start_processing()\n";
+
+    // create shared pool
+    ABT_pool_create_basic(ABT_POOL_FIFO, ABT_POOL_ACCESS_MPMC, ABT_TRUE, pool_);
+    cout << "[ArgobotsManager] shared pool created\n";
+
+    ABT_xstream_self(primary_xstream_);
+    cout << "[ArgobotsManager] got self pointer\n";
+    cout << "[ArgobotsManager] creating secondary xstream\n";
+    ABT_xstream_create_basic(ABT_SCHED_DEFAULT, 1, pool_, ABT_SCHED_CONFIG_NULL, proc_xstream_);
+    ABT_xstream_start(*proc_xstream_);
+    //ABT_xstream_set_main_sched_basic(*proc_xstream_, ABT_SCHED_DEFAULT, 1, pool_);
+    cout << "[ArgobotsManager] about to create task\n";
+    printf("address of pool %p\n", (ABT_pool *) pool_);
+    ABT_task_create(*pool_, insert_data_mic, NULL, NULL);
+    cout << "[ArgobotsManager] task created\n";
+
+
+    //std::cout << "Thread " << std::this_thread::get_id() << " start_processing()\n";
     // TODO this can have a loop that does various types of processing
     //while (true)
     //{
@@ -18,7 +45,7 @@ void ArgobotsManager::start_processing()
     //    }
     //    // TODO how to break out for simulation end?
     //}
-    ABT_finalize();
+    //ABT_finalize();
 }
 
 void ArgobotsManager::aggregate_data(InstMode mode, double lower_ts, double upper_ts)
@@ -112,4 +139,16 @@ void ArgobotsManager::combine_lp_flatbuffers(sample::InstMode mode,
 void ArgobotsManager::forward_model_data()
 {
 
+}
+
+void ArgobotsManager::create_init_data_proc_task(int32_t step)
+{
+    ABT_task_create(*pool_, insert_data_mic, NULL, NULL);
+}
+
+void ArgobotsManager::finalize()
+{
+    ABT_xstream_join(*proc_xstream_);
+    ABT_xstream_free(proc_xstream_);
+    ABT_finalize();
 }

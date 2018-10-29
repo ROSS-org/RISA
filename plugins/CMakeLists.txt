@@ -38,6 +38,7 @@ SET(plugin_srcs
     data/ArgobotsManager.cpp
     data/DataSample.cpp
     data/DataManager.cpp
+    data/analysis-tasks.cpp
     streaming/StreamClient.cpp)
 
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR}/include)

@@ -26,7 +26,9 @@ RDServer::RDServer() :
         use_threads_(true),
         client_(boost::make_shared<streaming::StreamClient>(streaming::StreamClient())),
         sim_config_(boost::make_shared<config::SimConfig>(config::SimConfig())),
-        data_manager_(boost::make_shared<data::DataManager>(data::DataManager()))
+        data_manager_(boost::make_shared<data::DataManager>(data::DataManager())),
+        argobots_manager_(boost::make_shared<data::ArgobotsManager>(data::ArgobotsManager())),
+        processor_(nullptr)
 {
     int my_id = damaris::Environment::GetEntityProcessID();
     //cout << "IsClient() " << damaris::Environment::IsClient() << endl;
@@ -77,13 +79,20 @@ RDServer::RDServer() :
         client_->connect();
     }
 
-    setup_data_processing();
+    if (use_threads_)
+    {
+        argobots_manager_->set_shared_ptrs(data_manager_, client_, sim_config_);
+        argobots_manager_->start_processing();
+    }
+    else
+        setup_data_processing();
+
 }
 
 void RDServer::setup_data_processing()
 {
     processor_.reset(new data::DataProcessor(std::move(data_manager_),
-                std::move(client_), std::move(sim_config_), use_threads_));
+                std::move(client_), std::move(sim_config_)));
     // sets up thread that performs data processing tasks
 }
 
@@ -96,18 +105,22 @@ void RDServer::finalize()
         client_->close();
 
     data_manager_->clear();
+    if (use_threads_)
+        argobots_manager_->finalize();
 }
 
 void RDServer::update_gvt(int32_t step)
 {
     last_gvt_ = *(static_cast<double*>(DUtil::get_value_from_damaris("ross/last_gvt",
                     my_pes_.front(), step, 0)));
-    processor_->last_gvt(last_gvt_);
+    if (!use_threads_)
+        processor_->last_gvt(last_gvt_);
     cout << "[RDServer] last GVT " << last_gvt_ << endl;
 }
 
 void RDServer::process_sample(boost::shared_ptr<damaris::Block> block)
 {
+        argobots_manager_->create_init_data_proc_task(1);
         damaris::DataSpace<damaris::Buffer> ds(block->GetDataSpace());
         auto data_fb = GetDamarisDataSample(ds.GetData());
         double ts;

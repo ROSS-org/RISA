@@ -20,45 +20,25 @@ namespace ross_damaris {
 namespace data {
 
 /**
- * @brief Handles the bulk of the data processing for ROSS-Damaris.
- *
- * This class is responsible for starting a new thread for data
- * analysis tasks.
+ * @brief Initial single threaded version of data processing for ROSS-Damaris.
  */
 class DataProcessor {
 public:
     DataProcessor(boost::shared_ptr<DataManager>&& dm_ptr,
             boost::shared_ptr<streaming::StreamClient>&& sc_ptr,
-            boost::shared_ptr<config::SimConfig>&& conf_ptr,
-            bool use_threads = false) :
+            boost::shared_ptr<config::SimConfig>&& conf_ptr) :
         last_processed_ts_(0.0),
         data_manager_(boost::shared_ptr<DataManager>(dm_ptr)),
         stream_client_(boost::shared_ptr<streaming::StreamClient>(sc_ptr)),
-        sim_config_(boost::shared_ptr<config::SimConfig>(conf_ptr)),
-        analysis_thread_(std::move(dm_ptr), std::move(sc_ptr), std::move(conf_ptr)),
-        use_threads_(use_threads),
-        t_(nullptr)
+        sim_config_(boost::shared_ptr<config::SimConfig>(conf_ptr))
     {
-        if (use_threads_)
-            t_ = new std::thread(&ArgobotsManager::start_processing,
-                        &analysis_thread_);
     }
 
     DataProcessor() :
         last_processed_ts_(0.0),
         data_manager_(nullptr),
-        stream_client_(nullptr),
-        t_(nullptr)
+        stream_client_(nullptr)
         {  }
-
-    ~DataProcessor()
-    {
-        if (t_ && t_->joinable())
-        {
-            t_->join();
-            delete t_;
-        }
-    }
 
     /**
      * @brief NOT IMPLEMENTED YET
@@ -101,9 +81,6 @@ private:
     boost::shared_ptr<DataManager> data_manager_;
     boost::shared_ptr<streaming::StreamClient> stream_client_;
     boost::shared_ptr<config::SimConfig> sim_config_;
-    bool use_threads_;
-    std::thread *t_;
-    ArgobotsManager analysis_thread_;
 
 };
 

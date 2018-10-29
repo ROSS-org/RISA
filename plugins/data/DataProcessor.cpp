@@ -127,3 +127,4 @@ void DataProcessor::set_stream_ptr(boost::shared_ptr<streaming::StreamClient>&& 
 {
     stream_client_ = boost::shared_ptr<streaming::StreamClient>(ptr);
 }
+

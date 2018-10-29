@@ -8,6 +8,7 @@
  */
 
 #include <ostream>
+#include <iostream>
 
 #include <boost/asio.hpp>
 #include <damaris/env/Environment.hpp>
@@ -75,6 +76,7 @@ private:
 
     // data processing members
     boost::shared_ptr<data::DataProcessor> processor_;
+    boost::shared_ptr<data::ArgobotsManager> argobots_manager_;
 
     // storage for data to be processed
     boost::shared_ptr<data::DataManager> data_manager_;
