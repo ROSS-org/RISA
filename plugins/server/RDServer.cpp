@@ -119,7 +119,7 @@ void RDServer::update_gvt(int32_t step)
 
 void RDServer::process_sample(boost::shared_ptr<damaris::Block> block)
 {
-        argobots_manager_->create_init_data_proc_task(1);
+        //argobots_manager_->create_insert_data_mic_task(1);
         damaris::DataSpace<damaris::Buffer> ds(block->GetDataSpace());
         auto data_fb = GetDamarisDataSample(ds.GetData());
         double ts;

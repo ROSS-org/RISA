@@ -64,6 +64,8 @@ public:
 
     boost::shared_ptr<data::DataManager> get_manager_pointer() { return data_manager_; }
 
+    void initial_data_tasks(int32_t step) { argobots_manager_->create_insert_data_mic_task(step); }
+
 private:
     boost::shared_ptr<config::SimConfig> sim_config_;
     // TODO need to improve output to file

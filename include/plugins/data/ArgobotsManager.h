@@ -21,7 +21,7 @@ public:
     void set_shared_ptrs(boost::shared_ptr<DataManager>& dm_ptr,
             boost::shared_ptr<streaming::StreamClient>& sc_ptr,
             boost::shared_ptr<config::SimConfig>& conf_ptr);
-    void create_init_data_proc_task(int32_t step);
+    void create_insert_data_mic_task(int32_t step);
     void finalize();
 
 

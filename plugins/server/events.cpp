@@ -49,17 +49,7 @@ void damaris_rank_end_iteration(const std::string& event, int32_t src, int32_t s
 
     server->update_gvt(step);
 
-    damaris::BlocksByIteration::iterator begin, end;
-    DUtil::get_damaris_iterators("ross/sample", step, begin, end);
-
-    while (begin != end)
-    {
-        //cout << "src: " << (*begin)->GetSource() << " iteration: " << (*begin)->GetIteration()
-        //    << " domain id: " << (*begin)->GetID() << endl;
-        server->process_sample(*begin);
-
-        begin++;
-    }
+    server->initial_data_tasks(step);
 
     // TODO this is just for now
     // eventually the data processor will be its own thread

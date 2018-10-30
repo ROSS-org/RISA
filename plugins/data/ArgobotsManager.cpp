@@ -18,23 +18,17 @@ ArgobotsManager::ArgobotsManager() :
     scheduler_ = (ABT_sched*)malloc(sizeof(ABT_sched));
 
     // initialize Argobots library
-    cout << "[ArgobotsManager] start_processing()\n";
     ABT_init(0, NULL);
 
     // create shared pool
     ABT_pool_create_basic(ABT_POOL_FIFO, ABT_POOL_ACCESS_MPMC, ABT_TRUE, pool_);
-    cout << "[ArgobotsManager] shared pool created\n";
 
     ABT_xstream_self(primary_xstream_);
-    cout << "[ArgobotsManager] got self pointer\n";
-    cout << "[ArgobotsManager] creating secondary xstream\n";
     ABT_xstream_create_basic(ABT_SCHED_DEFAULT, 1, pool_, ABT_SCHED_CONFIG_NULL, proc_xstream_);
     ABT_xstream_start(*proc_xstream_);
-    //ABT_xstream_set_main_sched_basic(*proc_xstream_, ABT_SCHED_DEFAULT, 1, pool_);
-    cout << "[ArgobotsManager] about to create task\n";
-    printf("address of pool %p\n", (ABT_pool *) pool_);
-    //ABT_task_create(*pool_, insert_data_mic, NULL, NULL);
-    cout << "[ArgobotsManager] task created\n";
+    int pool_id = -1;
+    ABT_pool_get_id(*pool_, &pool_id);
+    cout << "[ArgobotsManager] shared pool " << pool_id << " created\n";
 }
 
 ArgobotsManager::ArgobotsManager(ArgobotsManager&& m) :
@@ -170,9 +164,14 @@ void ArgobotsManager::forward_model_data()
 
 }
 
-void ArgobotsManager::create_init_data_proc_task(int32_t step)
+void ArgobotsManager::create_insert_data_mic_task(int32_t step)
 {
-    ABT_task_create(*pool_, insert_data_mic, NULL, NULL);
+    initial_task_args *args = (initial_task_args*)malloc(sizeof(initial_task_args));
+    args->step = step;
+    cout << "datamanager_.use_count() = " << data_manager_.use_count() << endl;
+    args->dm = reinterpret_cast<void*>(&data_manager_);
+    cout << "datamanager_.use_count() = " << data_manager_.use_count() << endl;
+    ABT_task_create(*pool_, initial_data_processing, args, NULL);
 }
 
 void ArgobotsManager::finalize()
