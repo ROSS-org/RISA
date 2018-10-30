@@ -82,7 +82,6 @@ RDServer::RDServer() :
     if (use_threads_)
     {
         argobots_manager_->set_shared_ptrs(data_manager_, client_, sim_config_);
-        argobots_manager_->start_processing();
     }
     else
         setup_data_processing();

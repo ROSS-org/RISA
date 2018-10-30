@@ -14,40 +14,24 @@ namespace data {
 class ArgobotsManager
 {
 public:
-    ArgobotsManager() :
-        last_processed_gvt_(0.0),
-        last_processed_rts_(0.0),
-        last_processed_vts_(0.0),
-        data_manager_(nullptr),
-        stream_client_(nullptr),
-        sim_config_(nullptr)
-    {
-        primary_xstream_ = (ABT_xstream*)malloc(sizeof(ABT_xstream));
-        proc_xstream_ = (ABT_xstream*)malloc(sizeof(ABT_xstream));
-        pool_ = (ABT_pool*)malloc(sizeof(ABT_pool));
-        scheduler_ = (ABT_sched*)malloc(sizeof(ABT_sched));
-    }
-
-    //~ArgobotsManager()
-    //{
-    //    std::cout << "~ArgobotsManager()\n";
-    //    // TODO when trying to free these, we get weird segfaults, aborts,
-    //    // or double free errors
-    //    //free(primary_xstream_);
-    //    //free(proc_xstream_);
-    //    //free(pool_);
-    //    //free(scheduler_);
-    //}
+    ArgobotsManager();
+    ArgobotsManager(ArgobotsManager&& m);
+    ~ArgobotsManager();
 
     void set_shared_ptrs(boost::shared_ptr<DataManager>& dm_ptr,
             boost::shared_ptr<streaming::StreamClient>& sc_ptr,
             boost::shared_ptr<config::SimConfig>& conf_ptr);
-    void start_processing();
     void create_init_data_proc_task(int32_t step);
     void finalize();
 
 
 private:
+    // no copying
+    ArgobotsManager(const ArgobotsManager&) = delete;
+    ArgobotsManager& operator=(const ArgobotsManager&) = delete;
+    // shouldn't need move assignment either
+    ArgobotsManager& operator=(ArgobotsManager&& m) = delete;
+
     double last_processed_gvt_;
     double last_processed_rts_;
     double last_processed_vts_;

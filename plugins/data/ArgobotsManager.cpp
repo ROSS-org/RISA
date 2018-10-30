@@ -4,17 +4,20 @@
 using namespace ross_damaris::data;
 using namespace ross_damaris::sample;
 
-void ArgobotsManager::set_shared_ptrs(boost::shared_ptr<DataManager>& dm_ptr,
-            boost::shared_ptr<streaming::StreamClient>& sc_ptr,
-            boost::shared_ptr<config::SimConfig>& conf_ptr)
+ArgobotsManager::ArgobotsManager() :
+    last_processed_gvt_(0.0),
+    last_processed_rts_(0.0),
+    last_processed_vts_(0.0),
+    data_manager_(nullptr),
+    stream_client_(nullptr),
+    sim_config_(nullptr)
 {
-    data_manager_ = boost::shared_ptr<DataManager>(dm_ptr);
-    stream_client_ = boost::shared_ptr<streaming::StreamClient>(sc_ptr);
-    sim_config_ = boost::shared_ptr<config::SimConfig>(conf_ptr);
-}
+    primary_xstream_ = (ABT_xstream*)malloc(sizeof(ABT_xstream));
+    proc_xstream_ = (ABT_xstream*)malloc(sizeof(ABT_xstream));
+    pool_ = (ABT_pool*)malloc(sizeof(ABT_pool));
+    scheduler_ = (ABT_sched*)malloc(sizeof(ABT_sched));
 
-void ArgobotsManager::start_processing()
-{
+    // initialize Argobots library
     cout << "[ArgobotsManager] start_processing()\n";
     ABT_init(0, NULL);
 
@@ -30,22 +33,48 @@ void ArgobotsManager::start_processing()
     //ABT_xstream_set_main_sched_basic(*proc_xstream_, ABT_SCHED_DEFAULT, 1, pool_);
     cout << "[ArgobotsManager] about to create task\n";
     printf("address of pool %p\n", (ABT_pool *) pool_);
-    ABT_task_create(*pool_, insert_data_mic, NULL, NULL);
+    //ABT_task_create(*pool_, insert_data_mic, NULL, NULL);
     cout << "[ArgobotsManager] task created\n";
+}
 
+ArgobotsManager::ArgobotsManager(ArgobotsManager&& m) :
+    last_processed_gvt_(m.last_processed_gvt_),
+    last_processed_rts_(m.last_processed_rts_),
+    last_processed_vts_(m.last_processed_vts_),
+    data_manager_(std::move(m.data_manager_)),
+    stream_client_(std::move(m.stream_client_)),
+    sim_config_(std::move(m.sim_config_)),
+    primary_xstream_(m.primary_xstream_),
+    proc_xstream_(m.proc_xstream_),
+    pool_(m.pool_),
+    scheduler_(m.scheduler_)
+{
+    m.primary_xstream_ = nullptr;
+    m.proc_xstream_ = nullptr;
+    m.pool_ = nullptr;
+    m.scheduler_ = nullptr;
+}
 
-    //std::cout << "Thread " << std::this_thread::get_id() << " start_processing()\n";
-    // TODO this can have a loop that does various types of processing
-    //while (true)
-    //{
-    //    if (last_processed_gvt_ <= data_manager_->most_recent_gvt())
-    //    {
-    //        //std::cout << "[ArgobotsManager] aggregate_data()\n";
-    //        aggregate_data(InstMode_GVT, last_processed_gvt_, data_manager_->most_recent_gvt());
-    //    }
-    //    // TODO how to break out for simulation end?
-    //}
-    //ABT_finalize();
+ArgobotsManager::~ArgobotsManager()
+{
+    if (primary_xstream_)
+        free(primary_xstream_);
+    if (proc_xstream_)
+        free(proc_xstream_);
+    if (pool_)
+        free(pool_);
+    if (scheduler_)
+        free(scheduler_);
+}
+
+void ArgobotsManager::set_shared_ptrs(boost::shared_ptr<DataManager>& dm_ptr,
+            boost::shared_ptr<streaming::StreamClient>& sc_ptr,
+            boost::shared_ptr<config::SimConfig>& conf_ptr)
+{
+    data_manager_ = boost::shared_ptr<DataManager>(dm_ptr);
+    stream_client_ = boost::shared_ptr<streaming::StreamClient>(sc_ptr);
+    sim_config_ = boost::shared_ptr<config::SimConfig>(conf_ptr);
+
 }
 
 void ArgobotsManager::aggregate_data(InstMode mode, double lower_ts, double upper_ts)
@@ -148,7 +177,13 @@ void ArgobotsManager::create_init_data_proc_task(int32_t step)
 
 void ArgobotsManager::finalize()
 {
-    ABT_xstream_join(*proc_xstream_);
-    ABT_xstream_free(proc_xstream_);
-    ABT_finalize();
+    // Can't put these calls in the destructor, else they might get called before
+    // they're supposed to
+    if (ABT_initialized() == ABT_SUCCESS)
+    {
+        ABT_xstream_join(*proc_xstream_);
+        ABT_xstream_free(proc_xstream_);
+        ABT_finalize();
+    }
+
 }
