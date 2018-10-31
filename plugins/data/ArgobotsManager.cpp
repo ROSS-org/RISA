@@ -76,11 +76,6 @@ void ArgobotsManager::set_shared_ptrs(boost::shared_ptr<DataManager>& dm_ptr,
     ABT_task_create(*pool_, initialize_task, args, NULL);
 }
 
-void ArgobotsManager::forward_model_data()
-{
-
-}
-
 void ArgobotsManager::create_insert_data_mic_task(int32_t step)
 {
     initial_task_args *args = (initial_task_args*)malloc(sizeof(initial_task_args));

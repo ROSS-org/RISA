@@ -56,13 +56,6 @@ private:
         else if (mode == sample::InstMode_VT)
             last_processed_vts_ = ts;
     }
-
-    void aggregate_data(sample::InstMode mode, double lower_ts, double upper_ts);
-    void combine_pe_flatbuffers(sample::InstMode mode, double lower_ts, double upper_ts);
-    void combine_kp_flatbuffers(sample::InstMode mode, double lower_ts, double upper_ts);
-    void combine_lp_flatbuffers(sample::InstMode mode, double lower_ts, double upper_ts);
-
-    void forward_model_data();
 };
 
 } // end namespace data

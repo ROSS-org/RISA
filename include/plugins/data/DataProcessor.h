@@ -41,20 +41,6 @@ public:
         {  }
 
     /**
-     * @brief NOT IMPLEMENTED YET
-     *
-     * Will aggregate perf data on a PE or node basis
-     */
-    void aggregate_data();
-
-    /**
-     * @brief NOT IMPLEMENTED YET
-     *
-     * Checks for committed model data that needs to be streamed
-     */
-    void forward_model_data();
-
-    /**
      * @brief Forwards data onto StreamClient buffer.
      *
      * Probably Temporary. Combines flatbuffers for a given
