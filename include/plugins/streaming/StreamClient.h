@@ -77,6 +77,7 @@ public:
      * queue to be sent.
      */
     void enqueue_data(sample::DamarisDataSampleT* samp);
+    void enqueue_data(uint8_t *raw, uint8_t *data, int size);
 
     /**
      * @brief Close the streaming connection
@@ -88,7 +89,7 @@ private:
     {
         uint8_t *raw_;  // points to start of fb dynamically allocated memory
         uint8_t *data_; // points to actual start of data
-        flatbuffers::uoffset_t size_; // size of data portion of flatbuffer
+        int size_; // size of data portion of flatbuffer
 
         // we take ownership of the memory allocated by the flatbuffer
         // so we don't need to do any initialization of our own

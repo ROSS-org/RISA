@@ -43,6 +43,15 @@ void StreamClient::enqueue_data(DamarisDataSampleT* samp)
     write_msgs_.push_back(msg);
 }
 
+void StreamClient::enqueue_data(uint8_t *raw, uint8_t *data, int size)
+{
+    sample_msg *msg = new sample_msg();
+    msg->size_ = size;
+    msg->raw_ = raw;
+    msg->data_ = data;
+    write_msgs_.push_back(msg);
+}
+
 void StreamClient::close()
 {
     if (!connected_)

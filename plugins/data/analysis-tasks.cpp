@@ -11,9 +11,12 @@ using namespace ross_damaris;
 using namespace ross_damaris::util;
 using namespace ross_damaris::sample;
 using namespace ross_damaris::data;
+namespace fb = flatbuffers;
 
 /* forward declarations for static functions */
 static void combine_pe_flatbuffers(sample::InstMode mode, double lower_ts, double upper_ts);
+static void combine_kp_flatbuffers(sample::InstMode mode, double lower_ts, double upper_ts);
+static void sum_data(SimEngineMetricsT* pe_metrics, SimEngineMetricsT* entity_metrics);
 
 boost::shared_ptr<DataManager> data_manager = nullptr;
 boost::shared_ptr<config::SimConfig> sim_config = nullptr;
@@ -60,9 +63,9 @@ void aggregate_data(void *arguments)
     {
         if (sim_config->pe_data())
             combine_pe_flatbuffers(mode, lower_ts, upper_ts);
-    //    else if (sim_config_->kp_data())
-    //        combine_kp_flatbuffers(mode, lower_ts, upper_ts);
-    //    else if (sim_config_->lp_data())
+        else if (sim_config->kp_data())
+            combine_kp_flatbuffers(mode, lower_ts, upper_ts);
+    //    else if (sim_config->lp_data())
     //        combine_lp_flatbuffers(mode, lower_ts, upper_ts);
     //    else
     //        cout << "[ArgobotsManager] aggregate_data(): how did we get here?\n";
@@ -215,5 +218,91 @@ void combine_pe_flatbuffers(sample::InstMode mode, double lower_ts, double upper
         ++it;
     }
     //set_last_processed(mode, upper_ts);
+}
+
+void combine_kp_flatbuffers(sample::InstMode mode, double lower_ts, double upper_ts)
+{
+    cout << "combine_kp_flatbuffers()\n";
+    SamplesByKey::iterator it, end;
+    data_manager->find_data(mode, lower_ts, upper_ts, it, end);
+    std::vector<fb::Offset<PEData>> pes;
+    while (it != end)
+    {
+        // it is iterator to a DataSample
+        fb::FlatBufferBuilder fbb;
+        DamarisDataSampleT ds;
+        auto outer_it = (*it)->ds_ptrs_begin();
+        auto outer_end = (*it)->ds_ptrs_end();
+        double virtual_ts, real_ts, last_gvt;
+
+        while (outer_it != outer_end)
+        {
+            //outer_it is iterator to a damaris DataSpace
+            //which for RTS and GVT sampling represents a single PE sample
+            SimEngineMetricsT pe_metrics;
+            auto dataspace = (*outer_it).second[-1];
+            auto data_fb = GetDamarisDataSample(dataspace.GetData());
+            data_fb->UnPackTo(&ds);
+            virtual_ts = ds.virtual_ts;
+            real_ts = ds.real_ts;
+            last_gvt = ds.last_gvt;
+
+            auto kp_it = ds.kp_data.begin();
+            auto kp_end = ds.kp_data.end();
+            int pe_id = (*kp_it)->peid;
+            while (kp_it != kp_end)
+            {
+                // kp_it is iterator to a KPDataT
+                sum_data(&pe_metrics, (*kp_it)->data.get());
+                ++kp_it;
+            }
+
+            fb::Offset<SimEngineMetrics> pe_metrics_fb = SimEngineMetrics::Pack(fbb, &pe_metrics);
+            pes.push_back(CreatePEData(fbb, pe_id, pe_metrics_fb));
+            ++outer_it;
+        }
+
+        auto sample_fb = CreateDamarisDataSampleDirect(fbb, virtual_ts, real_ts, last_gvt,
+                mode, &pes);
+        fbb.Finish(sample_fb);
+        int fb_size = static_cast<int>(fbb.GetSize());
+        size_t size, offset;
+        uint8_t *raw = fbb.ReleaseRaw(size, offset);
+        stream_client->enqueue_data(raw, &raw[offset], fb_size);
+        //stream_client->enqueue_data(&combined_sample);
+
+        pes.clear();
+        ++it;
+    }
+}
+
+//template <typename T>
+void sum_data(SimEngineMetricsT* pe_metrics, SimEngineMetricsT* entity_metrics)
+{
+    // TODO perhaps provide averages as well for aggregated data?
+    pe_metrics->nevent_processed += entity_metrics->nevent_processed;
+    pe_metrics->nevent_abort += entity_metrics->nevent_abort;
+    pe_metrics->nevent_rb += entity_metrics->nevent_rb;
+    pe_metrics->rb_total += entity_metrics->rb_total;
+    pe_metrics->rb_prim += entity_metrics->rb_prim;
+    pe_metrics->rb_sec += entity_metrics->rb_sec;
+    pe_metrics->fc_attempts += entity_metrics->fc_attempts;
+    pe_metrics->pq_qsize += entity_metrics->pq_qsize;
+    pe_metrics->network_send += entity_metrics->network_send;
+    pe_metrics->network_recv += entity_metrics->network_recv;
+    pe_metrics->num_gvt += entity_metrics->num_gvt;
+    pe_metrics->event_ties += entity_metrics->event_ties;
+    //pe_metrics->efficiency += entity_metrics.efficiency;
+    // KPs/LPs don't collect the below data
+    //pe_metrics->net_read_time += entity_metrics.net_read_time;
+    //pe_metrics->net_other_time += entity_metrics.net_other_time;
+    //pe_metrics->gvt_time += entity_metrics.gvt_time;
+    //pe_metrics->fc_time += entity_metrics.fc_time;
+    //pe_metrics->event_abort_time += entity_metrics.event_abort_time;
+    //pe_metrics->event_proc_time += entity_metrics.event_proc_time;
+    //pe_metrics->pq_time += entity_metrics.pq_time;
+    //pe_metrics->rb_time += entity_metrics.rb_time;
+    //pe_metrics->cancel_q_time += entity_metrics.cancel_q_time;
+    //pe_metrics->avl_time += entity_metrics.avl_time;
 }
 
