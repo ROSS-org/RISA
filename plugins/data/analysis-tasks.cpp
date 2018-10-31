@@ -15,8 +15,10 @@ namespace fb = flatbuffers;
 
 /* forward declarations for static functions */
 static void combine_pe_flatbuffers(sample::InstMode mode, double lower_ts, double upper_ts);
-static void combine_kp_flatbuffers(sample::InstMode mode, double lower_ts, double upper_ts);
+static void combine_flatbuffers(sample::InstMode mode, double lower_ts, double upper_ts);
 static void sum_data(SimEngineMetricsT* pe_metrics, SimEngineMetricsT* entity_metrics);
+static void iterate_kps(DamarisDataSampleT* ds, SimEngineMetricsT *pe_metrics, int *pe_id);
+static void iterate_lps(DamarisDataSampleT* ds, SimEngineMetricsT *pe_metrics, int *pe_id);
 
 boost::shared_ptr<DataManager> data_manager = nullptr;
 boost::shared_ptr<config::SimConfig> sim_config = nullptr;
@@ -63,12 +65,10 @@ void aggregate_data(void *arguments)
     {
         if (sim_config->pe_data())
             combine_pe_flatbuffers(mode, lower_ts, upper_ts);
-        else if (sim_config->kp_data())
-            combine_kp_flatbuffers(mode, lower_ts, upper_ts);
-    //    else if (sim_config->lp_data())
-    //        combine_lp_flatbuffers(mode, lower_ts, upper_ts);
-    //    else
-    //        cout << "[ArgobotsManager] aggregate_data(): how did we get here?\n";
+        else if (sim_config->kp_data() || sim_config->lp_data())
+            combine_flatbuffers(mode, lower_ts, upper_ts);
+        else
+            cout << "[ArgobotsManager] aggregate_data(): how did we get here?\n";
     }
     //else if (mode == InstMode_VT)
     //{
@@ -220,9 +220,9 @@ void combine_pe_flatbuffers(sample::InstMode mode, double lower_ts, double upper
     //set_last_processed(mode, upper_ts);
 }
 
-void combine_kp_flatbuffers(sample::InstMode mode, double lower_ts, double upper_ts)
+void combine_flatbuffers(sample::InstMode mode, double lower_ts, double upper_ts)
 {
-    cout << "combine_kp_flatbuffers()\n";
+    cout << "combine_flatbuffers()\n";
     SamplesByKey::iterator it, end;
     data_manager->find_data(mode, lower_ts, upper_ts, it, end);
     std::vector<fb::Offset<PEData>> pes;
@@ -247,15 +247,11 @@ void combine_kp_flatbuffers(sample::InstMode mode, double lower_ts, double upper
             real_ts = ds.real_ts;
             last_gvt = ds.last_gvt;
 
-            auto kp_it = ds.kp_data.begin();
-            auto kp_end = ds.kp_data.end();
-            int pe_id = (*kp_it)->peid;
-            while (kp_it != kp_end)
-            {
-                // kp_it is iterator to a KPDataT
-                sum_data(&pe_metrics, (*kp_it)->data.get());
-                ++kp_it;
-            }
+            int pe_id;
+            if (sim_config->kp_data())
+                iterate_kps(&ds, &pe_metrics, &pe_id);
+            else if (sim_config->lp_data())
+                iterate_lps(&ds, &pe_metrics, &pe_id);
 
             fb::Offset<SimEngineMetrics> pe_metrics_fb = SimEngineMetrics::Pack(fbb, &pe_metrics);
             pes.push_back(CreatePEData(fbb, pe_id, pe_metrics_fb));
@@ -273,6 +269,34 @@ void combine_kp_flatbuffers(sample::InstMode mode, double lower_ts, double upper
 
         pes.clear();
         ++it;
+    }
+}
+
+void iterate_kps(DamarisDataSampleT* ds, SimEngineMetricsT *pe_metrics, int *pe_id)
+{
+    cout << "iterate_kps()\n";
+    auto kp_it = ds->kp_data.begin();
+    auto kp_end = ds->kp_data.end();
+    *pe_id = (*kp_it)->peid;
+    while (kp_it != kp_end)
+    {
+        // kp_it is iterator to a KPDataT
+        sum_data(pe_metrics, (*kp_it)->data.get());
+        ++kp_it;
+    }
+}
+
+void iterate_lps(DamarisDataSampleT* ds, SimEngineMetricsT *pe_metrics, int *pe_id)
+{
+    cout << "iterate_lps()\n";
+    auto lp_it = ds->lp_data.begin();
+    auto lp_end = ds->lp_data.end();
+    *pe_id = (*lp_it)->peid;
+    while (lp_it != lp_end)
+    {
+        // lp_it is iterator to a lpDataT
+        sum_data(pe_metrics, (*lp_it)->data.get());
+        ++lp_it;
     }
 }
 
