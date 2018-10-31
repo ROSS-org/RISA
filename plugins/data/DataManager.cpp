@@ -38,11 +38,19 @@ SamplesByKey::iterator DataManager::find_data(InstMode mode, double ts)
 void DataManager::find_data(InstMode mode, double lower, double upper,
         SamplesByKey::iterator& begin, SamplesByKey::iterator& end)
 {
-    // don't want to include lower bound
-    begin = data_index_.get<by_sample_key>().upper_bound(
-            boost::make_tuple(mode, lower));
-    end = data_index_.get<by_sample_key>().upper_bound(
-            boost::make_tuple(mode, upper));
+    if (lower == upper)
+    {
+        begin = find_data(mode, lower);
+        end = data_index_.get<by_sample_key>().end();
+    }
+    else
+    {
+        // don't want to include lower bound
+        begin = data_index_.get<by_sample_key>().upper_bound(
+                boost::make_tuple(mode, lower));
+        end = data_index_.get<by_sample_key>().upper_bound(
+                boost::make_tuple(mode, upper));
+    }
 }
 
 void DataManager::delete_data(double ts, sample::InstMode mode)

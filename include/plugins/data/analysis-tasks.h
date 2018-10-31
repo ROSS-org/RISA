@@ -16,13 +16,27 @@
 extern "C" {
 #endif
 
+struct init_args
+{
+    void* data_manager;
+    void* sim_config;
+    void* stream_client;
+};
+
 struct initial_task_args
 {
     int step;
-    void* dm;
-    //damaris::DataSpace<damaris::Buffer> ds;
     const void* ds;
 };
+
+struct data_agg_args
+{
+    int mode;
+    double lower_ts;
+    double upper_ts;
+};
+
+void initialize_task(void *arguments);
 
 /**
  * @brief Aggregates data for a given sampling point.
