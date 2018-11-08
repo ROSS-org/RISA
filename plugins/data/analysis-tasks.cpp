@@ -1,3 +1,5 @@
+#include <unordered_map>
+#include <unordered_set>
 #include <plugins/data/analysis-tasks.h>
 #include <plugins/data/DataSample.h>
 #include <plugins/flatbuffers/data_sample_generated.h>
@@ -89,91 +91,87 @@ void initial_data_processing(void *arguments)
     initial_task_args *args;
     args = (initial_task_args*)arguments;
     int step = args->step;
-    data_agg_args *agg_args = (data_agg_args*)malloc(sizeof(data_agg_args));
     //printf("initial_data_processing() called at step %d, pool_id %d\n", step, pool_id);
     damaris::BlocksByIteration::iterator begin, end;
     DUtil::get_damaris_iterators("ross/sample", step, begin, end);
-    double lowest = DBL_MAX;
-    double highest = 0.0;
+    std::unordered_map<int, std::set<double>> sampling_points;
 
+    // TODO this could maybe be done in a better way
+    // perhaps move insert_data_mic functionality here
+    // then we can set an aggregation task for each sampling point
+    // and pass the pointer to the data, so the task doesn't even need to search
+    // for it
+
+    // keep the iterator for the previous iteration because we're likely going to need it
+    SamplesByKey::iterator sample_it = data_manager->end();
     while (begin != end)
     {
-        initial_task_args * task_args = (initial_task_args*)malloc(sizeof(initial_task_args));
-        task_args->step = step;
+        // each iterator is to a flatbuffer sample from ROSS
+        // For GVT and RTS, this is one fb per PE per sampling point
+        // for VTS, this is on fb per KP per sampling point
+        // for VTS and RTS, we may have more than one sampling point
+        //initial_task_args * task_args = (initial_task_args*)malloc(sizeof(initial_task_args));
+        //task_args->step = step;
         //cout << "ds.RefCount() = " << (*begin)->GetDataSpace().RefCount() << endl;
-        task_args->ds = reinterpret_cast<const void*>(&((*begin)->GetDataSpace()));
+        //task_args->ds = reinterpret_cast<const void*>(&((*begin)->GetDataSpace()));
 
         damaris::DataSpace<damaris::Buffer> ds((*begin)->GetDataSpace());
         auto data_fb = GetDamarisDataSample(ds.GetData());
-        // TODO need to handle for multiple modes
-        agg_args->mode = static_cast<int>(data_fb->mode());
+        double ts;
+        switch (data_fb->mode())
+        {
+            case InstMode_GVT:
+                ts = data_fb->last_gvt();
+                break;
+            case InstMode_VT:
+                ts = data_fb->virtual_ts();
+                break;
+            case InstMode_RT:
+                ts = data_fb->real_ts();
+                break;
+            default:
+                break;
+        }
+        sampling_points[static_cast<int>(data_fb->mode())].insert(ts);
 
-        if (data_fb->last_gvt() < lowest)
-            lowest = data_fb->last_gvt();
-        if (data_fb->last_gvt() > highest)
-            highest = data_fb->last_gvt();
+        int id = data_fb->entity_id();
 
-        //cout << "src: " << (*begin)->GetSource() << " iteration: " << (*begin)->GetIteration()
-        //    << " domain id: " << (*begin)->GetID() << endl;
-        ABT_task_create(pool, insert_data_mic, task_args, NULL);
-        begin++;
+        // does this DataSpace belong in the DataSample from the previous iteration?
+        if (sample_it == data_manager->end() || !(*sample_it)->same_sample(data_fb->mode(), ts))
+            sample_it = data_manager->find_data(data_fb->mode(), ts);
+
+        if (sample_it != data_manager->end())
+        {
+            (*sample_it)->push_ds_ptr(id, data_fb->event_id(), ds);
+            //cout << "num ds_ptrs " << (*sample_it)->get_ds_ptr_size() << endl;
+        }
+        else // couldn't find it
+        {
+            DataSample s(ts, data_fb->mode(), DataStatus_speculative);
+            s.push_ds_ptr(id, data_fb->event_id(), ds);
+            data_manager->insert_data(std::move(s));
+        }
+
+        ++begin;
     }
 
-    // Now set up a task to do data aggregation
+    // Now set up task(s) to do data aggregation
     // Since we use a FIFO queue along with just one processing ES,
     // things should be done in the correct order.
     // In the future, we'll need to make sure to handle correctly
-    agg_args->lower_ts = lowest;
-    agg_args->upper_ts = highest;
+    for (auto it = sampling_points.begin(); it != sampling_points.end(); ++it)
+    {
+        for (auto set_it = (*it).second.begin(); set_it != (*it).second.end(); ++set_it)
+        {
+            data_agg_args *agg_args = (data_agg_args*)malloc(sizeof(data_agg_args));
+            agg_args->mode = static_cast<InstMode>((*it).first);
+            agg_args->lower_ts = (*set_it);
+            agg_args->upper_ts = (*set_it);
+            ABT_task_create(pool, aggregate_data, agg_args, NULL);
+        }
+    }
+
     // TODO if using multiple inst modes, need to make sure to do a tasklet for each?
-    ABT_task_create(pool, aggregate_data, agg_args, NULL);
-
-    free(args);
-}
-
-void insert_data_mic(void *arguments)
-{
-    initial_task_args *args;
-    args = (initial_task_args*)arguments;
-    int step = args->step;
-    //printf("insert_data_mic() called at step %d\n", step);
-    const damaris::DataSpace<damaris::Buffer> ds = *reinterpret_cast<const damaris::DataSpace<damaris::Buffer>*>(args->ds);
-    //cout << "ds.RefCount() = " << ds.RefCount() << endl;
-    auto data_fb = GetDamarisDataSample(ds.GetData());
-    double ts;
-    switch (data_fb->mode())
-    {
-        case InstMode_GVT:
-            ts = data_fb->last_gvt();
-            break;
-        case InstMode_VT:
-            ts = data_fb->virtual_ts();
-            break;
-        case InstMode_RT:
-            ts = data_fb->real_ts();
-            break;
-        default:
-            break;
-    }
-
-    int id = data_fb->entity_id();
-
-    // first we need to check to see if this is data for an existing sampling point
-    auto sample_it = data_manager->find_data(data_fb->mode(), ts);
-    if (sample_it != data_manager->end())
-    {
-        (*sample_it)->push_ds_ptr(id, data_fb->event_id(), ds);
-        //cout << "num ds_ptrs " << (*sample_it)->get_ds_ptr_size() << endl;
-    }
-    else // couldn't find it
-    {
-        DataSample s(ts, data_fb->mode(), DataStatus_speculative);
-        s.push_ds_ptr(id, data_fb->event_id(), ds);
-        data_manager->insert_data(std::move(s));
-    }
-
-    //cur_mode_ = data_fb->mode();
-    //cur_ts_ = ts;
 
     free(args);
 }

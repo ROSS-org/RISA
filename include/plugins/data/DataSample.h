@@ -32,6 +32,20 @@ public:
     virtual double get_sampling_time() const { return sampling_time_; }
     virtual int get_status() const { return status_; }
 
+    bool same_sample(DataSample& other)
+    {
+        if (mode_ == other.get_mode() && sampling_time_ == other.get_sampling_time())
+            return true;
+        return false;
+    }
+
+    bool same_sample(sample::InstMode mode, double ts)
+    {
+        if (mode_ == mode && sampling_time_ == ts)
+            return true;
+        return false;
+    }
+
     /**
      * @brief add a DataSpace associated with this sampling point
      * @param id The id of the entity (KP or PE) associated with this sample.

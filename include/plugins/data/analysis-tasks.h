@@ -49,9 +49,8 @@ void aggregate_data(void *arg);
 void remove_data_mic(void *arg);
 
 /**
- * @brief Adds data for a given sampling point to the DataManager.
+ * @brief Adds Damaris DataSpaces to the DataManager.
  */
-void insert_data_mic(void *arguments);
 void initial_data_processing(void *arguments);
 
 #ifdef __cplusplus
