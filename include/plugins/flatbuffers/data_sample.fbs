@@ -46,6 +46,7 @@ table SimEngineMetrics {
     cancel_q_time:float;
     avl_time:float;
     virtual_time_diff:float;
+    comm_data:[int];
 }
 
 table LPData {
@@ -113,7 +114,6 @@ table DamarisDataSample {
     kp_data:[KPData];
     lp_data:[LPData];
     model_data:[ModelLP];
-    //model_data:int (hash: "fnv1_32", cpp_type: "ModelData");
     /// next three used for internal info
     entity_id:int = -1;
     event_id:int = -1;
