@@ -99,6 +99,7 @@ inline const char * const *EnumNamesInstMode() {
 }
 
 inline const char *EnumNameInstMode(InstMode e) {
+  if (e < InstMode_none || e > InstMode_ET) return "";
   const size_t index = static_cast<int>(e);
   return EnumNamesInstMode()[index];
 }
@@ -132,6 +133,7 @@ inline const char * const *EnumNamesDataStatus() {
 }
 
 inline const char *EnumNameDataStatus(DataStatus e) {
+  if (e < DataStatus_speculative || e > DataStatus_invalid) return "";
   const size_t index = static_cast<int>(e);
   return EnumNamesDataStatus()[index];
 }
@@ -171,6 +173,7 @@ inline const char * const *EnumNamesVariableType() {
 }
 
 inline const char *EnumNameVariableType(VariableType e) {
+  if (e < VariableType_NONE || e > VariableType_DoubleVar) return "";
   const size_t index = static_cast<int>(e);
   return EnumNamesVariableType()[index];
 }
@@ -289,6 +292,9 @@ struct SimEngineMetricsT : public flatbuffers::NativeTable {
   float cancel_q_time;
   float avl_time;
   float virtual_time_diff;
+  std::vector<int32_t> pe_comm;
+  std::vector<int32_t> kp_comm;
+  std::vector<int32_t> lp_comm;
   SimEngineMetricsT()
       : nevent_processed(0),
         nevent_abort(0),
@@ -323,7 +329,7 @@ struct SimEngineMetrics FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   static const flatbuffers::TypeTable *MiniReflectTypeTable() {
     return SimEngineMetricsTypeTable();
   }
-  enum {
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_NEVENT_PROCESSED = 4,
     VT_NEVENT_ABORT = 6,
     VT_NEVENT_RB = 8,
@@ -347,7 +353,10 @@ struct SimEngineMetrics FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_RB_TIME = 44,
     VT_CANCEL_Q_TIME = 46,
     VT_AVL_TIME = 48,
-    VT_VIRTUAL_TIME_DIFF = 50
+    VT_VIRTUAL_TIME_DIFF = 50,
+    VT_PE_COMM = 52,
+    VT_KP_COMM = 54,
+    VT_LP_COMM = 56
   };
   int32_t nevent_processed() const {
     return GetField<int32_t>(VT_NEVENT_PROCESSED, 0);
@@ -421,6 +430,15 @@ struct SimEngineMetrics FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   float virtual_time_diff() const {
     return GetField<float>(VT_VIRTUAL_TIME_DIFF, 0.0f);
   }
+  const flatbuffers::Vector<int32_t> *pe_comm() const {
+    return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_PE_COMM);
+  }
+  const flatbuffers::Vector<int32_t> *kp_comm() const {
+    return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_KP_COMM);
+  }
+  const flatbuffers::Vector<int32_t> *lp_comm() const {
+    return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_LP_COMM);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<int32_t>(verifier, VT_NEVENT_PROCESSED) &&
@@ -447,6 +465,12 @@ struct SimEngineMetrics FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<float>(verifier, VT_CANCEL_Q_TIME) &&
            VerifyField<float>(verifier, VT_AVL_TIME) &&
            VerifyField<float>(verifier, VT_VIRTUAL_TIME_DIFF) &&
+           VerifyOffset(verifier, VT_PE_COMM) &&
+           verifier.VerifyVector(pe_comm()) &&
+           VerifyOffset(verifier, VT_KP_COMM) &&
+           verifier.VerifyVector(kp_comm()) &&
+           VerifyOffset(verifier, VT_LP_COMM) &&
+           verifier.VerifyVector(lp_comm()) &&
            verifier.EndTable();
   }
   SimEngineMetricsT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -529,6 +553,15 @@ struct SimEngineMetricsBuilder {
   void add_virtual_time_diff(float virtual_time_diff) {
     fbb_.AddElement<float>(SimEngineMetrics::VT_VIRTUAL_TIME_DIFF, virtual_time_diff, 0.0f);
   }
+  void add_pe_comm(flatbuffers::Offset<flatbuffers::Vector<int32_t>> pe_comm) {
+    fbb_.AddOffset(SimEngineMetrics::VT_PE_COMM, pe_comm);
+  }
+  void add_kp_comm(flatbuffers::Offset<flatbuffers::Vector<int32_t>> kp_comm) {
+    fbb_.AddOffset(SimEngineMetrics::VT_KP_COMM, kp_comm);
+  }
+  void add_lp_comm(flatbuffers::Offset<flatbuffers::Vector<int32_t>> lp_comm) {
+    fbb_.AddOffset(SimEngineMetrics::VT_LP_COMM, lp_comm);
+  }
   explicit SimEngineMetricsBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -566,8 +599,14 @@ inline flatbuffers::Offset<SimEngineMetrics> CreateSimEngineMetrics(
     float rb_time = 0.0f,
     float cancel_q_time = 0.0f,
     float avl_time = 0.0f,
-    float virtual_time_diff = 0.0f) {
+    float virtual_time_diff = 0.0f,
+    flatbuffers::Offset<flatbuffers::Vector<int32_t>> pe_comm = 0,
+    flatbuffers::Offset<flatbuffers::Vector<int32_t>> kp_comm = 0,
+    flatbuffers::Offset<flatbuffers::Vector<int32_t>> lp_comm = 0) {
   SimEngineMetricsBuilder builder_(_fbb);
+  builder_.add_lp_comm(lp_comm);
+  builder_.add_kp_comm(kp_comm);
+  builder_.add_pe_comm(pe_comm);
   builder_.add_virtual_time_diff(virtual_time_diff);
   builder_.add_avl_time(avl_time);
   builder_.add_cancel_q_time(cancel_q_time);
@@ -595,6 +634,69 @@ inline flatbuffers::Offset<SimEngineMetrics> CreateSimEngineMetrics(
   return builder_.Finish();
 }
 
+inline flatbuffers::Offset<SimEngineMetrics> CreateSimEngineMetricsDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    int32_t nevent_processed = 0,
+    int32_t nevent_abort = 0,
+    int32_t nevent_rb = 0,
+    int32_t rb_total = 0,
+    int32_t rb_prim = 0,
+    int32_t rb_sec = 0,
+    int32_t fc_attempts = 0,
+    int32_t pq_qsize = 0,
+    int32_t network_send = 0,
+    int32_t network_recv = 0,
+    int32_t num_gvt = 0,
+    int32_t event_ties = 0,
+    float efficiency = 0.0f,
+    float net_read_time = 0.0f,
+    float net_other_time = 0.0f,
+    float gvt_time = 0.0f,
+    float fc_time = 0.0f,
+    float event_abort_time = 0.0f,
+    float event_proc_time = 0.0f,
+    float pq_time = 0.0f,
+    float rb_time = 0.0f,
+    float cancel_q_time = 0.0f,
+    float avl_time = 0.0f,
+    float virtual_time_diff = 0.0f,
+    const std::vector<int32_t> *pe_comm = nullptr,
+    const std::vector<int32_t> *kp_comm = nullptr,
+    const std::vector<int32_t> *lp_comm = nullptr) {
+  auto pe_comm__ = pe_comm ? _fbb.CreateVector<int32_t>(*pe_comm) : 0;
+  auto kp_comm__ = kp_comm ? _fbb.CreateVector<int32_t>(*kp_comm) : 0;
+  auto lp_comm__ = lp_comm ? _fbb.CreateVector<int32_t>(*lp_comm) : 0;
+  return ross_damaris::sample::CreateSimEngineMetrics(
+      _fbb,
+      nevent_processed,
+      nevent_abort,
+      nevent_rb,
+      rb_total,
+      rb_prim,
+      rb_sec,
+      fc_attempts,
+      pq_qsize,
+      network_send,
+      network_recv,
+      num_gvt,
+      event_ties,
+      efficiency,
+      net_read_time,
+      net_other_time,
+      gvt_time,
+      fc_time,
+      event_abort_time,
+      event_proc_time,
+      pq_time,
+      rb_time,
+      cancel_q_time,
+      avl_time,
+      virtual_time_diff,
+      pe_comm__,
+      kp_comm__,
+      lp_comm__);
+}
+
 flatbuffers::Offset<SimEngineMetrics> CreateSimEngineMetrics(flatbuffers::FlatBufferBuilder &_fbb, const SimEngineMetricsT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
 struct LPDataT : public flatbuffers::NativeTable {
@@ -619,7 +721,7 @@ struct LPData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   static const flatbuffers::TypeTable *MiniReflectTypeTable() {
     return LPDataTypeTable();
   }
-  enum {
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_PEID = 4,
     VT_KPID = 6,
     VT_KP_GID = 8,
@@ -732,7 +834,7 @@ struct KPData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   static const flatbuffers::TypeTable *MiniReflectTypeTable() {
     return KPDataTypeTable();
   }
-  enum {
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_PEID = 4,
     VT_KPID = 6,
     VT_KP_GID = 8,
@@ -821,7 +923,7 @@ struct PEData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   static const flatbuffers::TypeTable *MiniReflectTypeTable() {
     return PEDataTypeTable();
   }
-  enum {
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_PEID = 4,
     VT_DATA = 6
   };
@@ -888,7 +990,7 @@ struct IntVar FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   static const flatbuffers::TypeTable *MiniReflectTypeTable() {
     return IntVarTypeTable();
   }
-  enum {
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_VALUE = 4
   };
   const flatbuffers::Vector<int32_t> *value() const {
@@ -934,9 +1036,10 @@ inline flatbuffers::Offset<IntVar> CreateIntVar(
 inline flatbuffers::Offset<IntVar> CreateIntVarDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const std::vector<int32_t> *value = nullptr) {
+  auto value__ = value ? _fbb.CreateVector<int32_t>(*value) : 0;
   return ross_damaris::sample::CreateIntVar(
       _fbb,
-      value ? _fbb.CreateVector<int32_t>(*value) : 0);
+      value__);
 }
 
 flatbuffers::Offset<IntVar> CreateIntVar(flatbuffers::FlatBufferBuilder &_fbb, const IntVarT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -953,7 +1056,7 @@ struct LongVar FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   static const flatbuffers::TypeTable *MiniReflectTypeTable() {
     return LongVarTypeTable();
   }
-  enum {
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_VALUE = 4
   };
   const flatbuffers::Vector<int64_t> *value() const {
@@ -999,9 +1102,10 @@ inline flatbuffers::Offset<LongVar> CreateLongVar(
 inline flatbuffers::Offset<LongVar> CreateLongVarDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const std::vector<int64_t> *value = nullptr) {
+  auto value__ = value ? _fbb.CreateVector<int64_t>(*value) : 0;
   return ross_damaris::sample::CreateLongVar(
       _fbb,
-      value ? _fbb.CreateVector<int64_t>(*value) : 0);
+      value__);
 }
 
 flatbuffers::Offset<LongVar> CreateLongVar(flatbuffers::FlatBufferBuilder &_fbb, const LongVarT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -1018,7 +1122,7 @@ struct FloatVar FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   static const flatbuffers::TypeTable *MiniReflectTypeTable() {
     return FloatVarTypeTable();
   }
-  enum {
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_VALUE = 4
   };
   const flatbuffers::Vector<float> *value() const {
@@ -1064,9 +1168,10 @@ inline flatbuffers::Offset<FloatVar> CreateFloatVar(
 inline flatbuffers::Offset<FloatVar> CreateFloatVarDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const std::vector<float> *value = nullptr) {
+  auto value__ = value ? _fbb.CreateVector<float>(*value) : 0;
   return ross_damaris::sample::CreateFloatVar(
       _fbb,
-      value ? _fbb.CreateVector<float>(*value) : 0);
+      value__);
 }
 
 flatbuffers::Offset<FloatVar> CreateFloatVar(flatbuffers::FlatBufferBuilder &_fbb, const FloatVarT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -1083,7 +1188,7 @@ struct DoubleVar FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   static const flatbuffers::TypeTable *MiniReflectTypeTable() {
     return DoubleVarTypeTable();
   }
-  enum {
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_VALUE = 4
   };
   const flatbuffers::Vector<double> *value() const {
@@ -1129,9 +1234,10 @@ inline flatbuffers::Offset<DoubleVar> CreateDoubleVar(
 inline flatbuffers::Offset<DoubleVar> CreateDoubleVarDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const std::vector<double> *value = nullptr) {
+  auto value__ = value ? _fbb.CreateVector<double>(*value) : 0;
   return ross_damaris::sample::CreateDoubleVar(
       _fbb,
-      value ? _fbb.CreateVector<double>(*value) : 0);
+      value__);
 }
 
 flatbuffers::Offset<DoubleVar> CreateDoubleVar(flatbuffers::FlatBufferBuilder &_fbb, const DoubleVarT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -1149,7 +1255,7 @@ struct ModelVariable FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   static const flatbuffers::TypeTable *MiniReflectTypeTable() {
     return ModelVariableTypeTable();
   }
-  enum {
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_VAR_NAME = 4,
     VT_VAR_VALUE_TYPE = 6,
     VT_VAR_VALUE = 8
@@ -1247,9 +1353,10 @@ inline flatbuffers::Offset<ModelVariable> CreateModelVariableDirect(
     const char *var_name = nullptr,
     VariableType var_value_type = VariableType_NONE,
     flatbuffers::Offset<void> var_value = 0) {
+  auto var_name__ = var_name ? _fbb.CreateString(var_name) : 0;
   return ross_damaris::sample::CreateModelVariable(
       _fbb,
-      var_name ? _fbb.CreateString(var_name) : 0,
+      var_name__,
       var_value_type,
       var_value);
 }
@@ -1271,7 +1378,7 @@ struct ModelLP FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   static const flatbuffers::TypeTable *MiniReflectTypeTable() {
     return ModelLPTypeTable();
   }
-  enum {
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_LPID = 4,
     VT_LPTYPE = 6,
     VT_VARIABLES = 8
@@ -1341,11 +1448,13 @@ inline flatbuffers::Offset<ModelLP> CreateModelLPDirect(
     int32_t lpid = 0,
     const char *lptype = nullptr,
     const std::vector<flatbuffers::Offset<ModelVariable>> *variables = nullptr) {
+  auto lptype__ = lptype ? _fbb.CreateString(lptype) : 0;
+  auto variables__ = variables ? _fbb.CreateVector<flatbuffers::Offset<ModelVariable>>(*variables) : 0;
   return ross_damaris::sample::CreateModelLP(
       _fbb,
       lpid,
-      lptype ? _fbb.CreateString(lptype) : 0,
-      variables ? _fbb.CreateVector<flatbuffers::Offset<ModelVariable>>(*variables) : 0);
+      lptype__,
+      variables__);
 }
 
 flatbuffers::Offset<ModelLP> CreateModelLP(flatbuffers::FlatBufferBuilder &_fbb, const ModelLPT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -1379,7 +1488,7 @@ struct DamarisDataSample FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   static const flatbuffers::TypeTable *MiniReflectTypeTable() {
     return DamarisDataSampleTypeTable();
   }
-  enum {
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_VIRTUAL_TS = 4,
     VT_REAL_TS = 6,
     VT_LAST_GVT = 8,
@@ -1543,16 +1652,20 @@ inline flatbuffers::Offset<DamarisDataSample> CreateDamarisDataSampleDirect(
     int32_t entity_id = -1,
     int32_t event_id = -1,
     DataStatus status = DataStatus_speculative) {
+  auto pe_data__ = pe_data ? _fbb.CreateVector<flatbuffers::Offset<PEData>>(*pe_data) : 0;
+  auto kp_data__ = kp_data ? _fbb.CreateVector<flatbuffers::Offset<KPData>>(*kp_data) : 0;
+  auto lp_data__ = lp_data ? _fbb.CreateVector<flatbuffers::Offset<LPData>>(*lp_data) : 0;
+  auto model_data__ = model_data ? _fbb.CreateVector<flatbuffers::Offset<ModelLP>>(*model_data) : 0;
   return ross_damaris::sample::CreateDamarisDataSample(
       _fbb,
       virtual_ts,
       real_ts,
       last_gvt,
       mode,
-      pe_data ? _fbb.CreateVector<flatbuffers::Offset<PEData>>(*pe_data) : 0,
-      kp_data ? _fbb.CreateVector<flatbuffers::Offset<KPData>>(*kp_data) : 0,
-      lp_data ? _fbb.CreateVector<flatbuffers::Offset<LPData>>(*lp_data) : 0,
-      model_data ? _fbb.CreateVector<flatbuffers::Offset<ModelLP>>(*model_data) : 0,
+      pe_data__,
+      kp_data__,
+      lp_data__,
+      model_data__,
       entity_id,
       event_id,
       status);
@@ -1593,6 +1706,9 @@ inline void SimEngineMetrics::UnPackTo(SimEngineMetricsT *_o, const flatbuffers:
   { auto _e = cancel_q_time(); _o->cancel_q_time = _e; };
   { auto _e = avl_time(); _o->avl_time = _e; };
   { auto _e = virtual_time_diff(); _o->virtual_time_diff = _e; };
+  { auto _e = pe_comm(); if (_e) { _o->pe_comm.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->pe_comm[_i] = _e->Get(_i); } } };
+  { auto _e = kp_comm(); if (_e) { _o->kp_comm.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->kp_comm[_i] = _e->Get(_i); } } };
+  { auto _e = lp_comm(); if (_e) { _o->lp_comm.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->lp_comm[_i] = _e->Get(_i); } } };
 }
 
 inline flatbuffers::Offset<SimEngineMetrics> SimEngineMetrics::Pack(flatbuffers::FlatBufferBuilder &_fbb, const SimEngineMetricsT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -1627,6 +1743,9 @@ inline flatbuffers::Offset<SimEngineMetrics> CreateSimEngineMetrics(flatbuffers:
   auto _cancel_q_time = _o->cancel_q_time;
   auto _avl_time = _o->avl_time;
   auto _virtual_time_diff = _o->virtual_time_diff;
+  auto _pe_comm = _o->pe_comm.size() ? _fbb.CreateVector(_o->pe_comm) : 0;
+  auto _kp_comm = _o->kp_comm.size() ? _fbb.CreateVector(_o->kp_comm) : 0;
+  auto _lp_comm = _o->lp_comm.size() ? _fbb.CreateVector(_o->lp_comm) : 0;
   return ross_damaris::sample::CreateSimEngineMetrics(
       _fbb,
       _nevent_processed,
@@ -1652,7 +1771,10 @@ inline flatbuffers::Offset<SimEngineMetrics> CreateSimEngineMetrics(flatbuffers:
       _rb_time,
       _cancel_q_time,
       _avl_time,
-      _virtual_time_diff);
+      _virtual_time_diff,
+      _pe_comm,
+      _kp_comm,
+      _lp_comm);
 }
 
 inline LPDataT *LPData::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
@@ -2212,7 +2334,10 @@ inline const flatbuffers::TypeTable *SimEngineMetricsTypeTable() {
     { flatbuffers::ET_FLOAT, 0, -1 },
     { flatbuffers::ET_FLOAT, 0, -1 },
     { flatbuffers::ET_FLOAT, 0, -1 },
-    { flatbuffers::ET_FLOAT, 0, -1 }
+    { flatbuffers::ET_FLOAT, 0, -1 },
+    { flatbuffers::ET_INT, 1, -1 },
+    { flatbuffers::ET_INT, 1, -1 },
+    { flatbuffers::ET_INT, 1, -1 }
   };
   static const char * const names[] = {
     "nevent_processed",
@@ -2238,10 +2363,13 @@ inline const flatbuffers::TypeTable *SimEngineMetricsTypeTable() {
     "rb_time",
     "cancel_q_time",
     "avl_time",
-    "virtual_time_diff"
+    "virtual_time_diff",
+    "pe_comm",
+    "kp_comm",
+    "lp_comm"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_TABLE, 24, type_codes, nullptr, nullptr, names
+    flatbuffers::ST_TABLE, 27, type_codes, nullptr, nullptr, names
   };
   return &tt;
 }

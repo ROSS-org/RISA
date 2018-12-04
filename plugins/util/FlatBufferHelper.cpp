@@ -30,6 +30,10 @@ void FlatBufferHelper::finish_lp_model_sample()
 
 void FlatBufferHelper::pe_sample(tw_pe *pe, tw_statistics *s, tw_statistics *last_pe_stats, int inst_type)
 {
+    // add in pe_comm data
+    auto pe_comm = fbb_.CreateVector(pe->pe_comm, tw_nnodes());
+    memset(pe->pe_comm, 0, tw_nnodes()*sizeof(int));
+
     SimEngineMetricsBuilder metrics(fbb_);
     metrics.add_nevent_processed(s->s_nevent_processed-last_pe_stats->s_nevent_processed);
     metrics.add_nevent_abort(s->s_nevent_abort-last_pe_stats->s_nevent_abort);
@@ -53,6 +57,7 @@ void FlatBufferHelper::pe_sample(tw_pe *pe, tw_statistics *s, tw_statistics *las
     metrics.add_rb_time((pe->stats.s_rollback - last_pe_stats->s_rollback) / g_tw_clock_rate);
     metrics.add_cancel_q_time((pe->stats.s_cancel_q - last_pe_stats->s_cancel_q) / g_tw_clock_rate);
     metrics.add_avl_time((pe->stats.s_avl - last_pe_stats->s_avl) / g_tw_clock_rate);
+    metrics.add_pe_comm(pe_comm);
 
     auto data = metrics.Finish();
     int peid = static_cast<int>(pe->id);
@@ -62,6 +67,10 @@ void FlatBufferHelper::pe_sample(tw_pe *pe, tw_statistics *s, tw_statistics *las
 
 void FlatBufferHelper::kp_sample(tw_kp *kp, int inst_type)
 {
+    // add in kp_comm data
+    auto kp_comm = fbb_.CreateVector(kp->kp_comm, g_tw_nkp*tw_nnodes());
+    memset(kp->kp_comm, 0, g_tw_nkp*tw_nnodes()*sizeof(int));
+
     SimEngineMetricsBuilder metrics(fbb_);
     metrics.add_nevent_processed(kp->kp_stats->s_nevent_processed - kp->last_stats[inst_type]->s_nevent_processed);
     metrics.add_nevent_abort(kp->kp_stats->s_nevent_abort - kp->last_stats[inst_type]->s_nevent_abort);
@@ -72,6 +81,7 @@ void FlatBufferHelper::kp_sample(tw_kp *kp, int inst_type)
     metrics.add_network_recv(kp->kp_stats->s_nread_network - kp->last_stats[inst_type]->s_nread_network);
     metrics.add_virtual_time_diff(kp->last_time - kp->pe->GVT);
     memcpy(kp->last_stats[inst_type], kp->kp_stats, sizeof(st_kp_stats));
+    metrics.add_kp_comm(kp_comm);
 
     auto data = metrics.Finish();
     int peid = static_cast<int>(kp->pe->id);
@@ -83,6 +93,10 @@ void FlatBufferHelper::kp_sample(tw_kp *kp, int inst_type)
 
 void FlatBufferHelper::lp_sample(tw_lp *lp, int inst_type)
 {
+    // add in lp_comm data
+    //auto lp_comm = fbb_.CreateVector(lp->lp_comm, g_tw_total_lps);
+    //memset(lp->lp_comm, 0, g_tw_total_lps*sizeof(int));
+
     SimEngineMetricsBuilder metrics(fbb_);
     metrics.add_nevent_processed(lp->lp_stats->s_nevent_processed - lp->last_stats[inst_type]->s_nevent_processed);
     metrics.add_nevent_abort(lp->lp_stats->s_nevent_abort - lp->last_stats[inst_type]->s_nevent_abort);
@@ -90,6 +104,7 @@ void FlatBufferHelper::lp_sample(tw_lp *lp, int inst_type)
     metrics.add_network_send(lp->lp_stats->s_nsend_network - lp->last_stats[inst_type]->s_nsend_network);
     metrics.add_network_recv(lp->lp_stats->s_nread_network - lp->last_stats[inst_type]->s_nread_network);
     memcpy(lp->last_stats[inst_type], lp->lp_stats, sizeof(st_lp_stats));
+    //metrics.add_lp_comm(lp_comm);
 
     auto data = metrics.Finish();
     int peid = static_cast<int>(lp->pe->id);
