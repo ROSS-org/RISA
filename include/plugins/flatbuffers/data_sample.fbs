@@ -46,9 +46,7 @@ table SimEngineMetrics {
     cancel_q_time:float;
     avl_time:float;
     virtual_time_diff:float;
-    pe_comm:[int];
-    kp_comm:[int];
-    lp_comm:[int];
+    comm_data:[int];
 }
 
 table LPData {

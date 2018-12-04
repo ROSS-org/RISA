@@ -292,9 +292,7 @@ struct SimEngineMetricsT : public flatbuffers::NativeTable {
   float cancel_q_time;
   float avl_time;
   float virtual_time_diff;
-  std::vector<int32_t> pe_comm;
-  std::vector<int32_t> kp_comm;
-  std::vector<int32_t> lp_comm;
+  std::vector<int32_t> comm_data;
   SimEngineMetricsT()
       : nevent_processed(0),
         nevent_abort(0),
@@ -354,9 +352,7 @@ struct SimEngineMetrics FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_CANCEL_Q_TIME = 46,
     VT_AVL_TIME = 48,
     VT_VIRTUAL_TIME_DIFF = 50,
-    VT_PE_COMM = 52,
-    VT_KP_COMM = 54,
-    VT_LP_COMM = 56
+    VT_COMM_DATA = 52
   };
   int32_t nevent_processed() const {
     return GetField<int32_t>(VT_NEVENT_PROCESSED, 0);
@@ -430,14 +426,8 @@ struct SimEngineMetrics FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   float virtual_time_diff() const {
     return GetField<float>(VT_VIRTUAL_TIME_DIFF, 0.0f);
   }
-  const flatbuffers::Vector<int32_t> *pe_comm() const {
-    return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_PE_COMM);
-  }
-  const flatbuffers::Vector<int32_t> *kp_comm() const {
-    return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_KP_COMM);
-  }
-  const flatbuffers::Vector<int32_t> *lp_comm() const {
-    return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_LP_COMM);
+  const flatbuffers::Vector<int32_t> *comm_data() const {
+    return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_COMM_DATA);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -465,12 +455,8 @@ struct SimEngineMetrics FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<float>(verifier, VT_CANCEL_Q_TIME) &&
            VerifyField<float>(verifier, VT_AVL_TIME) &&
            VerifyField<float>(verifier, VT_VIRTUAL_TIME_DIFF) &&
-           VerifyOffset(verifier, VT_PE_COMM) &&
-           verifier.VerifyVector(pe_comm()) &&
-           VerifyOffset(verifier, VT_KP_COMM) &&
-           verifier.VerifyVector(kp_comm()) &&
-           VerifyOffset(verifier, VT_LP_COMM) &&
-           verifier.VerifyVector(lp_comm()) &&
+           VerifyOffset(verifier, VT_COMM_DATA) &&
+           verifier.VerifyVector(comm_data()) &&
            verifier.EndTable();
   }
   SimEngineMetricsT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -553,14 +539,8 @@ struct SimEngineMetricsBuilder {
   void add_virtual_time_diff(float virtual_time_diff) {
     fbb_.AddElement<float>(SimEngineMetrics::VT_VIRTUAL_TIME_DIFF, virtual_time_diff, 0.0f);
   }
-  void add_pe_comm(flatbuffers::Offset<flatbuffers::Vector<int32_t>> pe_comm) {
-    fbb_.AddOffset(SimEngineMetrics::VT_PE_COMM, pe_comm);
-  }
-  void add_kp_comm(flatbuffers::Offset<flatbuffers::Vector<int32_t>> kp_comm) {
-    fbb_.AddOffset(SimEngineMetrics::VT_KP_COMM, kp_comm);
-  }
-  void add_lp_comm(flatbuffers::Offset<flatbuffers::Vector<int32_t>> lp_comm) {
-    fbb_.AddOffset(SimEngineMetrics::VT_LP_COMM, lp_comm);
+  void add_comm_data(flatbuffers::Offset<flatbuffers::Vector<int32_t>> comm_data) {
+    fbb_.AddOffset(SimEngineMetrics::VT_COMM_DATA, comm_data);
   }
   explicit SimEngineMetricsBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -600,13 +580,9 @@ inline flatbuffers::Offset<SimEngineMetrics> CreateSimEngineMetrics(
     float cancel_q_time = 0.0f,
     float avl_time = 0.0f,
     float virtual_time_diff = 0.0f,
-    flatbuffers::Offset<flatbuffers::Vector<int32_t>> pe_comm = 0,
-    flatbuffers::Offset<flatbuffers::Vector<int32_t>> kp_comm = 0,
-    flatbuffers::Offset<flatbuffers::Vector<int32_t>> lp_comm = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<int32_t>> comm_data = 0) {
   SimEngineMetricsBuilder builder_(_fbb);
-  builder_.add_lp_comm(lp_comm);
-  builder_.add_kp_comm(kp_comm);
-  builder_.add_pe_comm(pe_comm);
+  builder_.add_comm_data(comm_data);
   builder_.add_virtual_time_diff(virtual_time_diff);
   builder_.add_avl_time(avl_time);
   builder_.add_cancel_q_time(cancel_q_time);
@@ -660,12 +636,8 @@ inline flatbuffers::Offset<SimEngineMetrics> CreateSimEngineMetricsDirect(
     float cancel_q_time = 0.0f,
     float avl_time = 0.0f,
     float virtual_time_diff = 0.0f,
-    const std::vector<int32_t> *pe_comm = nullptr,
-    const std::vector<int32_t> *kp_comm = nullptr,
-    const std::vector<int32_t> *lp_comm = nullptr) {
-  auto pe_comm__ = pe_comm ? _fbb.CreateVector<int32_t>(*pe_comm) : 0;
-  auto kp_comm__ = kp_comm ? _fbb.CreateVector<int32_t>(*kp_comm) : 0;
-  auto lp_comm__ = lp_comm ? _fbb.CreateVector<int32_t>(*lp_comm) : 0;
+    const std::vector<int32_t> *comm_data = nullptr) {
+  auto comm_data__ = comm_data ? _fbb.CreateVector<int32_t>(*comm_data) : 0;
   return ross_damaris::sample::CreateSimEngineMetrics(
       _fbb,
       nevent_processed,
@@ -692,9 +664,7 @@ inline flatbuffers::Offset<SimEngineMetrics> CreateSimEngineMetricsDirect(
       cancel_q_time,
       avl_time,
       virtual_time_diff,
-      pe_comm__,
-      kp_comm__,
-      lp_comm__);
+      comm_data__);
 }
 
 flatbuffers::Offset<SimEngineMetrics> CreateSimEngineMetrics(flatbuffers::FlatBufferBuilder &_fbb, const SimEngineMetricsT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -1706,9 +1676,7 @@ inline void SimEngineMetrics::UnPackTo(SimEngineMetricsT *_o, const flatbuffers:
   { auto _e = cancel_q_time(); _o->cancel_q_time = _e; };
   { auto _e = avl_time(); _o->avl_time = _e; };
   { auto _e = virtual_time_diff(); _o->virtual_time_diff = _e; };
-  { auto _e = pe_comm(); if (_e) { _o->pe_comm.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->pe_comm[_i] = _e->Get(_i); } } };
-  { auto _e = kp_comm(); if (_e) { _o->kp_comm.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->kp_comm[_i] = _e->Get(_i); } } };
-  { auto _e = lp_comm(); if (_e) { _o->lp_comm.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->lp_comm[_i] = _e->Get(_i); } } };
+  { auto _e = comm_data(); if (_e) { _o->comm_data.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->comm_data[_i] = _e->Get(_i); } } };
 }
 
 inline flatbuffers::Offset<SimEngineMetrics> SimEngineMetrics::Pack(flatbuffers::FlatBufferBuilder &_fbb, const SimEngineMetricsT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -1743,9 +1711,7 @@ inline flatbuffers::Offset<SimEngineMetrics> CreateSimEngineMetrics(flatbuffers:
   auto _cancel_q_time = _o->cancel_q_time;
   auto _avl_time = _o->avl_time;
   auto _virtual_time_diff = _o->virtual_time_diff;
-  auto _pe_comm = _o->pe_comm.size() ? _fbb.CreateVector(_o->pe_comm) : 0;
-  auto _kp_comm = _o->kp_comm.size() ? _fbb.CreateVector(_o->kp_comm) : 0;
-  auto _lp_comm = _o->lp_comm.size() ? _fbb.CreateVector(_o->lp_comm) : 0;
+  auto _comm_data = _o->comm_data.size() ? _fbb.CreateVector(_o->comm_data) : 0;
   return ross_damaris::sample::CreateSimEngineMetrics(
       _fbb,
       _nevent_processed,
@@ -1772,9 +1738,7 @@ inline flatbuffers::Offset<SimEngineMetrics> CreateSimEngineMetrics(flatbuffers:
       _cancel_q_time,
       _avl_time,
       _virtual_time_diff,
-      _pe_comm,
-      _kp_comm,
-      _lp_comm);
+      _comm_data);
 }
 
 inline LPDataT *LPData::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
@@ -2335,8 +2299,6 @@ inline const flatbuffers::TypeTable *SimEngineMetricsTypeTable() {
     { flatbuffers::ET_FLOAT, 0, -1 },
     { flatbuffers::ET_FLOAT, 0, -1 },
     { flatbuffers::ET_FLOAT, 0, -1 },
-    { flatbuffers::ET_INT, 1, -1 },
-    { flatbuffers::ET_INT, 1, -1 },
     { flatbuffers::ET_INT, 1, -1 }
   };
   static const char * const names[] = {
@@ -2364,12 +2326,10 @@ inline const flatbuffers::TypeTable *SimEngineMetricsTypeTable() {
     "cancel_q_time",
     "avl_time",
     "virtual_time_diff",
-    "pe_comm",
-    "kp_comm",
-    "lp_comm"
+    "comm_data"
   };
   static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_TABLE, 27, type_codes, nullptr, nullptr, names
+    flatbuffers::ST_TABLE, 25, type_codes, nullptr, nullptr, names
   };
   return &tt;
 }

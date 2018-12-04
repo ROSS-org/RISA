@@ -57,7 +57,7 @@ void FlatBufferHelper::pe_sample(tw_pe *pe, tw_statistics *s, tw_statistics *las
     metrics.add_rb_time((pe->stats.s_rollback - last_pe_stats->s_rollback) / g_tw_clock_rate);
     metrics.add_cancel_q_time((pe->stats.s_cancel_q - last_pe_stats->s_cancel_q) / g_tw_clock_rate);
     metrics.add_avl_time((pe->stats.s_avl - last_pe_stats->s_avl) / g_tw_clock_rate);
-    metrics.add_pe_comm(pe_comm);
+    metrics.add_comm_data(pe_comm);
 
     auto data = metrics.Finish();
     int peid = static_cast<int>(pe->id);
@@ -81,7 +81,7 @@ void FlatBufferHelper::kp_sample(tw_kp *kp, int inst_type)
     metrics.add_network_recv(kp->kp_stats->s_nread_network - kp->last_stats[inst_type]->s_nread_network);
     metrics.add_virtual_time_diff(kp->last_time - kp->pe->GVT);
     memcpy(kp->last_stats[inst_type], kp->kp_stats, sizeof(st_kp_stats));
-    metrics.add_kp_comm(kp_comm);
+    metrics.add_comm_data(kp_comm);
 
     auto data = metrics.Finish();
     int peid = static_cast<int>(kp->pe->id);
@@ -104,7 +104,7 @@ void FlatBufferHelper::lp_sample(tw_lp *lp, int inst_type)
     metrics.add_network_send(lp->lp_stats->s_nsend_network - lp->last_stats[inst_type]->s_nsend_network);
     metrics.add_network_recv(lp->lp_stats->s_nread_network - lp->last_stats[inst_type]->s_nread_network);
     memcpy(lp->last_stats[inst_type], lp->lp_stats, sizeof(st_lp_stats));
-    //metrics.add_lp_comm(lp_comm);
+    //metrics.add_comm_data(lp_comm);
 
     auto data = metrics.Finish();
     int peid = static_cast<int>(lp->pe->id);
