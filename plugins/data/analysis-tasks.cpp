@@ -13,6 +13,7 @@ using namespace ross_damaris;
 using namespace ross_damaris::util;
 using namespace ross_damaris::sample;
 using namespace ross_damaris::data;
+using namespace std;
 namespace fb = flatbuffers;
 
 /* forward declarations for static functions */

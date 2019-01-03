@@ -29,7 +29,7 @@ IF (Boost_FOUND)
     ADD_DEFINITIONS(-DBOOST_LOG_DYN_LINK)
 ENDIF(Boost_FOUND)
 
-SET(LINKER_STR "-rdynamic -L${DAMARIS_LIBRARY} -Wl,--whole-archive,-ldamaris,--no-whole-archive -lxerces-c ${Boost_LIBRARY_DIRS}/libboost_log.a ${Boost_LIBRARY_DIRS}/libboost_log_setup.a -lboost_filesystem -lboost_system -lboost_date_time -lboost_thread -lstdc++ -lmpi_cxx -lrt -ldl -lpthread")
+SET(LINKER_STR "-rdynamic -L${DAMARIS_LIBRARY} -ldamaris -lxerces-c ${Boost_LIBRARY_DIRS}/libboost_log.a ${Boost_LIBRARY_DIRS}/libboost_log_setup.a -lboost_filesystem -lboost_system -lboost_date_time -lboost_thread -lstdc++ -lmpi_cxx -lrt -ldl -lpthread")
 IF (USE_VISIT)
     SET(VISIT_DIR $ENV{VISIT_DIR} CACHE STRING "Path to VisIt src dir")
     SET(LINKER_STR "${LINKER_STR} -L${VISIT_DIR}/lib -lsimV2")

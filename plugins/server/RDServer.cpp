@@ -17,6 +17,7 @@ using namespace ross_damaris::util;
 using namespace ross_damaris::sample;
 using namespace ross_damaris::data;
 using namespace ross_damaris::config;
+using namespace std;
 namespace bip = boost::asio::ip;
 
 RDServer::RDServer() :

@@ -22,6 +22,7 @@ using namespace ross_damaris::sample;
 using namespace ross_damaris::streaming;
 using namespace ross_damaris::util;
 using namespace ross_damaris::data;
+using namespace std;
 
 // For now, we're only supporting model data in VT mode
 void DataProcessor::forward_data(InstMode mode, double ts, int32_t step)
