@@ -2,13 +2,13 @@ PROJECT(rdplugins)
 
 # find boost
 SET(Boost_USE_STATIC_LIBS OFF)
-FIND_PACKAGE(Boost 1.62.0 COMPONENTS program_options log log_setup filesystem system date_time thread)
+FIND_PACKAGE(Boost 1.67.0 COMPONENTS program_options log log_setup filesystem system date_time thread)
 IF (NOT Boost_FOUND)
     MESSAGE("rdplugins: Boost (at least version 1.62) not found! Checking in Damaris Install directory")
     SET(BOOST_ROOT ${DAMARIS_DIR})
     #SET(Boost_NO_SYSTEM_PATHS ON)
     #SET(BOOST_LIBRARYDIR ${BOOST_ROOT}/lib)
-    FIND_PACKAGE(Boost 1.62.0 COMPONENTS program_options log log_setup filesystem system date_time thread)
+    FIND_PACKAGE(Boost 1.67.0 COMPONENTS program_options log log_setup filesystem system date_time thread)
 ENDIF(NOT Boost_FOUND)
 
 IF (Boost_FOUND)
