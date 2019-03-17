@@ -19,7 +19,7 @@ EXTERNC void st_damaris_sample_pe_data(tw_pe *pe, tw_statistics *last_pe_stats,
 EXTERNC void st_damaris_sample_kp_data(int inst_type, tw_kpid *id);
 EXTERNC void st_damaris_sample_lp_data(int inst_type, tw_lpid *lpids, int nlps);
 EXTERNC void st_damaris_invalidate_sample(double ts, int kp_gid, int event_id);
-EXTERNC void st_damaris_sample_model_data(tw_lpid *lpids, int nlps);
+EXTERNC void st_damaris_sample_model_data(int inst_mode, tw_lpid *lpids, int nlps);
 EXTERNC void st_damaris_reset_block_counters();
 EXTERNC void st_damaris_set_rc_data(uint8_t *raw, size_t offset);
 EXTERNC void st_damaris_delete_rc_data();

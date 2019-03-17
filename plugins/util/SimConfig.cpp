@@ -3,6 +3,7 @@
 #include <plugins/util/config-c.h>
 #include <plugins/util/SimConfig.h>
 #include <ross.h>
+#include <instrumentation/st-instrumentation-internal.h>
 
 using namespace std;
 //namespace po = boost::program_options;

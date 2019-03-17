@@ -2,6 +2,9 @@
 #include <sys/stat.h>
 #include <plugins/util/config-c.h>
 #include <core/model-c.h>
+#include <instrumentation/st-instrumentation-internal.h>
+#include <instrumentation/st-sim-engine.h>
+#include <instrumentation/st-model-data.h>
 
 /**
  * @file damaris.c
@@ -29,6 +32,12 @@ static const tw_optdef damaris_options[] = {
     TWOPT_UINT("enable-damaris", g_st_damaris_enabled, "Turn on (1) or off (0) Damaris in situ analysis"),
     TWOPT_CHAR("data-xml", data_xml, "Path to XML file for describing data to Damaris"),
     TWOPT_END()
+};
+
+static const char* inst_var_name[] = {
+    "ross/inst_sample/gvt_inst",
+    "ross/inst_sample/rts_inst",
+    "ross/inst_sample/vts_inst"
 };
 
 /**
@@ -176,42 +185,108 @@ void st_damaris_ross_finalize()
     if ((err = damaris_finalize()) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, NULL);
     if (MPI_Finalize() != MPI_SUCCESS)
-      tw_error(TW_LOC, "Failed to finalize MPI");
+        tw_error(TW_LOC, "Failed to finalize MPI");
 }
 
 /**
  * @brief Expose instrumentation data to Damaris
  */
-void st_damaris_expose_data(tw_pe *me, int inst_type)
+// TODO may be able to simplfiy this and just grab the buffer pointer and return it to
+// the call from inst_sample
+void st_damaris_expose_data(tw_pe *me, int inst_type, tw_lp* lp, int vts_commit)
 {
     //printf("PE %ld: damaris_expose_data type: %d\n", g_tw_mynode, inst_type);
     int err;
 
+    size_t buf_size = 0;
+    char* damaris_buf;
+    sample_metadata* sample_md;
+
     if (engine_modes[inst_type] || model_modes[inst_type])
     {
-        current_rt += (g_st_rt_interval * 1000 / g_tw_clock_rate);
-        st_damaris_start_sample(0.0, current_rt, me->GVT, inst_type);
+        buf_size = sizeof(*sample_md);
+        // TODO handle VTS differently when using damaris?
+        if (inst_type == VT_INST && engine_modes[VT_INST])
+            engine_data_sizes[VT_INST] = calc_sim_engine_sample_size_vts(lp);
+        if (!vts_commit && engine_modes[inst_type])
+            buf_size += engine_data_sizes[inst_type];
 
-        if (engine_modes[inst_type])
+        if (model_modes[inst_type] && inst_type != VT_INST)
+            buf_size += model_data_sizes[inst_type];
+        else if (model_modes[inst_type] && inst_type == VT_INST && vts_commit)
         {
-            //printf("[%f] PE %ld: sampling sim engine data type: %d\n", current_rt, g_tw_mynode, inst_type);
-            // collect data for each entity
-            if (g_st_pe_data)
-                st_damaris_sample_pe_data(me, &last_pe_stats[inst_type], inst_type);
-            if (g_st_kp_data)
-                st_damaris_sample_kp_data(inst_type, NULL);
-            if (g_st_lp_data)
-                st_damaris_sample_lp_data(inst_type, NULL, 0);
+            model_data_sizes[inst_type] = get_model_data_size(lp->cur_state, &model_num_lps[inst_type]);
+            buf_size += model_data_sizes[inst_type];
+            //printf("%lu: size = %lu\n", g_tw_mynode, model_data_sizes[inst_type]);
         }
+        //printf("st_inst_sample: buf_size %lu\n", buf_size);
 
-        if (model_modes[inst_type])
+        if (buf_size > sizeof(sample_metadata))
         {
-            //printf("PE %ld: sampling model data type: %d\n", g_tw_mynode, inst_type);
-            st_damaris_sample_model_data(NULL, 0);
-        }
+            if ((err = damaris_parameter_set("sample_size", &buf_size, sizeof(buf_size)))
+                    != DAMARIS_OK)
+                st_damaris_error(TW_LOC, err, "sample_size");
 
-        st_damaris_finish_sample(NULL);
+            // TODO check on this
+            void* dbuf_ptr;
+            err = damaris_alloc(inst_var_name[inst_type], &dbuf_ptr);
+            damaris_buf = (char*)dbuf_ptr;
+
+            sample_md = (sample_metadata*)damaris_buf;
+            damaris_buf += sizeof(*sample_md);
+            buf_size -= sizeof(*sample_md);
+            //printf("sizeof sample_md %lu\n", sizeof(*sample_md));
+
+            bzero(sample_md, sizeof(*sample_md));
+            sample_md->last_gvt = me->GVT;
+            sample_md->rts = (double)tw_clock_read() / g_tw_clock_rate;
+            //if(inst_type == VT_INST)
+            //{
+            //    // TODO this happens only at commit time, so this is incorrect
+            //    //sample_md->vts = tw_now(lp);
+            //    //printf("sample_md->vts %f\n", sample_md->vts);
+            //}
+
+            sample_md->peid = (unsigned int)g_tw_mynode;
+            sample_md->num_model_lps = model_num_lps[inst_type];
+        }
+        else
+        {
+            buf_size = 0;
+            //printf("%lu: Not writing data! vts_commit = %d\n", g_tw_mynode, vts_commit);
+        }
     }
+
+    if (!vts_commit && buf_size && engine_modes[inst_type] && g_tw_synchronization_protocol != SEQUENTIAL)
+    {
+        if (inst_type == VT_INST)
+            sample_md->vts = tw_now(lp);
+        st_collect_engine_data(me, inst_type, damaris_buf, engine_data_sizes[inst_type], sample_md, lp);
+        damaris_buf += engine_data_sizes[inst_type];
+        buf_size -= engine_data_sizes[inst_type];
+    }
+    if (buf_size && model_modes[inst_type])
+    {
+        if (inst_type != VT_INST)
+        {
+            sample_md->has_model = 1;
+            st_collect_model_data(me, inst_type, damaris_buf, model_data_sizes[inst_type]);
+            buf_size -= model_data_sizes[inst_type];
+        }
+        else if (inst_type == VT_INST && vts_commit)
+        {
+            sample_md->has_model = 1;
+            st_collect_model_data_vts(me, lp, inst_type, damaris_buf, sample_md, model_data_sizes[inst_type]);
+            buf_size -= model_data_sizes[inst_type];
+        }
+    }
+
+    if (buf_size != 0)
+        tw_error(TW_LOC, "buf_size = %lu", buf_size);
+
+    err = damaris_commit(inst_var_name[inst_type]);
+    err = damaris_clear(inst_var_name[inst_type]);
+
 }
 
 void st_damaris_signal_init()

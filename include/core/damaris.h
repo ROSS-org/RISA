@@ -45,7 +45,7 @@ void st_damaris_ross_finalize(void);
 /**
  * @brief Expose instrumentation data to Damaris
  */
-void st_damaris_expose_data(tw_pe *me, int inst_type);
+void st_damaris_expose_data(tw_pe *me, int inst_type, tw_lp* lp, int vts_commit);
 
 /**
  * @brief Signals to Damaris that the current iteration is over.

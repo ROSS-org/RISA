@@ -33,6 +33,11 @@
         <!-- The groups and variables nested under the ross group are for simulation engine metrics.
         Do not touch these, or you risk errors when running your simulation! -->
         <group name="ross">
+            <group name="inst_sample">
+                <variable name="gvt_inst" layout="flatbuf_data_layout" visualizable="false" time-varying="true" />
+                <variable name="rts_inst" layout="flatbuf_data_layout" visualizable="false" time-varying="true" />
+                <variable name="vts_inst" layout="flatbuf_data_layout" visualizable="false" time-varying="true" />
+            </group>
             <variable name="sample_size" layout="int" visualizable="false" time-varying="true" />
             <variable name="sample" layout="flatbuf_data_layout" visualizable="false" time-varying="true" />
             <variable name="inst_config" layout="inst_config_layout" visualizable="false" time-varying="false" />

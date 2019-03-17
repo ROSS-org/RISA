@@ -106,7 +106,7 @@ void st_damaris_invalidate_sample(double ts, int kp_gid, int event_id)
 }
 
 // call from ROSS-damaris interface to save in flatbuffers format and expose to Damaris
-void st_damaris_sample_model_data(tw_lpid *lpids, int nlps)
+void st_damaris_sample_model_data(int inst_mode, tw_lpid *lpids, int nlps)
 {
     //std::cout << "Reached st_damaris_sample_model_data()\n";
     tw_lpid lpid;
@@ -133,15 +133,18 @@ void st_damaris_sample_model_data(tw_lpid *lpids, int nlps)
 
         // call model LP's instrumentation sampling function
         // the implemented function should utilize one of st_damaris_save_model_variable_*() below
-        if (lp->model_types == NULL || lp->model_types->sample_struct_sz == 0)
+        if (inst_mode == VT_INST && (lp->model_types == NULL || !lp->model_types->vts_event_fn))
+            continue;
+        else if (inst_mode != VT_INST && (lp->model_types == NULL || !lp->model_types->rt_event_fn))
             continue;
 
-        // we're making use of the LP callback used for virtual time sampling
-        // but using it a bit differently
         // no bitfield needed because this isn't associated with any event
         // or idk maybe we need it for virtual time sampling actually, but not GVT or RT
         // TODO figure this out
-        lp->model_types->sample_event_fn(lp->cur_state, NULL, lp, NULL);
+        if (inst_mode == VT_INST)
+            lp->model_types->vts_event_fn(lp->cur_state, NULL, lp);
+        else
+            lp->model_types->rt_event_fn(lp->cur_state, lp);
 
         // now finish up flatbuffer stuff for this LP
         mfb.finish_lp_model_sample();
