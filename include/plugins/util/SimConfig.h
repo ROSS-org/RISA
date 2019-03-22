@@ -54,6 +54,7 @@ public:
     int num_local_pe() { return num_local_pe_; }
     int num_kp_pe() { return num_kp_pe_; }
     const std::vector<int>& num_lp() { return num_lp_; }
+    int num_lp(int peid) { return num_lp_[peid]; }
     bool pe_data() { return pe_data_; }
     bool kp_data() { return kp_data_; }
     bool lp_data() { return lp_data_; }
@@ -65,6 +66,7 @@ public:
     bool stream_data() { return stream_data_; }
     std::string stream_addr() { return stream_addr_; }
     std::string stream_port() { return stream_port_; }
+    bool inst_mode_sim(ross_damaris::sample::InstMode mode) { return inst_mode_sim_[mode]; }
 
     static po::options_description set_options();
     static void parse_file(std::ifstream& file, po::options_description& opts,

@@ -197,6 +197,17 @@ void st_damaris_expose_data(tw_pe *me, int inst_type, tw_lp* lp, int vts_commit)
 {
     //printf("PE %ld: damaris_expose_data type: %d\n", g_tw_mynode, inst_type);
     int err;
+    int block = 0;
+    if (inst_type == VT_INST)
+    {
+        block = vt_block_counter;
+        vt_block_counter++;
+    }
+    if (inst_type == RT_INST)
+    {
+        block = rt_block_counter;
+        rt_block_counter++;
+    }
 
     size_t buf_size = 0;
     char* damaris_buf;
@@ -229,7 +240,9 @@ void st_damaris_expose_data(tw_pe *me, int inst_type, tw_lp* lp, int vts_commit)
 
             // TODO check on this
             void* dbuf_ptr;
-            err = damaris_alloc(inst_var_name[inst_type], &dbuf_ptr);
+            if ((err = damaris_alloc_block(inst_var_name[inst_type], block, &dbuf_ptr))
+                    != DAMARIS_OK)
+                st_damaris_error(TW_LOC, err, inst_var_name[inst_type]);
             damaris_buf = (char*)dbuf_ptr;
 
             sample_md = (sample_metadata*)damaris_buf;
@@ -284,8 +297,8 @@ void st_damaris_expose_data(tw_pe *me, int inst_type, tw_lp* lp, int vts_commit)
     if (buf_size != 0)
         tw_error(TW_LOC, "buf_size = %lu", buf_size);
 
-    err = damaris_commit(inst_var_name[inst_type]);
-    err = damaris_clear(inst_var_name[inst_type]);
+    err = damaris_commit_block(inst_var_name[inst_type], block);
+    err = damaris_clear_block(inst_var_name[inst_type], block);
 
 }
 
@@ -323,6 +336,8 @@ void st_damaris_end_iteration(tw_stime gvt)
 
     iterations++;
     st_damaris_reset_block_counters();
+    rt_block_counter = 0;
+    vt_block_counter = 0;
 }
 
 /**

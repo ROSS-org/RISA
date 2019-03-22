@@ -2,9 +2,9 @@
 <simulation name ="ROSS_template"
     language="c" xmlns="http://damaris.gforge.inria.fr/damaris/model">
     <architecture>
-        <domains count="100"/>
+        <domains count="1000"/>
         <dedicated cores="1" nodes="0"/>
-        <buffer name="buffer" size="67108864"/>
+        <buffer name="buffer" size="1073700000"/>
         <queue name="queue" size="100"/>
     </architecture>
     <data>
@@ -63,156 +63,9 @@
             <variable name="lp_id" layout="lp_id_layout" visualizable="false" time-varying="false" />
             <variable name="dummy" layout="dummy_layout" visualizable="false" time-varying="false" />
 
-            <variable name="nlp" layout="int" visualizable="false" time-varying="false" />
-            <variable name="nkp" layout="int" visualizable="false" time-varying="false" />
 
-            <variable name="virtual_time" layout="double" visualizable="false" time-varying="true" />
-            <variable name="last_gvt" layout="double" visualizable="false" time-varying="true" />
-            <variable name="real_time" layout="double" visualizable="false" time-varying="true" />
 
-            <group name = "pes">
-                <group name = "gvt_inst">
-                    <variable name="nevent_processed" layout="int" />
-                    <variable name="nevent_abort" layout="int" />
-                    <variable name="nevent_rb" layout="int" />
-                    <variable name="rb_total" layout="int" />
-                    <variable name="rb_prim" layout="int" />
-                    <variable name="rb_sec" layout="int" />
-                    <variable name="fc_attempts" layout="int" />
-                    <variable name="pq_qsize" layout="int" />
-                    <variable name="network_send" layout="int" />
-                    <variable name="network_recv" layout="int" />
-                    <variable name="num_gvt" layout="int" />
-                    <variable name="event_ties" layout="int" />
-                    <variable name="efficiency" layout="float" />
-                    <variable name="net_read_time" layout="float" />
-                    <variable name="net_other_time" layout="float" />
-                    <variable name="gvt_time" layout="float" />
-                    <variable name="fc_time" layout="float" />
-                    <variable name="event_abort_time" layout="float" />
-                    <variable name="event_proc_time" layout="float" />
-                    <variable name="pq_time" layout="float" />
-                    <variable name="rb_time" layout="float" />
-                    <variable name="cancel_q_time" layout="float" />
-                    <variable name="avl_time" layout="float" />
-                </group>
-                <group name = "rt_inst">
-                    <variable name="nevent_processed" layout="int" />
-                    <variable name="nevent_abort" layout="int" />
-                    <variable name="nevent_rb" layout="int" />
-                    <variable name="rb_total" layout="int" />
-                    <variable name="rb_prim" layout="int" />
-                    <variable name="rb_sec" layout="int" />
-                    <variable name="fc_attempts" layout="int" />
-                    <variable name="pq_qsize" layout="int" />
-                    <variable name="network_send" layout="int" />
-                    <variable name="network_recv" layout="int" />
-                    <variable name="num_gvt" layout="int" />
-                    <variable name="event_ties" layout="int" />
-                    <variable name="efficiency" layout="float" />
-                    <variable name="net_read_time" layout="float" />
-                    <variable name="net_other_time" layout="float" />
-                    <variable name="gvt_time" layout="float" />
-                    <variable name="fc_time" layout="float" />
-                    <variable name="event_abort_time" layout="float" />
-                    <variable name="event_proc_time" layout="float" />
-                    <variable name="pq_time" layout="float" />
-                    <variable name="rb_time" layout="float" />
-                    <variable name="cancel_q_time" layout="float" />
-                    <variable name="avl_time" layout="float" />
-                </group>
-                <group name = "vt_inst">
-                    <variable name="nevent_processed" layout="int" />
-                    <variable name="nevent_abort" layout="int" />
-                    <variable name="nevent_rb" layout="int" />
-                    <variable name="rb_total" layout="int" />
-                    <variable name="rb_prim" layout="int" />
-                    <variable name="rb_sec" layout="int" />
-                    <variable name="fc_attempts" layout="int" />
-                    <variable name="pq_qsize" layout="int" />
-                    <variable name="network_send" layout="int" />
-                    <variable name="network_recv" layout="int" />
-                    <variable name="num_gvt" layout="int" />
-                    <variable name="event_ties" layout="int" />
-                    <variable name="efficiency" layout="float" />
-                    <variable name="net_read_time" layout="float" />
-                    <variable name="net_other_time" layout="float" />
-                    <variable name="gvt_time" layout="float" />
-                    <variable name="fc_time" layout="float" />
-                    <variable name="event_abort_time" layout="float" />
-                    <variable name="event_proc_time" layout="float" />
-                    <variable name="pq_time" layout="float" />
-                    <variable name="rb_time" layout="float" />
-                    <variable name="cancel_q_time" layout="float" />
-                    <variable name="avl_time" layout="float" />
-                </group>
-            </group>
 
-            <group name="kps">
-                <group name="gvt_inst">
-                    <variable name="nevent_processed" layout="kp_int_layout" />
-                    <variable name="nevent_abort" layout="kp_int_layout" />
-                    <variable name="nevent_rb" layout="kp_int_layout" />
-                    <variable name="rb_total" layout="kp_int_layout" />
-                    <variable name="rb_prim" layout="kp_int_layout" />
-                    <variable name="rb_sec" layout="kp_int_layout" />
-                    <variable name="network_send" layout="kp_int_layout" />
-                    <variable name="network_recv" layout="kp_int_layout" />
-                    <variable name="virtual_time_diff" layout="kp_float_layout" />
-                    <variable name="efficiency" layout="kp_float_layout" />
-                </group>
-                <group name="rt_inst">
-                    <variable name="nevent_processed" layout="kp_int_layout" />
-                    <variable name="nevent_abort" layout="kp_int_layout" />
-                    <variable name="nevent_rb" layout="kp_int_layout" />
-                    <variable name="rb_total" layout="kp_int_layout" />
-                    <variable name="rb_prim" layout="kp_int_layout" />
-                    <variable name="rb_sec" layout="kp_int_layout" />
-                    <variable name="network_send" layout="kp_int_layout" />
-                    <variable name="network_recv" layout="kp_int_layout" />
-                    <variable name="virtual_time_diff" layout="kp_float_layout" />
-                    <variable name="efficiency" layout="kp_float_layout" />
-                </group>
-                <group name="vt_inst">
-                    <variable name="nevent_processed" layout="kp_int_layout" />
-                    <variable name="nevent_abort" layout="kp_int_layout" />
-                    <variable name="nevent_rb" layout="kp_int_layout" />
-                    <variable name="rb_total" layout="kp_int_layout" />
-                    <variable name="rb_prim" layout="kp_int_layout" />
-                    <variable name="rb_sec" layout="kp_int_layout" />
-                    <variable name="network_send" layout="kp_int_layout" />
-                    <variable name="network_recv" layout="kp_int_layout" />
-                    <variable name="virtual_time_diff" layout="kp_float_layout" />
-                    <variable name="efficiency" layout="kp_float_layout" />
-                </group>
-            </group>
-
-            <group name="lps">
-                <group name="gvt_inst">
-                    <variable name="nevent_processed" layout="lp_int_layout" />
-                    <variable name="nevent_abort" layout="lp_int_layout" />
-                    <variable name="nevent_rb" layout="lp_int_layout" />
-                    <variable name="network_send" layout="lp_int_layout" />
-                    <variable name="network_recv" layout="lp_int_layout" />
-                    <variable name="efficiency" layout="lp_float_layout" />
-                </group>
-                <group name="rt_inst">
-                    <variable name="nevent_processed" layout="lp_int_layout" />
-                    <variable name="nevent_abort" layout="lp_int_layout" />
-                    <variable name="nevent_rb" layout="lp_int_layout" />
-                    <variable name="network_send" layout="lp_int_layout" />
-                    <variable name="network_recv" layout="lp_int_layout" />
-                    <variable name="efficiency" layout="lp_float_layout" />
-                </group>
-                <group name="vt_inst">
-                    <variable name="nevent_processed" layout="lp_int_layout" />
-                    <variable name="nevent_abort" layout="lp_int_layout" />
-                    <variable name="nevent_rb" layout="lp_int_layout" />
-                    <variable name="network_send" layout="lp_int_layout" />
-                    <variable name="network_recv" layout="lp_int_layout" />
-                    <variable name="efficiency" layout="lp_float_layout" />
-                </group>
-            </group>
         </group>-->
     </data>
 

@@ -9,6 +9,8 @@
 #include <damaris/buffer/Buffer.hpp>
 #include <damaris/data/Variable.hpp>
 
+#include <instrumentation/st-instrumentation-internal.h>
+
 using namespace ross_damaris;
 using namespace ross_damaris::util;
 using namespace ross_damaris::sample;
@@ -26,6 +28,13 @@ static void iterate_lps(DamarisDataSampleT* ds, SimEngineMetricsT *pe_metrics, i
 boost::shared_ptr<DataManager> data_manager = nullptr;
 boost::shared_ptr<config::SimConfig> sim_config = nullptr;
 boost::shared_ptr<streaming::StreamClient> stream_client = nullptr;
+
+const char * const inst_buffer_names[] = {
+    "",
+    "ross/inst_sample/gvt_inst",
+    "ross/inst_sample/vts_inst",
+    "ross/inst_sample/rts_inst"
+};
 
 void initialize_task(void *arguments)
 {
@@ -79,6 +88,113 @@ void aggregate_data(void *arguments)
     //}
 }
 
+// TODO add in size checking for errors
+void create_flatbuffer(InstMode mode, char* buffer, sample_metadata *sample_md,
+        fb::FlatBufferBuilder& fbb, vector<fb::Offset<PEData>>& pe_vector,
+        vector<fb::Offset<KPData>>& kp_vector, vector<fb::Offset<LPData>>& lp_vector)
+{
+    if (sample_md->has_pe)
+    {
+        st_pe_stats *pe_stats = reinterpret_cast<st_pe_stats*>(buffer);
+        buffer += sizeof(*pe_stats);
+        SimEngineMetricsBuilder sim_builder(fbb);
+        sim_builder.add_nevent_processed(pe_stats->s_nevent_processed);
+        sim_builder.add_nevent_abort(pe_stats->s_nevent_abort);
+        sim_builder.add_nevent_rb(pe_stats->s_e_rbs);
+        sim_builder.add_rb_total(pe_stats->s_rb_total);
+        sim_builder.add_rb_prim(pe_stats->s_rb_primary);
+        sim_builder.add_rb_sec(pe_stats->s_rb_secondary);
+        sim_builder.add_fc_attempts(pe_stats->s_fc_attempts);
+        sim_builder.add_pq_qsize(pe_stats->s_pq_qsize);
+        sim_builder.add_network_send(pe_stats->s_nsend_network);
+        sim_builder.add_network_recv(pe_stats->s_nread_network);
+        sim_builder.add_num_gvt(pe_stats->s_ngvts);
+        sim_builder.add_event_ties(pe_stats->s_pe_event_ties);
+
+        int net_events = pe_stats->s_nevent_processed - pe_stats->s_e_rbs;
+        if (net_events > 0)
+            sim_builder.add_efficiency((float) 100.0 * (1.0 - ((float) pe_stats->s_e_rbs / (float) net_events)));
+        else
+            sim_builder.add_efficiency(0);
+        sim_builder.add_net_read_time(pe_stats->s_net_read);
+        sim_builder.add_net_other_time(pe_stats->s_net_other);
+        sim_builder.add_gvt_time(pe_stats->s_gvt);
+        sim_builder.add_fc_time(pe_stats->s_fossil_collect);
+        sim_builder.add_event_abort_time(pe_stats->s_event_abort);
+        sim_builder.add_event_proc_time(pe_stats->s_event_process);
+        sim_builder.add_pq_time(pe_stats->s_pq);
+        sim_builder.add_rb_time(pe_stats->s_rollback);
+        sim_builder.add_cancel_q_time(pe_stats->s_cancel_q);
+        sim_builder.add_avl_time(pe_stats->s_avl);
+        auto sim_data = sim_builder.Finish();
+        pe_vector.push_back(CreatePEData(fbb, pe_stats->peid, sim_data));
+    }
+
+    if (sample_md->has_kp)
+    {
+        for (int i = 0; i < sample_md->has_kp; i++)
+        {
+            st_kp_stats *kp_stats = reinterpret_cast<st_kp_stats*>(buffer);
+            buffer += sizeof(*kp_stats);
+            SimEngineMetricsBuilder sim_builder(fbb);
+            sim_builder.add_nevent_processed(kp_stats->s_nevent_processed);
+            sim_builder.add_nevent_abort(kp_stats->s_nevent_abort);
+            sim_builder.add_nevent_rb(kp_stats->s_e_rbs);
+            sim_builder.add_rb_total(kp_stats->s_rb_total);
+            sim_builder.add_rb_prim(kp_stats->s_rb_primary);
+            sim_builder.add_rb_sec(kp_stats->s_rb_secondary);
+            sim_builder.add_network_send(kp_stats->s_nsend_network);
+            sim_builder.add_network_recv(kp_stats->s_nread_network);
+
+            int net_events = kp_stats->s_nevent_processed - kp_stats->s_e_rbs;
+            if (net_events > 0)
+                sim_builder.add_efficiency((float) 100.0 * (1.0 - ((float) kp_stats->s_e_rbs / (float) net_events)));
+            else
+                sim_builder.add_efficiency(0);
+            sim_builder.add_virtual_time_diff(kp_stats->time_ahead_gvt);
+            auto sim_data = sim_builder.Finish();
+            int kp_gid = sample_md->peid * sim_config->num_kp_pe() + kp_stats->kpid;
+            cout << "pe: " << sample_md->peid << " kp: " << kp_stats->kpid << " num_kp " <<
+                sim_config->num_kp_pe() << " kp_gid " << kp_gid << endl;
+            kp_vector.push_back(CreateKPData(fbb, sample_md->peid, kp_stats->kpid, kp_gid, sim_data));
+        }
+
+    }
+
+    if (sample_md->has_lp)
+    {
+        for (int i = 0; i < sample_md->has_lp; i++)
+        {
+            st_lp_stats *lp_stats = reinterpret_cast<st_lp_stats*>(buffer);
+            buffer += sizeof(*lp_stats);
+            SimEngineMetricsBuilder sim_builder(fbb);
+            sim_builder.add_nevent_processed(lp_stats->s_nevent_processed);
+            sim_builder.add_nevent_abort(lp_stats->s_nevent_abort);
+            sim_builder.add_nevent_rb(lp_stats->s_e_rbs);
+            sim_builder.add_network_send(lp_stats->s_nsend_network);
+            sim_builder.add_network_recv(lp_stats->s_nread_network);
+
+            int net_events = lp_stats->s_nevent_processed - lp_stats->s_e_rbs;
+            if (net_events > 0)
+                sim_builder.add_efficiency((float) 100.0 * (1.0 - ((float) lp_stats->s_e_rbs / (float) net_events)));
+            else
+                sim_builder.add_efficiency(0);
+            auto sim_data = sim_builder.Finish();
+            int kp_gid = sample_md->peid * sim_config->num_kp_pe() + lp_stats->kpid;
+            // TODO do we actually need a local LP id?
+            // i.e., this is just the index into g_tw_lp
+            lp_vector.push_back(CreateLPData(fbb, sample_md->peid, lp_stats->kpid, kp_gid, 0,
+                        lp_stats->lpid, sim_data));
+        }
+    }
+
+    if (sample_md->has_model)
+    {
+
+    }
+
+}
+
 void initial_data_processing(void *arguments)
 {
     // first get my ES and pool pointers
@@ -94,83 +210,114 @@ void initial_data_processing(void *arguments)
     int step = args->step;
     //printf("initial_data_processing() called at step %d, pool_id %d\n", step, pool_id);
     damaris::BlocksByIteration::iterator begin, end;
-    DUtil::get_damaris_iterators("ross/sample", step, begin, end);
-    std::unordered_map<int, std::set<double>> sampling_points;
 
-    // TODO this could maybe be done in a better way
-    // perhaps move insert_data_mic functionality here
-    // then we can set an aggregation task for each sampling point
-    // and pass the pointer to the data, so the task doesn't even need to search
-    // for it
-
-    // keep the iterator for the previous iteration because we're likely going to need it
-    SamplesByKey::iterator sample_it = data_manager->end();
-    while (begin != end)
+    const InstMode *modes = EnumValuesInstMode();
+    for (int mode = InstMode_GVT; mode <= InstMode_RT; mode++)
     {
-        // each iterator is to a flatbuffer sample from ROSS
-        // For GVT and RTS, this is one fb per PE per sampling point
-        // for VTS, this is on fb per KP per sampling point
-        // for VTS and RTS, we may have more than one sampling point
-        //initial_task_args * task_args = (initial_task_args*)malloc(sizeof(initial_task_args));
-        //task_args->step = step;
-        //cout << "ds.RefCount() = " << (*begin)->GetDataSpace().RefCount() << endl;
-        //task_args->ds = reinterpret_cast<const void*>(&((*begin)->GetDataSpace()));
+        //TODO add support for model data
+        if (!sim_config->inst_mode_sim(modes[mode]))
+            continue;
 
-        damaris::DataSpace<damaris::Buffer> ds((*begin)->GetDataSpace());
-        auto data_fb = GetDamarisDataSample(ds.GetData());
-        double ts;
-        switch (data_fb->mode())
+        DUtil::get_damaris_iterators(inst_buffer_names[mode], step, begin, end);
+        if (begin == end)
         {
-            case InstMode_GVT:
-                ts = data_fb->last_gvt();
-                break;
-            case InstMode_VT:
-                ts = data_fb->virtual_ts();
-                break;
-            case InstMode_RT:
-                ts = data_fb->real_ts();
-                break;
-            default:
-                break;
+            cout << "initial_data_processing: begin == end\n";
+            continue;
         }
-        sampling_points[static_cast<int>(data_fb->mode())].insert(ts);
+        //std::unordered_map<int, std::set<double>> sampling_points;
 
-        int id = data_fb->entity_id();
+        // keep the iterator for the previous iteration because we're likely going to need it
+        SamplesByKey::iterator sample_it = data_manager->end();
 
-        // does this DataSpace belong in the DataSample from the previous iteration?
-        if (sample_it == data_manager->end() || !(*sample_it)->same_sample(data_fb->mode(), ts))
-            sample_it = data_manager->find_data(data_fb->mode(), ts);
+        fb::FlatBufferBuilder fbb;
+        vector<fb::Offset<PEData>> pe_vector;
+        vector<fb::Offset<KPData>> kp_vector;
+        vector<fb::Offset<LPData>> lp_vector;
+        double vts, rts, last_gvt;
 
-        if (sample_it != data_manager->end())
+        while (begin != end)
         {
-            (*sample_it)->push_ds_ptr(id, data_fb->event_id(), ds);
-            //cout << "num ds_ptrs " << (*sample_it)->get_ds_ptr_size() << endl;
-        }
-        else // couldn't find it
-        {
-            DataSample s(ts, data_fb->mode(), DataStatus_speculative);
-            s.push_ds_ptr(id, data_fb->event_id(), ds);
-            data_manager->insert_data(std::move(s));
+            // each iterator is to a buffer sample from ROSS
+            // For GVT and RTS, this is one buffer per PE per sampling point
+            // for VTS, this is one buffer per KP per sampling point
+            // for VTS and RTS, we may have more than one sampling point
+
+            damaris::DataSpace<damaris::Buffer> ds((*begin)->GetDataSpace());
+            char* dbuf_cur = reinterpret_cast<char*>(ds.GetData());
+            sample_metadata *sample_md = reinterpret_cast<sample_metadata*>(dbuf_cur);
+            dbuf_cur += sizeof(*sample_md);
+            double ts = 0.0;
+            switch (mode)
+            {
+                case InstMode_GVT:
+                    ts = sample_md->last_gvt;
+                    break;
+                case InstMode_VT:
+                    ts = sample_md->vts;
+                    break;
+                case InstMode_RT:
+                    ts = sample_md->rts;
+                    break;
+                default:
+                    break;
+            }
+            vts = sample_md->vts;
+            rts = sample_md->rts;
+            last_gvt = sample_md->last_gvt;
+
+            //sampling_points[mode].insert(ts);
+
+            // TODO kpid for VTS
+            int id = sample_md->peid;
+            create_flatbuffer(modes[mode], dbuf_cur, sample_md, fbb, pe_vector, kp_vector, lp_vector);
+
+            // does this DataSpace belong in the DataSample from the previous iteration?
+            if (sample_it == data_manager->end() || !(*sample_it)->same_sample(modes[mode], ts))
+                sample_it = data_manager->find_data(modes[mode], ts);
+
+            if (sample_it != data_manager->end())
+            {
+                // TODO need event id for VTS
+                (*sample_it)->push_ds_ptr(id, -1, ds);
+                //cout << "num ds_ptrs " << (*sample_it)->get_ds_ptr_size() << endl;
+            }
+            else // couldn't find it
+            {
+                DataSample s(ts, modes[mode], DataStatus_speculative);
+                s.push_ds_ptr(id, -1, ds);
+                data_manager->insert_data(std::move(s));
+            }
+
+            ++begin;
         }
 
-        ++begin;
+        auto pes = fbb.CreateVector(pe_vector);
+        auto kps = fbb.CreateVector(kp_vector);
+        auto lps = fbb.CreateVector(lp_vector);
+        auto sample = CreateDamarisDataSample(fbb, vts, rts, last_gvt, modes[mode], pes, kps, lps);
+        fbb.Finish(sample);
+        int fb_size = static_cast<int>(fbb.GetSize());
+        size_t size, offset;
+        uint8_t *raw = fbb.ReleaseRaw(size, offset);
+        stream_client->enqueue_data(raw, &raw[offset], fb_size);
     }
 
     // Now set up task(s) to do data aggregation
     // Since we use a FIFO queue along with just one processing ES,
     // things should be done in the correct order.
     // In the future, we'll need to make sure to handle correctly
-    for (auto it = sampling_points.begin(); it != sampling_points.end(); ++it)
-    {
-        for (auto set_it = (*it).second.begin(); set_it != (*it).second.end(); ++set_it)
-        {
-            data_agg_args *agg_args = (data_agg_args*)malloc(sizeof(data_agg_args));
-            agg_args->mode = static_cast<InstMode>((*it).first);
-            agg_args->lower_ts = (*set_it);
-            agg_args->upper_ts = (*set_it);
-            ABT_task_create(pool, aggregate_data, agg_args, NULL);
-        }
-    }
+    //for (auto it = sampling_points.begin(); it != sampling_points.end(); ++it)
+    //{
+    //    for (auto set_it = (*it).second.begin(); set_it != (*it).second.end(); ++set_it)
+    //    {
+    //        data_agg_args *agg_args = (data_agg_args*)malloc(sizeof(data_agg_args));
+    //        agg_args->mode = static_cast<InstMode>((*it).first);
+    //        agg_args->lower_ts = (*set_it);
+    //        agg_args->upper_ts = (*set_it);
+    //        ABT_task_create(pool, convert_to_flatbuffers, agg_args, NULL);
+    //        //ABT_task_create(pool, aggregate_data, agg_args, NULL);
+    //    }
+    //}
 
     // TODO if using multiple inst modes, need to make sure to do a tasklet for each?
 

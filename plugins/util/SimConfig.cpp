@@ -1,5 +1,6 @@
 #include <boost/program_options.hpp>
 #include <damaris/data/VariableManager.hpp>
+#include <damaris/data/ParameterManager.hpp>
 #include <plugins/util/config-c.h>
 #include <plugins/util/SimConfig.h>
 #include <ross.h>
