@@ -8,6 +8,7 @@
 //#include <plugins/server/RDServer.h>
 #include <flatbuffers/minireflect.h>
 #include <boost/program_options.hpp>
+#include <plugins/util/ModelMDIndex.h>
 
 namespace po = boost::program_options;
 namespace ross_damaris {
@@ -67,12 +68,15 @@ public:
     std::string stream_addr() { return stream_addr_; }
     std::string stream_port() { return stream_port_; }
     bool inst_mode_sim(ross_damaris::sample::InstMode mode) { return inst_mode_sim_[mode]; }
+    bool inst_mode_model(ross_damaris::sample::InstMode mode) { return inst_mode_model_[mode]; }
 
     static po::options_description set_options();
     static void parse_file(std::ifstream& file, po::options_description& opts,
             po::variables_map& var_map);
     static void set_ross_parameters(po::variables_map& var_map);
 
+    void set_model_metadata();
+    ross_damaris::util::ModelMDByFullID::iterator get_lp_model_md(int peid, int kpid, int lpid);
 
 private:
     int total_pe_;
@@ -94,6 +98,9 @@ private:
     bool stream_data_;
     std::string stream_addr_;
     std::string stream_port_;
+
+    // mapping info for model LP metadata
+    ross_damaris::util::ModelMDIndex md_index_;
 };
 
 } // end namespace config

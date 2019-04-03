@@ -11,6 +11,7 @@
 
 #include <plugins/server/RDServer.h>
 #include <plugins/util/damaris-util.h>
+#include <damaris/data/VariableManager.hpp>
 
 using namespace ross_damaris::server;
 using namespace ross_damaris::util;
@@ -18,6 +19,7 @@ using namespace ross_damaris::sample;
 using namespace ross_damaris::data;
 using namespace ross_damaris::config;
 using namespace std;
+using namespace damaris;
 namespace bip = boost::asio::ip;
 
 RDServer::RDServer() :
@@ -87,6 +89,11 @@ RDServer::RDServer() :
     else
         setup_data_processing();
 
+}
+
+void RDServer::set_model_metadata()
+{
+    sim_config_->set_model_metadata();
 }
 
 void RDServer::setup_data_processing()

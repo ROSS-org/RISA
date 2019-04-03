@@ -6,6 +6,24 @@
  * @brief API for ROSS-Damaris integration
  */
 
+typedef struct model_lp_metadata model_lp_metadata;
+typedef struct mlp_var_metadata mlp_var_metadata;
+
+struct model_lp_metadata
+{
+    int peid;
+    int kpid;
+    int lpid;
+    int num_vars;
+    size_t name_sz;
+};
+
+struct mlp_var_metadata
+{
+    size_t name_sz;
+    int id;
+};
+
 extern int g_st_ross_rank;          /**< @brief 1 if ROSS PE, 0 if Damaris rank */
 extern int g_st_damaris_enabled;    /**< @brief 1 if Damaris enabled, 0 otherwise */
 

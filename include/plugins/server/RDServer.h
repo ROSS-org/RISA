@@ -66,6 +66,8 @@ public:
 
     void initial_data_tasks(int32_t step) { argobots_manager_->create_insert_data_mic_task(step); }
 
+    void set_model_metadata();
+
 private:
     boost::shared_ptr<config::SimConfig> sim_config_;
     // TODO need to improve output to file

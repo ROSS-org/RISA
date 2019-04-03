@@ -65,7 +65,7 @@ static void set_parameters(const char *config_file)
     int num_pe = tw_nnodes();
     int num_kp = (int) g_tw_nkp;
     int num_lp = (int) g_tw_nlp;
-    int model_sample_size = 524288;
+    //int model_sample_size = 524288;
     //printf("PE %ld num pe %d, num kp %d, num lp %d\n", g_tw_mynode, num_pe, num_kp, num_lp);
 
     if ((err = damaris_parameter_set("num_lp", &num_lp, sizeof(num_lp))) != DAMARIS_OK)
@@ -77,8 +77,8 @@ static void set_parameters(const char *config_file)
     if ((err = damaris_parameter_set("num_kp", &num_kp, sizeof(num_kp))) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, "num_kp");
 
-    if ((err = damaris_parameter_set("sample_size", &model_sample_size, sizeof(model_sample_size))) != DAMARIS_OK)
-        st_damaris_error(TW_LOC, err, "sample_size");
+    //if ((err = damaris_parameter_set("sample_size", &model_sample_size, sizeof(model_sample_size))) != DAMARIS_OK)
+    //    st_damaris_error(TW_LOC, err, "sample_size");
 
     if ((err = damaris_write("ross/nlp", &num_lp)) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, "num_lp");
@@ -91,8 +91,6 @@ static void set_parameters(const char *config_file)
         if ((err = damaris_write("ross/inst_config", &config_file[0])) != DAMARIS_OK)
             st_damaris_error(TW_LOC, err, "ross/inst_config");
     }
-
-    st_damaris_signal_init();
 }
 
 /**
@@ -162,6 +160,68 @@ void st_damaris_init_print()
 void st_damaris_inst_init(const char *config_file)
 {
     set_parameters(config_file);
+
+    // get some metadata about model data to RISA
+    int block = 0, err;
+    if (g_st_model_stats)
+    {
+        for (int i = 0; i < g_tw_nlp; i++)
+        {
+            tw_lp* clp = g_tw_lp[i];
+            // doesn't matter which instrumentation mode is being used for this
+            if (!clp->model_types || clp->model_types->num_vars <= 0)
+                continue;
+
+            // for each LP, RISA needs to know the names of its variables and full model LP name
+            size_t buf_size = sizeof(model_lp_metadata);
+            buf_size += strlen(clp->model_types->lp_name) + 1;
+            for (int j = 0; j < clp->model_types->num_vars; j++)
+            {
+                buf_size += sizeof(mlp_var_metadata);
+                buf_size += strlen(clp->model_types->model_vars[j].var_name) + 1;
+            }
+
+            if ((err = damaris_parameter_set("md_size", &buf_size, sizeof(buf_size)))
+                    != DAMARIS_OK)
+                st_damaris_error(TW_LOC, err, "md_size");
+
+            void *dbuf_ptr;
+            if ((err = damaris_alloc_block("model_map/lp_md", block, &dbuf_ptr))
+                    != DAMARIS_OK)
+                st_damaris_error(TW_LOC, err, "model_map/lp_md");
+            char *damaris_buf = (char*)dbuf_ptr;
+
+            model_lp_metadata *md = (model_lp_metadata*)damaris_buf;
+            damaris_buf += sizeof(*md);
+            md->peid = clp->pe->id;
+            md->kpid = clp->kp->id;
+            md->lpid = clp->gid;
+            md->num_vars = clp->model_types->num_vars;
+            md->name_sz = strlen(clp->model_types->lp_name) + 1;
+            strncpy(damaris_buf, clp->model_types->lp_name, md->name_sz);
+            damaris_buf += md->name_sz;
+
+            for (int j = 0; j < md->num_vars; j++)
+            {
+                mlp_var_metadata *var_md = (mlp_var_metadata*)damaris_buf;
+                damaris_buf += sizeof(*var_md);
+                var_md->id = j;
+                var_md->name_sz = strlen(clp->model_types->model_vars[j].var_name) + 1;
+                strncpy(damaris_buf, clp->model_types->model_vars[j].var_name, var_md->name_sz);
+                damaris_buf += var_md->name_sz;
+            }
+
+            if ((err = damaris_commit_block("model_map/lp_md", block))
+                    != DAMARIS_OK)
+                st_damaris_error(TW_LOC, err, "model_map/lp_md");
+            if ((err = damaris_clear_block("model_map/lp_md", block))
+                    != DAMARIS_OK)
+                st_damaris_error(TW_LOC, err, "model_map/lp_md");
+            block++;
+        }
+    }
+
+    st_damaris_signal_init();
 }
 
 /**
@@ -238,7 +298,6 @@ void st_damaris_expose_data(tw_pe *me, int inst_type, tw_lp* lp, int vts_commit)
                     != DAMARIS_OK)
                 st_damaris_error(TW_LOC, err, "sample_size");
 
-            // TODO check on this
             void* dbuf_ptr;
             if ((err = damaris_alloc_block(inst_var_name[inst_type], block, &dbuf_ptr))
                     != DAMARIS_OK)
@@ -319,8 +378,8 @@ void st_damaris_signal_init()
 void st_damaris_end_iteration(tw_stime gvt)
 {
     int err;
-    if ((err = damaris_signal("damaris_gc")) != DAMARIS_OK)
-        st_damaris_error(TW_LOC, err, "damaris_gc");
+    //if ((err = damaris_signal("damaris_gc")) != DAMARIS_OK)
+    //    st_damaris_error(TW_LOC, err, "damaris_gc");
 
     if (g_tw_gvt_done % g_st_num_gvt == 0)
     {

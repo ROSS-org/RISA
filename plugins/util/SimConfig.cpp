@@ -10,6 +10,8 @@ using namespace std;
 //namespace po = boost::program_options;
 namespace rds = ross_damaris::sample;
 using namespace ross_damaris::config;
+using namespace ross_damaris::util;
+using namespace damaris;
 
 /**
  * @brief C wrapper for ROSS ranks to call SimConfig::parse_file
@@ -207,3 +209,63 @@ void SimConfig::print_mode_types(int type)
         cout << "model data";
 }
 
+void SimConfig::set_model_metadata()
+{
+    // TODO add a check to see if simulation is even collecting model data
+    std::shared_ptr<Variable> v = VariableManager::Search("model_map/lp_md");
+    BlocksByIteration::iterator begin, end;
+    v->GetBlocksByIteration(0, begin, end);
+    while (begin != end)
+    {
+        // each iterator points to a single LP's model metadata
+        DataSpace<Buffer> ds((*begin)->GetDataSpace());
+        char* dbuf_cur = reinterpret_cast<char*>(ds.GetData());
+        size_t cur_size = 0;
+
+        int *peid = reinterpret_cast<int*>(dbuf_cur);
+        dbuf_cur += sizeof(*peid);
+        cur_size += sizeof(*peid);
+        int *kpid = reinterpret_cast<int*>(dbuf_cur);
+        dbuf_cur += sizeof(*kpid);
+        cur_size += sizeof(*kpid);
+        int *lpid = reinterpret_cast<int*>(dbuf_cur);
+        dbuf_cur += sizeof(*lpid);
+        cur_size += sizeof(*lpid);
+        int *num_vars = reinterpret_cast<int*>(dbuf_cur);
+        dbuf_cur += sizeof(*num_vars);
+        cur_size += sizeof(*num_vars);
+        size_t *name_sz = reinterpret_cast<size_t*>(dbuf_cur);
+        dbuf_cur += sizeof(*name_sz);
+        cur_size += sizeof(*name_sz);
+        char* lp_name = reinterpret_cast<char*>(dbuf_cur);
+        dbuf_cur += *name_sz;
+        cur_size += *name_sz;
+        shared_ptr<ModelLPMetadata> lp_md = std::make_shared<ModelLPMetadata>(
+                *peid, *kpid, *lpid, string(lp_name));
+
+        for (int i = 0; i < *num_vars; i++)
+        {
+            size_t *var_name_sz = reinterpret_cast<size_t*>(dbuf_cur);
+            dbuf_cur += sizeof(*var_name_sz);
+            cur_size += sizeof(*var_name_sz);
+            int *id = reinterpret_cast<int*>(dbuf_cur);
+            dbuf_cur += sizeof(*id);
+            cur_size += sizeof(*id);
+            dbuf_cur += 4;
+            cur_size += 4;
+            char* var_name = reinterpret_cast<char*>(dbuf_cur);
+            dbuf_cur += *var_name_sz;
+            cur_size += *var_name_sz;
+            lp_md->add_variable(string(var_name), *id);
+        }
+        md_index_.insert(std::move(lp_md));
+
+        ++begin;
+    }
+
+}
+
+ModelMDByFullID::iterator SimConfig::get_lp_model_md(int peid, int kpid, int lpid)
+{
+    return md_index_.get<by_full_id>().find(std::make_tuple(peid, kpid, lpid));
+}

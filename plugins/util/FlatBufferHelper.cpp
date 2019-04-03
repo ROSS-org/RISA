@@ -165,8 +165,8 @@ uint8_t *FlatBufferHelper::finish_sample(size_t* offset)
     //if (size > max_sample_size_)
     {
         max_sample_size_ = size;
-        if ((err = damaris_parameter_set("sample_size", &max_sample_size_, sizeof(max_sample_size_))) != DAMARIS_OK)
-            st_damaris_error(TW_LOC, err, "sample_size");
+        //if ((err = damaris_parameter_set("sample_size", &max_sample_size_, sizeof(max_sample_size_))) != DAMARIS_OK)
+        //    st_damaris_error(TW_LOC, err, "sample_size");
     }
 
     //cout << "size of model fb " << size << " max_sample_size_ " << max_sample_size_ << endl;

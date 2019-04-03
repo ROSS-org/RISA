@@ -1,6 +1,7 @@
 // IDL file for schema for Damaris collected data
 // call for generating C++ code:
 // /path/to/flatc --cpp --reflect-types --reflect-names --gen-object-api data_sample.fbs
+// --gen-name-strings --gen-compare
 
 namespace ross_damaris.sample;
 

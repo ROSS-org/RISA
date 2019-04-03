@@ -33,6 +33,7 @@ void damaris_rank_init(const std::string& event, int32_t src, int32_t step, cons
     (void) args;
     //cout << "damaris_rank_init() step " << step << endl;
     server.reset(new RDServer());
+    server->set_model_metadata();
     //cout << "end of damaris_rank_init()\n";
 }
 
@@ -44,6 +45,7 @@ void damaris_rank_init(const std::string& event, int32_t src, int32_t step, cons
  */
 void damaris_rank_end_iteration(const std::string& event, int32_t src, int32_t step, const char* args)
 {
+    // want the last step because the data is now complete
     step--;
     //cout << "damaris_rank_end_iteration() rank " << src << " step " << step << endl;
 

@@ -7,9 +7,11 @@
 
 #include <damaris/buffer/DataSpace.hpp>
 #include <damaris/buffer/Buffer.hpp>
+#include <damaris/data/VariableManager.hpp>
 #include <damaris/data/Variable.hpp>
 
 #include <instrumentation/st-instrumentation-internal.h>
+#include <instrumentation/st-model-data.h>
 
 using namespace ross_damaris;
 using namespace ross_damaris::util;
@@ -91,7 +93,8 @@ void aggregate_data(void *arguments)
 // TODO add in size checking for errors
 void create_flatbuffer(InstMode mode, char* buffer, sample_metadata *sample_md,
         fb::FlatBufferBuilder& fbb, vector<fb::Offset<PEData>>& pe_vector,
-        vector<fb::Offset<KPData>>& kp_vector, vector<fb::Offset<LPData>>& lp_vector)
+        vector<fb::Offset<KPData>>& kp_vector, vector<fb::Offset<LPData>>& lp_vector,
+        vector<fb::Offset<ModelLP>>& mlp_vector)
 {
     if (sample_md->has_pe)
     {
@@ -190,6 +193,71 @@ void create_flatbuffer(InstMode mode, char* buffer, sample_metadata *sample_md,
 
     if (sample_md->has_model)
     {
+        cout << "analysis-tasks has_model\n";
+        for (int i = 0; i < sample_md->num_model_lps; i++)
+        {
+            vector<fb::Offset<ModelVariable>> cur_lp_vars;
+            st_model_data *model_lp = reinterpret_cast<st_model_data*>(buffer);
+            buffer += sizeof(*model_lp);
+            auto lp_md = sim_config->get_lp_model_md(sample_md->peid, model_lp->kpid, model_lp->lpid);
+            for (int j = 0; j < model_lp->num_vars; j++)
+            {
+                model_var_md *var = reinterpret_cast<model_var_md*>(buffer);
+                buffer += sizeof(*var);
+                fb::Offset<ModelVariable> variable;
+                auto var_name = (*lp_md)->get_var_name(j);
+                switch (var->type)
+                {
+                    case MODEL_INT:
+                    {
+                        int *data = reinterpret_cast<int*>(buffer);
+                        buffer += sizeof(int) * var->num_elems;
+                        vector<int> data_vec(data, data + var->num_elems);
+                        auto var_union = CreateIntVarDirect(fbb, &data_vec).Union();
+                        variable = CreateModelVariableDirect(fbb, var_name.c_str(),
+                                VariableType_IntVar, var_union);
+                        break;
+                    }
+                    case MODEL_LONG:
+                    {
+                        long *data = reinterpret_cast<long*>(buffer);
+                        buffer += sizeof(long) * var->num_elems;
+                        vector<long> data_vec(data, data + var->num_elems);
+                        auto var_union = CreateLongVarDirect(fbb, &data_vec).Union();
+                        variable = CreateModelVariableDirect(fbb, var_name.c_str(),
+                                VariableType_LongVar, var_union);
+                        break;
+                    }
+                    case MODEL_FLOAT:
+                    {
+                        float *data = reinterpret_cast<float*>(buffer);
+                        buffer += sizeof(float) * var->num_elems;
+                        vector<float> data_vec(data, data + var->num_elems);
+                        auto var_union = CreateFloatVarDirect(fbb, &data_vec).Union();
+                        variable = CreateModelVariableDirect(fbb, var_name.c_str(),
+                                VariableType_FloatVar, var_union);
+                        break;
+                    }
+                    case MODEL_DOUBLE:
+                    {
+                        double *data = reinterpret_cast<double*>(buffer);
+                        buffer += sizeof(double) * var->num_elems;
+                        vector<double> data_vec(data, data + var->num_elems);
+                        auto var_union = CreateDoubleVarDirect(fbb, &data_vec).Union();
+                        variable = CreateModelVariableDirect(fbb, var_name.c_str(),
+                                VariableType_DoubleVar, var_union);
+                        break;
+                    }
+                    default:
+                        break;
+                }
+                cur_lp_vars.push_back(variable);
+            }
+            auto mlp_name = (*lp_md)->get_name();
+            auto mlp = CreateModelLPDirect(fbb, model_lp->lpid, mlp_name.c_str(), &cur_lp_vars);
+            mlp_vector.push_back(mlp);
+
+        }
 
     }
 
@@ -208,19 +276,26 @@ void initial_data_processing(void *arguments)
     initial_task_args *args;
     args = (initial_task_args*)arguments;
     int step = args->step;
+    //cout << "initial data processing: step " << step << endl;
     //printf("initial_data_processing() called at step %d, pool_id %d\n", step, pool_id);
-    damaris::BlocksByIteration::iterator begin, end;
 
     const InstMode *modes = EnumValuesInstMode();
+    //TODO split into multiple argobots tasks?
     for (int mode = InstMode_GVT; mode <= InstMode_RT; mode++)
     {
-        //TODO add support for model data
-        if (!sim_config->inst_mode_sim(modes[mode]))
+        if (!sim_config->inst_mode_sim(modes[mode]) && !sim_config->inst_mode_model(modes[mode]))
             continue;
 
+        damaris::BlocksByIteration::iterator begin, end;
         DUtil::get_damaris_iterators(inst_buffer_names[mode], step, begin, end);
         if (begin == end)
         {
+            // TODO there's potentially a bug here if this task is not done quickly enough,
+            // the task may be too late to access the data
+            // might be garbage collection acting too quickly?
+            // What we should do is after we process this data,
+            // set up garbage collection for this time step
+            // we don't need it in damaris format anymore
             cout << "initial_data_processing: begin == end\n";
             continue;
         }
@@ -233,6 +308,7 @@ void initial_data_processing(void *arguments)
         vector<fb::Offset<PEData>> pe_vector;
         vector<fb::Offset<KPData>> kp_vector;
         vector<fb::Offset<LPData>> lp_vector;
+        vector<fb::Offset<ModelLP>> mlp_vector;
         double vts, rts, last_gvt;
 
         while (begin != end)
@@ -264,12 +340,14 @@ void initial_data_processing(void *arguments)
             vts = sample_md->vts;
             rts = sample_md->rts;
             last_gvt = sample_md->last_gvt;
+            //cout << "PE : " << sample_md->peid << " last_GVT: " << last_gvt << endl;
 
             //sampling_points[mode].insert(ts);
 
             // TODO kpid for VTS
             int id = sample_md->peid;
-            create_flatbuffer(modes[mode], dbuf_cur, sample_md, fbb, pe_vector, kp_vector, lp_vector);
+            create_flatbuffer(modes[mode], dbuf_cur, sample_md, fbb, pe_vector, kp_vector, lp_vector,
+                    mlp_vector);
 
             // does this DataSpace belong in the DataSample from the previous iteration?
             if (sample_it == data_manager->end() || !(*sample_it)->same_sample(modes[mode], ts))
@@ -291,15 +369,17 @@ void initial_data_processing(void *arguments)
             ++begin;
         }
 
-        auto pes = fbb.CreateVector(pe_vector);
-        auto kps = fbb.CreateVector(kp_vector);
-        auto lps = fbb.CreateVector(lp_vector);
-        auto sample = CreateDamarisDataSample(fbb, vts, rts, last_gvt, modes[mode], pes, kps, lps);
+        auto sample = CreateDamarisDataSampleDirect(fbb, vts, rts, last_gvt, modes[mode],
+            &pe_vector, &kp_vector, &lp_vector, &mlp_vector);
         fbb.Finish(sample);
         int fb_size = static_cast<int>(fbb.GetSize());
         size_t size, offset;
         uint8_t *raw = fbb.ReleaseRaw(size, offset);
         stream_client->enqueue_data(raw, &raw[offset], fb_size);
+
+        // GC this variable for this time step
+        std::shared_ptr<damaris::Variable> v = damaris::VariableManager::Search(inst_buffer_names[mode]);
+        v->ClearIteration(step);
     }
 
     // Now set up task(s) to do data aggregation
