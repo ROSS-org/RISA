@@ -1,0 +1,18 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+argobots_lib=@ARGOBOTS_LDFLAGS@
+argobots_cflags=@ARGOBOTS_CFLAGS@
+
+damaris_include=@Damaris_INCLUDE_DIRS@
+damaris_libs=@PRIVATE_LIBS@
+
+risa_include=-I${prefix}/include
+risa_libdir=${prefix}/lib
+risa_libs=-lRISA -lRISA-plugins
+
+Name: RISA
+Description: ROSS In Situ Analysis System
+Version: @VERSION_SHORT@
+URL: https://github.com/ROSS-org/RISA
+Requires:
+Libs: -Wl,-rpath -Wl,@ARGOBOTS_LIBRARY_DIRS@ -L${risa_libdir} ${risa_libs}
+Cflags:  ${argobots_cflags} ${risa_include}

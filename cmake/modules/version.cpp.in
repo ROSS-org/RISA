@@ -1,0 +1,4 @@
+#include "../include/version.h"
+
+const std::string gVERSION = "@VERSION@";
+const std::string gVERSION_SHORT = "@VERSION_SHORT@";

@@ -1,30 +1,33 @@
-PROJECT(rdplugins)
+PROJECT(RISA-plugins)
+
+ADD_DEFINITIONS(-std=c++11)
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
+
+# Need MPICXX
+INCLUDE(SetupMPI)
+IF(MPI_CXX_FOUND)
+    INCLUDE_DIRECTORIES(${MPI_CXX_INCLUDE_PATH})
+    LIST(APPEND RISA_EXTERNAL_LIBS ${MPI_CXX_LIBRARIES})
+ELSE(MPI_CXX_FOUND)
+    MESSAGE("WARNING: Could not find MPI (C++)!")
+    MESSAGE("         Either add an MPI compiler to your path (using modules)")
+    MESSAGE("         Or force CMake to build using the correct compiler (`export CXX=mpicxx`)")
+ENDIF(MPI_CXX_FOUND)
+
+FIND_PACKAGE(Flatbuffers 1.10.0 REQUIRED)
 
 # find boost
+ADD_DEFINITIONS(-DBOOST_LOG_DYN_LINK)
 SET(Boost_USE_STATIC_LIBS OFF)
-FIND_PACKAGE(Boost 1.67.0 COMPONENTS program_options log log_setup filesystem system date_time thread)
-IF (NOT Boost_FOUND)
-    MESSAGE("rdplugins: Boost (at least version 1.62) not found! Checking in Damaris Install directory")
-    SET(BOOST_ROOT ${DAMARIS_DIR})
-    #SET(Boost_NO_SYSTEM_PATHS ON)
-    #SET(BOOST_LIBRARYDIR ${BOOST_ROOT}/lib)
-    FIND_PACKAGE(Boost 1.67.0 COMPONENTS program_options log log_setup filesystem system date_time thread)
-ENDIF(NOT Boost_FOUND)
+FIND_PACKAGE(Boost 1.67.0 REQUIRED COMPONENTS program_options log log_setup filesystem system date_time thread)
+INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS})
+LINK_DIRECTORIES(${Boost_LIBRARY_DIRS})
 
-IF (Boost_FOUND)
-    MESSAGE("rdplugins: found boost v${Boost_VERSION} \nInclude: ${Boost_INCLUDE_DIRS}\nLibrary dir: ${Boost_LIBRARY_DIRS} \nlibraries: ${Boost_LIBRARIES}")
-    INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS})
-    ADD_DEFINITIONS(-DBOOST_LOG_DYN_LINK)
-ENDIF(Boost_FOUND)
-
-SET(ENV{PKG_CONFIG_PATH} "$ENV{PKG_CONFIG_PATH}:/home/rossc3/argobots-install/lib/pkgconfig")
-MESSAGE("pkg config path: $ENV{PKG_CONFIG_PATH}")
+SET(ENV{PKG_CONFIG_PATH} "$ENV{PKG_CONFIG_PATH}")
 FIND_PACKAGE(PkgConfig REQUIRED)
 PKG_CHECK_MODULES(ARGOBOTS REQUIRED argobots)
 
-INCLUDE_DIRECTORIES(${DAMARIS_INCLUDE} ${FLATBUF_INCLUDE} ${ARGOBOTS_INCLUDE_DIRS})
-ADD_DEFINITIONS(-std=c++11)
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
+INCLUDE_DIRECTORIES(${Damaris_INCLUDE_DIRS} ${ARGOBOTS_INCLUDE_DIRS})
 INCLUDE_DIRECTORIES(../include)
 SET(plugin_srcs
     util/garbage-collection.cpp
@@ -42,8 +45,8 @@ SET(plugin_srcs
     streaming/StreamClient.cpp)
 
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR}/include)
-ADD_LIBRARY(rdplugins SHARED ${plugin_srcs})
-SET_PROPERTY(TARGET rdplugins PROPERTY POSITION_INDEPENDENT_CODE ON)
-TARGET_LINK_LIBRARIES(rdplugins ${Boost_LIBRARIES} ${ARGOBOTS_LDFLAGS})
+ADD_LIBRARY(RISA-plugins SHARED ${plugin_srcs})
+SET_PROPERTY(TARGET RISA-plugins PROPERTY POSITION_INDEPENDENT_CODE ON)
+TARGET_LINK_LIBRARIES(RISA-plugins PUBLIC -rdynamic ${Damaris_LIBRARIES} ${Boost_LIBRARIES} ${ARGOBOTS_LDFLAGS})
 
-INSTALL(TARGETS rdplugins EXPORT rdplugins ARCHIVE DESTINATION lib LIBRARY DESTINATION lib)
+INSTALL(TARGETS RISA-plugins EXPORT RISA-plugins ARCHIVE DESTINATION lib LIBRARY DESTINATION lib)

@@ -71,10 +71,10 @@
 
     <!-- Do not edit anything under actions, as it could break your simulation! -->
     <actions>
-        <event name="damaris_gc" action="damaris_gc" library="librdplugins.so" scope="group"/>
-        <event name="damaris_rank_init" action="damaris_rank_init" library="librdplugins.so" scope="group"/>
-        <event name="end_iteration" action="damaris_rank_end_iteration" library="librdplugins.so" scope="group"/>
-        <event name="damaris_rank_finalize" action="damaris_rank_finalize" library="librdplugins.so" scope="group"/>
+        <event name="damaris_gc" action="damaris_gc" library="libRISA-plugins.so" scope="group"/>
+        <event name="damaris_rank_init" action="damaris_rank_init" library="libRISA-plugins.so" scope="group"/>
+        <event name="end_iteration" action="damaris_rank_end_iteration" library="libRISA-plugins.so" scope="group"/>
+        <event name="damaris_rank_finalize" action="damaris_rank_finalize" library="libRISA-plugins.so" scope="group"/>
     </actions>
 </simulation>
 

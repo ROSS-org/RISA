@@ -27,9 +27,9 @@ static double current_rt = 0.0;
 int g_st_damaris_enabled = 0;
 static char data_xml[4096];
 
-static const tw_optdef damaris_options[] = {
-    TWOPT_GROUP("Damaris Integration"),
-    TWOPT_UINT("enable-damaris", g_st_damaris_enabled, "Turn on (1) or off (0) Damaris in situ analysis"),
+static const tw_optdef risa_options[] = {
+    TWOPT_GROUP("RISA - ROSS In Situ Analysis"),
+    TWOPT_UINT("enable-risa", g_st_damaris_enabled, "Turn on (1) or off (0) RISA"),
     TWOPT_CHAR("data-xml", data_xml, "Path to XML file for describing data to Damaris"),
     TWOPT_END()
 };
@@ -45,7 +45,7 @@ static const char* inst_var_name[] = {
  */
 const tw_optdef *st_damaris_opts(void)
 {
-    return damaris_options;
+    return risa_options;
 }
 
 /**
