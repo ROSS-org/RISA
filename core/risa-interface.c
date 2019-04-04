@@ -1,38 +1,24 @@
-#include <ross.h>
 #include <sys/stat.h>
+#include <core/risa-interface.h>
 #include <plugins/util/config-c.h>
-#include <core/model-c.h>
 #include <instrumentation/st-instrumentation-internal.h>
 #include <instrumentation/st-sim-engine.h>
 #include <instrumentation/st-model-data.h>
 
-/**
- * @file damaris.c
- * @brief ROSS integration with Damaris data management
- */
-void st_damaris_signal_init(void);
-
 int g_st_ross_rank = 0;
+int g_st_risa_enabled = 0;
 
 static int damaris_initialized = 0;
 static double *pe_id, *kp_id, *lp_id;
 static tw_statistics last_pe_stats[3];
-
 static int rt_block_counter = 0;
 static int vt_block_counter = 0;
+static int vt_invalid_block_counter = 0;
+static int vt_valid_block_counter = 0;
 static int max_block_counter = 0;
 static int iterations = 0;
 static double current_rt = 0.0;
-
-int g_st_damaris_enabled = 0;
-static char data_xml[4096];
-
-static const tw_optdef risa_options[] = {
-    TWOPT_GROUP("RISA - ROSS In Situ Analysis"),
-    TWOPT_UINT("enable-risa", g_st_damaris_enabled, "Turn on (1) or off (0) RISA"),
-    TWOPT_CHAR("data-xml", data_xml, "Path to XML file for describing data to Damaris"),
-    TWOPT_END()
-};
+static char damaris_xml[4096];
 
 static const char* inst_var_name[] = {
     "ross/inst_sample/gvt_inst",
@@ -40,124 +26,64 @@ static const char* inst_var_name[] = {
     "ross/inst_sample/vts_inst"
 };
 
-/**
- * @brief Returns the damaris_options struct so ROSS can pull in the options
- */
-const tw_optdef *st_damaris_opts(void)
+static const tw_optdef risa_options[] = {
+    TWOPT_GROUP("RISA - ROSS In Situ Analysis"),
+    TWOPT_UINT("enable-risa", g_st_risa_enabled, "Turn on (1) or off (0) RISA"),
+    TWOPT_CHAR("damaris-xml", damaris_xml, "Path to XML file for describing data to Damaris"),
+    TWOPT_END()
+};
+
+const tw_optdef *risa_opts(void)
 {
     return risa_options;
 }
 
-/**
- * @brief parse config file and set parameters
- */
-void st_damaris_parse_config(const char *config_file)
-{
-    parse_file(config_file);
-}
-
-/**
- * @brief Sets up the simulation parameters needed by Damaris
- */
-static void set_parameters(const char *config_file)
-{
-    int err;
-    int num_pe = tw_nnodes();
-    int num_kp = (int) g_tw_nkp;
-    int num_lp = (int) g_tw_nlp;
-    //int model_sample_size = 524288;
-    //printf("PE %ld num pe %d, num kp %d, num lp %d\n", g_tw_mynode, num_pe, num_kp, num_lp);
-
-    if ((err = damaris_parameter_set("num_lp", &num_lp, sizeof(num_lp))) != DAMARIS_OK)
-        st_damaris_error(TW_LOC, err, "num_lp");
-
-    if ((err = damaris_parameter_set("num_pe", &num_pe, sizeof(num_pe))) != DAMARIS_OK)
-        st_damaris_error(TW_LOC, err, "num_pe");
-
-    if ((err = damaris_parameter_set("num_kp", &num_kp, sizeof(num_kp))) != DAMARIS_OK)
-        st_damaris_error(TW_LOC, err, "num_kp");
-
-    //if ((err = damaris_parameter_set("sample_size", &model_sample_size, sizeof(model_sample_size))) != DAMARIS_OK)
-    //    st_damaris_error(TW_LOC, err, "sample_size");
-
-    if ((err = damaris_write("ross/nlp", &num_lp)) != DAMARIS_OK)
-        st_damaris_error(TW_LOC, err, "num_lp");
-
-    if ((err = damaris_write("ross/nkp", &num_kp)) != DAMARIS_OK)
-        st_damaris_error(TW_LOC, err, "num_kp");
-
-    if (config_file)
-    {
-        if ((err = damaris_write("ross/inst_config", &config_file[0])) != DAMARIS_OK)
-            st_damaris_error(TW_LOC, err, "ross/inst_config");
-    }
-}
-
-/**
- * @brief Sets up ROSS to use Damaris
- *
- * This must be called after MPI is initialized. Damaris splits the MPI
- * communicator and we set MPI_COMM_ROSS to the subcommunicator returned by Damaris.
- * This sets the variable g_st_ross_rank to 1 on ROSS ranks and 0 on Damaris ranks.
- * Need to make sure that Damaris ranks return to model after this point.
- *
- */
-void st_damaris_ross_init(void)
+void risa_init(void)
 {
     int err, my_rank;
     MPI_Comm ross_comm;
 
-    if (!g_st_damaris_enabled)
+    if (!g_st_risa_enabled)
     {
         g_st_ross_rank = 1;
         return;
     }
 
     struct stat buffer;
-    int file_check = stat(data_xml, &buffer);
+    int file_check = stat(damaris_xml, &buffer);
     if (file_check != 0)
-        tw_error(TW_LOC, "Need to provide the appropriate XML metadata file for Damaris!");
+        tw_error(TW_LOC, "Need to provide the appropriate XML metadata file for Damaris using"
+                "--damaris-xml!");
 
-    if ((err = damaris_initialize(data_xml, MPI_COMM_WORLD)) != DAMARIS_OK)
-        st_damaris_error(TW_LOC, err, NULL);
+    if ((err = damaris_initialize(damaris_xml, MPI_COMM_WORLD)) != DAMARIS_OK)
+        risa_damaris_error(TW_LOC, err, NULL);
     damaris_initialized = 1;
 
     // g_st_ross_rank > 0: ROSS MPI rank
     // g_st_ross_rank == 0: Damaris MPI rank
     if ((err = damaris_start(&g_st_ross_rank)) != DAMARIS_OK)
-        st_damaris_error(TW_LOC, err, NULL);
+        risa_damaris_error(TW_LOC, err, NULL);
     if(g_st_ross_rank)
     {
         //get ROSS sub comm, sets to MPI_COMM_ROSS
         if ((err = damaris_client_comm_get(&ross_comm)) != DAMARIS_OK)
-            st_damaris_error(TW_LOC, err, NULL);
+            risa_damaris_error(TW_LOC, err, NULL);
         tw_comm_set(ross_comm);
 
         // now make sure we have the correct rank number for ROSS ranks
         if (MPI_Comm_rank(MPI_COMM_ROSS, &my_rank) != MPI_SUCCESS)
-            tw_error(TW_LOC, "Cannot get MPI_Comm_rank(MPI_COMM_ROSS)");
+            tw_error(TW_LOC, "Cannot get MPI_Comm_rank (MPI_COMM_ROSS)");
 
         g_tw_mynode = my_rank;
     }
-
 }
 
-/**
- * @brief Some initialization output to print when using Damaris.
- */
-void st_damaris_init_print()
+void risa_parse_config(const char *config_file)
 {
-    int total_size;
-    MPI_Comm_size(MPI_COMM_WORLD, &total_size);
-
-    printf("\nDamaris Configuration: \n");
-    printf("\t%-50s %11u\n", "Total Ranks", total_size - tw_nnodes());
+    parse_file(config_file);
 }
 
-/**
- * @brief Init for using Instrumentation with Damaris.
- */
-void st_damaris_inst_init(const char *config_file)
+void risa_inst_init(const char *config_file)
 {
     set_parameters(config_file);
 
@@ -183,12 +109,12 @@ void st_damaris_inst_init(const char *config_file)
 
             if ((err = damaris_parameter_set("md_size", &buf_size, sizeof(buf_size)))
                     != DAMARIS_OK)
-                st_damaris_error(TW_LOC, err, "md_size");
+                risa_damaris_error(TW_LOC, err, "md_size");
 
             void *dbuf_ptr;
             if ((err = damaris_alloc_block("model_map/lp_md", block, &dbuf_ptr))
                     != DAMARIS_OK)
-                st_damaris_error(TW_LOC, err, "model_map/lp_md");
+                risa_damaris_error(TW_LOC, err, "model_map/lp_md");
             char *damaris_buf = (char*)dbuf_ptr;
 
             model_lp_metadata *md = (model_lp_metadata*)damaris_buf;
@@ -213,23 +139,67 @@ void st_damaris_inst_init(const char *config_file)
 
             if ((err = damaris_commit_block("model_map/lp_md", block))
                     != DAMARIS_OK)
-                st_damaris_error(TW_LOC, err, "model_map/lp_md");
+                risa_damaris_error(TW_LOC, err, "model_map/lp_md");
             if ((err = damaris_clear_block("model_map/lp_md", block))
                     != DAMARIS_OK)
-                st_damaris_error(TW_LOC, err, "model_map/lp_md");
+                risa_damaris_error(TW_LOC, err, "model_map/lp_md");
             block++;
         }
     }
 
-    st_damaris_signal_init();
+    signal_init();
+}
+void set_parameters(const char *config_file)
+{
+    int err;
+    int num_pe = tw_nnodes();
+    int num_kp = (int) g_tw_nkp;
+    int num_lp = (int) g_tw_nlp;
+    //int model_sample_size = 524288;
+    //printf("PE %ld num pe %d, num kp %d, num lp %d\n", g_tw_mynode, num_pe, num_kp, num_lp);
+
+    if ((err = damaris_parameter_set("num_lp", &num_lp, sizeof(num_lp))) != DAMARIS_OK)
+        risa_damaris_error(TW_LOC, err, "num_lp");
+
+    if ((err = damaris_parameter_set("num_pe", &num_pe, sizeof(num_pe))) != DAMARIS_OK)
+        risa_damaris_error(TW_LOC, err, "num_pe");
+
+    if ((err = damaris_parameter_set("num_kp", &num_kp, sizeof(num_kp))) != DAMARIS_OK)
+        risa_damaris_error(TW_LOC, err, "num_kp");
+
+    //if ((err = damaris_parameter_set("sample_size", &model_sample_size, sizeof(model_sample_size))) != DAMARIS_OK)
+    //    risa_damaris_error(TW_LOC, err, "sample_size");
+
+    if ((err = damaris_write("ross/nlp", &num_lp)) != DAMARIS_OK)
+        risa_damaris_error(TW_LOC, err, "num_lp");
+
+    if ((err = damaris_write("ross/nkp", &num_kp)) != DAMARIS_OK)
+        risa_damaris_error(TW_LOC, err, "num_kp");
+
+    if (config_file)
+    {
+        if ((err = damaris_write("ross/inst_config", &config_file[0])) != DAMARIS_OK)
+            risa_damaris_error(TW_LOC, err, "ross/inst_config");
+    }
 }
 
-/**
- * @brief Shuts down Damaris and calls MPI_Finalize
- *
- * ROSS ranks (But not damaris ranks) have to first call damaris_stop()
- */
-void st_damaris_ross_finalize()
+void signal_init()
+{
+    int err;
+    if ((err = damaris_signal("damaris_rank_init")) != DAMARIS_OK)
+        risa_damaris_error(TW_LOC, err, "damaris_rank_init");
+}
+
+void risa_init_print()
+{
+    int total_size;
+    MPI_Comm_size(MPI_COMM_WORLD, &total_size);
+
+    printf("\nDamaris Configuration: \n");
+    printf("\t%-50s %11u\n", "Total Ranks", total_size - tw_nnodes());
+}
+
+void risa_finalize()
 {
     if (!damaris_initialized)
         return;
@@ -237,23 +207,18 @@ void st_damaris_ross_finalize()
     if (g_st_ross_rank)
     {
         if ((err = damaris_signal("damaris_rank_finalize")) != DAMARIS_OK)
-            st_damaris_error(TW_LOC, err, "damaris_rank_finalize");
+            risa_damaris_error(TW_LOC, err, "damaris_rank_finalize");
         damaris_stop();
     }
-    //if (g_st_real_time_samp)
-    //    printf("Rank %ld: Max blocks counted for Real Time instrumentation is %d\n", g_tw_mynode, max_block_counter);
     if ((err = damaris_finalize()) != DAMARIS_OK)
-        st_damaris_error(TW_LOC, err, NULL);
+        risa_damaris_error(TW_LOC, err, NULL);
     if (MPI_Finalize() != MPI_SUCCESS)
         tw_error(TW_LOC, "Failed to finalize MPI");
 }
 
-/**
- * @brief Expose instrumentation data to Damaris
- */
 // TODO may be able to simplfiy this and just grab the buffer pointer and return it to
 // the call from inst_sample
-void st_damaris_expose_data(tw_pe *me, int inst_type, tw_lp* lp, int vts_commit)
+void risa_expose_data(tw_pe *me, int inst_type, tw_lp* lp, int vts_commit)
 {
     //printf("PE %ld: damaris_expose_data type: %d\n", g_tw_mynode, inst_type);
     int err;
@@ -300,12 +265,12 @@ void st_damaris_expose_data(tw_pe *me, int inst_type, tw_lp* lp, int vts_commit)
             data_sampled = 1;
             if ((err = damaris_parameter_set("sample_size", &buf_size, sizeof(buf_size)))
                     != DAMARIS_OK)
-                st_damaris_error(TW_LOC, err, "sample_size");
+                risa_damaris_error(TW_LOC, err, "sample_size");
 
             void* dbuf_ptr;
             if ((err = damaris_alloc_block(inst_var_name[inst_type], block, &dbuf_ptr))
                     != DAMARIS_OK)
-                st_damaris_error(TW_LOC, err, inst_var_name[inst_type]);
+                risa_damaris_error(TW_LOC, err, inst_var_name[inst_type]);
             damaris_buf = (char*)dbuf_ptr;
 
             sample_md = (sample_metadata*)damaris_buf;
@@ -372,50 +337,58 @@ void st_damaris_expose_data(tw_pe *me, int inst_type, tw_lp* lp, int vts_commit)
 
 }
 
-void st_damaris_signal_init()
-{
-    int err;
-    //printf("rank %ld signaling setup_simulation_config\n", g_tw_mynode);
-    if ((err = damaris_signal("damaris_rank_init")) != DAMARIS_OK)
-        st_damaris_error(TW_LOC, err, "damaris_rank_init");
-}
-
-/**
- * @brief Signals to Damaris that the current iteration is over.
- *
- * Iterations should always end at GVT (though it doesn't have to be every GVT), because
- * the call to damaris_end_iteration() contains a collective call.
- */
-void st_damaris_end_iteration(tw_stime gvt)
+void risa_end_iteration(tw_stime gvt)
 {
     int err;
     //if ((err = damaris_signal("damaris_gc")) != DAMARIS_OK)
-    //    st_damaris_error(TW_LOC, err, "damaris_gc");
+    //    risa_damaris_error(TW_LOC, err, "damaris_gc");
 
     if (g_tw_gvt_done % g_st_num_gvt == 0)
     {
         if ((err = damaris_write("ross/last_gvt", &gvt)) != DAMARIS_OK)
-            st_damaris_error(TW_LOC, err, "ross/last_gvt");
+            risa_damaris_error(TW_LOC, err, "ross/last_gvt");
 
         if ((err = damaris_end_iteration()) != DAMARIS_OK)
-            st_damaris_error(TW_LOC, err, "end iteration");
+            risa_damaris_error(TW_LOC, err, "end iteration");
         //printf("[%f] PE %ld damaris_end_iteration\n", g_tw_pe[0]->GVT, g_tw_mynode);
         if ((err = damaris_signal("end_iteration")) != DAMARIS_OK)
-            st_damaris_error(TW_LOC, err, "end_iteration");
+            risa_damaris_error(TW_LOC, err, "end_iteration");
     }
 
     iterations++;
-    st_damaris_reset_block_counters();
     rt_block_counter = 0;
     vt_block_counter = 0;
+    vt_invalid_block_counter = 0;
+    vt_valid_block_counter = 0;
 }
 
-/**
- * @brief Make Damaris error checking easier.
- *
- * Some errors will stop simulation, but some will only warn and keep going.
- */
-void st_damaris_error(const char *file, int line, int err, const char *variable)
+void risa_invalidate_sample(double vts, double rts, int kp_gid)
+{
+    int err;
+
+    if ((err = damaris_write_block("ross/vt_rb/vts", vt_invalid_block_counter, &vts)) != DAMARIS_OK)
+        risa_damaris_error(TW_LOC, err, "ross/vt_rb/vts");
+    if ((err = damaris_write_block("ross/vt_rb/rts", vt_invalid_block_counter, &rts)) != DAMARIS_OK)
+        risa_damaris_error(TW_LOC, err, "ross/vt_rb/rts");
+    if ((err = damaris_write_block("ross/vt_rb/kp_gid", vt_invalid_block_counter, &kp_gid)) != DAMARIS_OK)
+        risa_damaris_error(TW_LOC, err, "ross/vt_rb/kp_gid");
+    vt_invalid_block_counter++;
+}
+
+void risa_validate_sample(double vts, double rts, int kp_gid)
+{
+    int err;
+
+    if ((err = damaris_write_block("ross/vt_commit/vts", vt_valid_block_counter, &vts)) != DAMARIS_OK)
+        risa_damaris_error(TW_LOC, err, "ross/vt_commit/vts");
+    if ((err = damaris_write_block("ross/vt_commit/rts", vt_valid_block_counter, &rts)) != DAMARIS_OK)
+        risa_damaris_error(TW_LOC, err, "ross/vt_commit/rts");
+    if ((err = damaris_write_block("ross/vt_commit/kp_gid", vt_valid_block_counter, &kp_gid)) != DAMARIS_OK)
+        risa_damaris_error(TW_LOC, err, "ross/vt_commit/kp_gid");
+    vt_valid_block_counter++;
+}
+
+void risa_damaris_error(const char *file, int line, int err, const char *variable)
 {
     switch(err)
     {

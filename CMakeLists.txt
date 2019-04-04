@@ -9,7 +9,7 @@ FIND_PACKAGE(XercesC REQUIRED)
 INCLUDE_DIRECTORIES(include)
 INCLUDE_DIRECTORIES(${Damaris_INCLUDE_DIRS})
 SET(risa_srcs
-    core/damaris.c)
+    core/risa-interface.c)
 
 #SET(DAMARIS_LIBS "$ENV{LD_LIBRARY_PATH}")
 #FOREACH(LIB ${Damaris_LIBRARIES})

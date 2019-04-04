@@ -33,8 +33,6 @@ SET(plugin_srcs
     util/garbage-collection.cpp
     util/damaris-util.cpp
     util/SimConfig.cpp
-    util/FlatBufferHelper.cpp
-    util/model.cpp
     server/RDServer.cpp
     server/events.cpp
     data/ArgobotsManager.cpp
