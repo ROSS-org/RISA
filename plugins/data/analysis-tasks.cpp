@@ -1,7 +1,6 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <plugins/data/analysis-tasks.h>
-#include <plugins/data/DataSample.h>
 #include <plugins/flatbuffers/data_sample_generated.h>
 #include <plugins/util/damaris-util.h>
 
@@ -20,16 +19,8 @@ using namespace ross_damaris::data;
 using namespace std;
 namespace fb = flatbuffers;
 
-/* forward declarations for static functions */
-static void combine_pe_flatbuffers(sample::InstMode mode, double lower_ts, double upper_ts);
-static void combine_flatbuffers(sample::InstMode mode, double lower_ts, double upper_ts);
-static void sum_data(SimEngineMetricsT* pe_metrics, SimEngineMetricsT* entity_metrics);
-static void iterate_kps(DamarisDataSampleT* ds, SimEngineMetricsT *pe_metrics, int *pe_id);
-static void iterate_lps(DamarisDataSampleT* ds, SimEngineMetricsT *pe_metrics, int *pe_id);
-
-boost::shared_ptr<DataManager> data_manager = nullptr;
-boost::shared_ptr<config::SimConfig> sim_config = nullptr;
-boost::shared_ptr<streaming::StreamClient> stream_client = nullptr;
+std::shared_ptr<config::SimConfig> sim_config = nullptr;
+std::shared_ptr<streaming::StreamClient> stream_client = nullptr;
 
 const char * const inst_buffer_names[] = {
     "",
@@ -42,52 +33,9 @@ void initialize_task(void *arguments)
 {
     init_args *args;
     args = (init_args*)arguments;
-    data_manager = *reinterpret_cast<boost::shared_ptr<DataManager>*>(args->data_manager);
-    sim_config = *reinterpret_cast<boost::shared_ptr<config::SimConfig>*>(args->sim_config);
-    stream_client = *reinterpret_cast<boost::shared_ptr<streaming::StreamClient>*>(args->stream_client);
+    sim_config = *reinterpret_cast<std::shared_ptr<config::SimConfig>*>(args->sim_config);
+    stream_client = *reinterpret_cast<std::shared_ptr<streaming::StreamClient>*>(args->stream_client);
     free(args);
-}
-
-void aggregate_data(void *arguments)
-{
-    data_agg_args *args;
-    args = (data_agg_args*)arguments;
-    InstMode mode = static_cast<InstMode>(args->mode);
-    double lower_ts = args->lower_ts;
-    double upper_ts = args->upper_ts;
-    // want to aggregate data regularly
-    // currently only worried about sim engine data here, not model
-    // two cases to consider here:
-    // 1) we're collecting data on PE level already, we don't need to do anything,
-    //    except combine multiple PE flatbuffers for a sampling point into one sample
-    // 2) collecting at KP and/or LP level, but not PE, then do KP/LP aggregation as well
-    //    as combining the flatbuffers from different PEs
-    //
-    // Need to do this for each sampling mode that is in use
-    // GVT-based and RT sampling are relatively easy. One sample per time point
-    // For VTS, we may have 1 or more samples per virtual time point (because of rollbacks).
-    // Options on handling this:
-    // 1) aggregate into a single sample for this sampling point
-    // 2) aggregate entities within a sample, but maintain multiple samples (with real time
-    //    differentiating them)
-
-    // get data iterators
-    SamplesByKey::iterator begin, end;
-    data_manager->find_data(mode, lower_ts, upper_ts, begin, end);
-
-    if (mode == InstMode_GVT || mode == InstMode_RT)
-    {
-        if (sim_config->pe_data())
-            combine_pe_flatbuffers(mode, lower_ts, upper_ts);
-        else if (sim_config->kp_data() || sim_config->lp_data())
-            combine_flatbuffers(mode, lower_ts, upper_ts);
-        else
-            cout << "[ArgobotsManager] aggregate_data(): how did we get here?\n";
-    }
-    //else if (mode == InstMode_VT)
-    //{
-
-    //}
 }
 
 // TODO add in size checking for errors
@@ -193,6 +141,7 @@ void create_flatbuffer(InstMode mode, char* buffer, sample_metadata *sample_md,
 
     if (sample_md->has_model)
     {
+        // TODO if VTS, save model data separately from sim engine data
         cout << "analysis-tasks has_model\n";
         for (int i = 0; i < sample_md->num_model_lps; i++)
         {
@@ -296,13 +245,10 @@ void initial_data_processing(void *arguments)
             // What we should do is after we process this data,
             // set up garbage collection for this time step
             // we don't need it in damaris format anymore
+            // Seems to have been fixed for not, but leaving notes just incase
             cout << "initial_data_processing: begin == end\n";
             continue;
         }
-        //std::unordered_map<int, std::set<double>> sampling_points;
-
-        // keep the iterator for the previous iteration because we're likely going to need it
-        SamplesByKey::iterator sample_it = data_manager->end();
 
         fb::FlatBufferBuilder fbb;
         vector<fb::Offset<PEData>> pe_vector;
@@ -342,29 +288,13 @@ void initial_data_processing(void *arguments)
             last_gvt = sample_md->last_gvt;
             //cout << "PE : " << sample_md->peid << " last_GVT: " << last_gvt << endl;
 
-            //sampling_points[mode].insert(ts);
-
-            // TODO kpid for VTS
-            int id = sample_md->peid;
+            int id;
+            if (mode == InstMode_VT)
+                id = sample_md->kp_gid;
+            else
+                id = sample_md->peid;
             create_flatbuffer(modes[mode], dbuf_cur, sample_md, fbb, pe_vector, kp_vector, lp_vector,
                     mlp_vector);
-
-            // does this DataSpace belong in the DataSample from the previous iteration?
-            if (sample_it == data_manager->end() || !(*sample_it)->same_sample(modes[mode], ts))
-                sample_it = data_manager->find_data(modes[mode], ts);
-
-            if (sample_it != data_manager->end())
-            {
-                // TODO need event id for VTS
-                (*sample_it)->push_ds_ptr(id, -1, ds);
-                //cout << "num ds_ptrs " << (*sample_it)->get_ds_ptr_size() << endl;
-            }
-            else // couldn't find it
-            {
-                DataSample s(ts, modes[mode], DataStatus_speculative);
-                s.push_ds_ptr(id, -1, ds);
-                data_manager->insert_data(std::move(s));
-            }
 
             ++begin;
         }
@@ -382,177 +312,6 @@ void initial_data_processing(void *arguments)
         v->ClearIteration(step);
     }
 
-    // Now set up task(s) to do data aggregation
-    // Since we use a FIFO queue along with just one processing ES,
-    // things should be done in the correct order.
-    // In the future, we'll need to make sure to handle correctly
-    //for (auto it = sampling_points.begin(); it != sampling_points.end(); ++it)
-    //{
-    //    for (auto set_it = (*it).second.begin(); set_it != (*it).second.end(); ++set_it)
-    //    {
-    //        data_agg_args *agg_args = (data_agg_args*)malloc(sizeof(data_agg_args));
-    //        agg_args->mode = static_cast<InstMode>((*it).first);
-    //        agg_args->lower_ts = (*set_it);
-    //        agg_args->upper_ts = (*set_it);
-    //        ABT_task_create(pool, convert_to_flatbuffers, agg_args, NULL);
-    //        //ABT_task_create(pool, aggregate_data, agg_args, NULL);
-    //    }
-    //}
-
-    // TODO if using multiple inst modes, need to make sure to do a tasklet for each?
-
     free(args);
-}
-
-void remove_data_mic(void *arg)
-{
-
-}
-
-/*** static functions used for data processing ***/
-void combine_pe_flatbuffers(sample::InstMode mode, double lower_ts, double upper_ts)
-{
-    cout << "combine_pe_flatbuffers()\n";
-    SamplesByKey::iterator it, end;
-    data_manager->find_data(mode, lower_ts, upper_ts, it, end);
-    while (it != end)
-    {
-        DamarisDataSampleT combined_sample;
-        DamarisDataSampleT ds;
-        auto outer_it = (*it)->ds_ptrs_begin();
-        auto outer_end = (*it)->ds_ptrs_end();
-        auto dataspace = (*outer_it).second[-1];
-        auto data_fb = GetDamarisDataSample(dataspace.GetData());
-        data_fb->UnPackTo(&combined_sample);
-        // we don't care about the KPs/LPs for aggregate data
-        combined_sample.kp_data.clear();
-        combined_sample.lp_data.clear();
-        // TODO should we keep model data?
-        combined_sample.model_data.clear();
-        ++outer_it;
-
-        while (outer_it != outer_end)
-        {
-            dataspace = (*outer_it).second[-1];
-            data_fb = GetDamarisDataSample(dataspace.GetData());
-            data_fb->UnPackTo(&ds);
-            std::move(ds.pe_data.begin(), ds.pe_data.end(),
-                    std::back_inserter(combined_sample.pe_data));
-            ++outer_it;
-        }
-        stream_client->enqueue_data(&combined_sample);
-        ++it;
-    }
-    //set_last_processed(mode, upper_ts);
-}
-
-void combine_flatbuffers(sample::InstMode mode, double lower_ts, double upper_ts)
-{
-    cout << "combine_flatbuffers()\n";
-    SamplesByKey::iterator it, end;
-    data_manager->find_data(mode, lower_ts, upper_ts, it, end);
-    std::vector<fb::Offset<PEData>> pes;
-    while (it != end)
-    {
-        // it is iterator to a DataSample
-        fb::FlatBufferBuilder fbb;
-        DamarisDataSampleT ds;
-        auto outer_it = (*it)->ds_ptrs_begin();
-        auto outer_end = (*it)->ds_ptrs_end();
-        double virtual_ts, real_ts, last_gvt;
-
-        while (outer_it != outer_end)
-        {
-            //outer_it is iterator to a damaris DataSpace
-            //which for RTS and GVT sampling represents a single PE sample
-            SimEngineMetricsT pe_metrics;
-            auto dataspace = (*outer_it).second[-1];
-            auto data_fb = GetDamarisDataSample(dataspace.GetData());
-            data_fb->UnPackTo(&ds);
-            virtual_ts = ds.virtual_ts;
-            real_ts = ds.real_ts;
-            last_gvt = ds.last_gvt;
-
-            int pe_id;
-            if (sim_config->kp_data())
-                iterate_kps(&ds, &pe_metrics, &pe_id);
-            else if (sim_config->lp_data())
-                iterate_lps(&ds, &pe_metrics, &pe_id);
-
-            fb::Offset<SimEngineMetrics> pe_metrics_fb = SimEngineMetrics::Pack(fbb, &pe_metrics);
-            pes.push_back(CreatePEData(fbb, pe_id, pe_metrics_fb));
-            ++outer_it;
-        }
-
-        auto sample_fb = CreateDamarisDataSampleDirect(fbb, virtual_ts, real_ts, last_gvt,
-                mode, &pes);
-        fbb.Finish(sample_fb);
-        int fb_size = static_cast<int>(fbb.GetSize());
-        size_t size, offset;
-        uint8_t *raw = fbb.ReleaseRaw(size, offset);
-        stream_client->enqueue_data(raw, &raw[offset], fb_size);
-        //stream_client->enqueue_data(&combined_sample);
-
-        pes.clear();
-        ++it;
-    }
-}
-
-void iterate_kps(DamarisDataSampleT* ds, SimEngineMetricsT *pe_metrics, int *pe_id)
-{
-    cout << "iterate_kps()\n";
-    auto kp_it = ds->kp_data.begin();
-    auto kp_end = ds->kp_data.end();
-    *pe_id = (*kp_it)->peid;
-    while (kp_it != kp_end)
-    {
-        // kp_it is iterator to a KPDataT
-        sum_data(pe_metrics, (*kp_it)->data.get());
-        ++kp_it;
-    }
-}
-
-void iterate_lps(DamarisDataSampleT* ds, SimEngineMetricsT *pe_metrics, int *pe_id)
-{
-    cout << "iterate_lps()\n";
-    auto lp_it = ds->lp_data.begin();
-    auto lp_end = ds->lp_data.end();
-    *pe_id = (*lp_it)->peid;
-    while (lp_it != lp_end)
-    {
-        // lp_it is iterator to a lpDataT
-        sum_data(pe_metrics, (*lp_it)->data.get());
-        ++lp_it;
-    }
-}
-
-//template <typename T>
-void sum_data(SimEngineMetricsT* pe_metrics, SimEngineMetricsT* entity_metrics)
-{
-    // TODO perhaps provide averages as well for aggregated data?
-    pe_metrics->nevent_processed += entity_metrics->nevent_processed;
-    pe_metrics->nevent_abort += entity_metrics->nevent_abort;
-    pe_metrics->nevent_rb += entity_metrics->nevent_rb;
-    pe_metrics->rb_total += entity_metrics->rb_total;
-    pe_metrics->rb_prim += entity_metrics->rb_prim;
-    pe_metrics->rb_sec += entity_metrics->rb_sec;
-    pe_metrics->fc_attempts += entity_metrics->fc_attempts;
-    pe_metrics->pq_qsize += entity_metrics->pq_qsize;
-    pe_metrics->network_send += entity_metrics->network_send;
-    pe_metrics->network_recv += entity_metrics->network_recv;
-    pe_metrics->num_gvt += entity_metrics->num_gvt;
-    pe_metrics->event_ties += entity_metrics->event_ties;
-    //pe_metrics->efficiency += entity_metrics.efficiency;
-    // KPs/LPs don't collect the below data
-    //pe_metrics->net_read_time += entity_metrics.net_read_time;
-    //pe_metrics->net_other_time += entity_metrics.net_other_time;
-    //pe_metrics->gvt_time += entity_metrics.gvt_time;
-    //pe_metrics->fc_time += entity_metrics.fc_time;
-    //pe_metrics->event_abort_time += entity_metrics.event_abort_time;
-    //pe_metrics->event_proc_time += entity_metrics.event_proc_time;
-    //pe_metrics->pq_time += entity_metrics.pq_time;
-    //pe_metrics->rb_time += entity_metrics.rb_time;
-    //pe_metrics->cancel_q_time += entity_metrics.cancel_q_time;
-    //pe_metrics->avl_time += entity_metrics.avl_time;
 }
 

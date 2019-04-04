@@ -8,7 +8,6 @@ ArgobotsManager::ArgobotsManager() :
     last_processed_gvt_(0.0),
     last_processed_rts_(0.0),
     last_processed_vts_(0.0),
-    data_manager_(nullptr),
     stream_client_(nullptr),
     sim_config_(nullptr)
 {
@@ -35,7 +34,6 @@ ArgobotsManager::ArgobotsManager(ArgobotsManager&& m) :
     last_processed_gvt_(m.last_processed_gvt_),
     last_processed_rts_(m.last_processed_rts_),
     last_processed_vts_(m.last_processed_vts_),
-    data_manager_(std::move(m.data_manager_)),
     stream_client_(std::move(m.stream_client_)),
     sim_config_(std::move(m.sim_config_)),
     primary_xstream_(m.primary_xstream_),
@@ -61,16 +59,14 @@ ArgobotsManager::~ArgobotsManager()
         free(scheduler_);
 }
 
-void ArgobotsManager::set_shared_ptrs(boost::shared_ptr<DataManager>& dm_ptr,
-            boost::shared_ptr<streaming::StreamClient>& sc_ptr,
-            boost::shared_ptr<config::SimConfig>& conf_ptr)
+void ArgobotsManager::set_shared_ptrs(
+            std::shared_ptr<streaming::StreamClient>& sc_ptr,
+            std::shared_ptr<config::SimConfig>& conf_ptr)
 {
-    data_manager_ = boost::shared_ptr<DataManager>(dm_ptr);
-    stream_client_ = boost::shared_ptr<streaming::StreamClient>(sc_ptr);
-    sim_config_ = boost::shared_ptr<config::SimConfig>(conf_ptr);
+    stream_client_ = std::shared_ptr<streaming::StreamClient>(sc_ptr);
+    sim_config_ = std::shared_ptr<config::SimConfig>(conf_ptr);
 
     init_args *args = (init_args*)malloc(sizeof(init_args));
-    args->data_manager = reinterpret_cast<void*>(&data_manager_);
     args->sim_config = reinterpret_cast<void*>(&sim_config_);
     args->stream_client = reinterpret_cast<void*>(&stream_client_);
     ABT_task_create(*pool_, initialize_task, args, NULL);

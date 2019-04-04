@@ -16,12 +16,9 @@
 #include <damaris/buffer/Buffer.hpp>
 
 #include <plugins/util/SimConfig.h>
-#include <plugins/data/DataManager.h>
-#include <plugins/data/DataSample.h>
-#include <plugins/data/DataProcessor.h>
-#include <plugins/data/SampleIndex.h>
 #include <plugins/streaming/StreamClient.h>
 #include <plugins/flatbuffers/data_sample_generated.h>
+#include <plugins/data/ArgobotsManager.h>
 
 namespace ross_damaris {
 namespace server {
@@ -46,51 +43,28 @@ public:
 
     void update_gvt(int32_t step);
 
-    /**
-     * @brief Initial data processing to place into DataManager
-     *
-     * Takes a Damaris Block, creates a DataSpace, so we essentially have
-     * a shared_ptr to this data, preventing Damaris from deleting it, while we own it.
-     */
-    void process_sample(boost::shared_ptr<damaris::Block> block);
-
-    /**
-     * @brief Lets the DataProcessor know to just forward data for a particular
-     * mode and timestamp.
-     *
-     * May be removed once DataProcessor functionality is more built up.
-     */
-    void forward_data(int32_t step);
-
-    boost::shared_ptr<data::DataManager> get_manager_pointer() { return data_manager_; }
-
     void initial_data_tasks(int32_t step) { argobots_manager_->create_insert_data_mic_task(step); }
 
     void set_model_metadata();
 
 private:
-    boost::shared_ptr<config::SimConfig> sim_config_;
+    std::shared_ptr<config::SimConfig> sim_config_;
     // TODO need to improve output to file
     // for now this is just for testing, but
     // eventually we'd like to save some data to file
     std::ofstream data_file_;
 
     // streaming-related members
-    boost::shared_ptr<streaming::StreamClient> client_;
+    std::shared_ptr<streaming::StreamClient> client_;
 
     // data processing members
-    boost::shared_ptr<data::DataProcessor> processor_;
-    boost::shared_ptr<data::ArgobotsManager> argobots_manager_;
+    //boost::shared_ptr<data::DataProcessor> processor_;
+    std::shared_ptr<data::ArgobotsManager> argobots_manager_;
 
-    // storage for data to be processed
-    boost::shared_ptr<data::DataManager> data_manager_;
     sample::InstMode cur_mode_;
     double cur_ts_;
     double last_gvt_;
     std::list<int> my_pes_;
-    bool use_threads_;
-
-    void setup_data_processing();
 };
 
 } // end namespace server

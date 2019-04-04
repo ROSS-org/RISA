@@ -3,7 +3,6 @@
 
 #include <iostream>
 #include <plugins/flatbuffers/data_sample_generated.h>
-#include <plugins/data/DataManager.h>
 #include <plugins/streaming/StreamClient.h>
 #include <plugins/util/SimConfig.h>
 #include <abt.h>
@@ -18,9 +17,9 @@ public:
     ArgobotsManager(ArgobotsManager&& m);
     ~ArgobotsManager();
 
-    void set_shared_ptrs(boost::shared_ptr<DataManager>& dm_ptr,
-            boost::shared_ptr<streaming::StreamClient>& sc_ptr,
-            boost::shared_ptr<config::SimConfig>& conf_ptr);
+    void set_shared_ptrs(
+            std::shared_ptr<streaming::StreamClient>& sc_ptr,
+            std::shared_ptr<config::SimConfig>& conf_ptr);
     void create_insert_data_mic_task(int32_t step);
     void finalize();
 
@@ -36,9 +35,8 @@ private:
     double last_processed_rts_;
     double last_processed_vts_;
 
-    boost::shared_ptr<DataManager> data_manager_;
-    boost::shared_ptr<streaming::StreamClient> stream_client_;
-    boost::shared_ptr<config::SimConfig> sim_config_;
+    std::shared_ptr<streaming::StreamClient> stream_client_;
+    std::shared_ptr<config::SimConfig> sim_config_;
 
     // This ends up being Main Damaris thread, so do not assign any
     // actual argobots tasks to this.

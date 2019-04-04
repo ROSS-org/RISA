@@ -21,9 +21,9 @@ void StreamClient::connect()
         t_ = new std::thread([this](){ this->service_.run(); });
 }
 
-void StreamClient::set_config_ptr(boost::shared_ptr<SimConfig>&& ptr)
+void StreamClient::set_config_ptr(std::shared_ptr<SimConfig>&& ptr)
 {
-    sim_config_ = boost::shared_ptr<SimConfig>(ptr);
+    sim_config_ = std::shared_ptr<SimConfig>(ptr);
 }
 
 void StreamClient::enqueue_data(DamarisDataSampleT* samp)

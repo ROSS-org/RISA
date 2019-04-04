@@ -52,12 +52,6 @@ void damaris_rank_end_iteration(const std::string& event, int32_t src, int32_t s
     server->update_gvt(step);
 
     server->initial_data_tasks(step);
-
-    // TODO this is just for now
-    // eventually the data processor will be its own thread
-    // and it will make the determination itself when and what data
-    // to forward on for streaming/writing
-    server->forward_data(step);
 }
 
 /**

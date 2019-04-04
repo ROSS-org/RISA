@@ -26,12 +26,9 @@ RDServer::RDServer() :
         cur_mode_(sample::InstMode_GVT),
         cur_ts_(0.0),
         last_gvt_(0.0),
-        use_threads_(true),
-        client_(boost::make_shared<streaming::StreamClient>(streaming::StreamClient())),
-        sim_config_(boost::make_shared<config::SimConfig>(config::SimConfig())),
-        data_manager_(boost::make_shared<data::DataManager>(data::DataManager())),
-        argobots_manager_(boost::make_shared<data::ArgobotsManager>(data::ArgobotsManager())),
-        processor_(nullptr)
+        client_(std::make_shared<streaming::StreamClient>(streaming::StreamClient())),
+        sim_config_(std::make_shared<config::SimConfig>(config::SimConfig())),
+        argobots_manager_(std::make_shared<data::ArgobotsManager>(data::ArgobotsManager()))
 {
     int my_id = damaris::Environment::GetEntityProcessID();
     //cout << "IsClient() " << damaris::Environment::IsClient() << endl;
@@ -82,25 +79,12 @@ RDServer::RDServer() :
         client_->connect();
     }
 
-    if (use_threads_)
-    {
-        argobots_manager_->set_shared_ptrs(data_manager_, client_, sim_config_);
-    }
-    else
-        setup_data_processing();
-
+    argobots_manager_->set_shared_ptrs(client_, sim_config_);
 }
 
 void RDServer::set_model_metadata()
 {
     sim_config_->set_model_metadata();
-}
-
-void RDServer::setup_data_processing()
-{
-    processor_.reset(new data::DataProcessor(std::move(data_manager_),
-                std::move(client_), std::move(sim_config_)));
-    // sets up thread that performs data processing tasks
 }
 
 void RDServer::finalize()
@@ -111,77 +95,13 @@ void RDServer::finalize()
     if (sim_config_->stream_data_)
         client_->close();
 
-    data_manager_->clear();
-    if (use_threads_)
-        argobots_manager_->finalize();
+    argobots_manager_->finalize();
 }
 
 void RDServer::update_gvt(int32_t step)
 {
     last_gvt_ = *(static_cast<double*>(DUtil::get_value_from_damaris("ross/last_gvt",
                     my_pes_.front(), step, 0)));
-    if (!use_threads_)
-        processor_->last_gvt(last_gvt_);
     cout << "[RDServer] last GVT " << last_gvt_ << endl;
-}
-
-void RDServer::process_sample(boost::shared_ptr<damaris::Block> block)
-{
-        //argobots_manager_->create_insert_data_mic_task(1);
-        damaris::DataSpace<damaris::Buffer> ds(block->GetDataSpace());
-        auto data_fb = GetDamarisDataSample(ds.GetData());
-        double ts;
-        switch (data_fb->mode())
-        {
-            case InstMode_GVT:
-                ts = data_fb->last_gvt();
-                break;
-            case InstMode_VT:
-                ts = data_fb->virtual_ts();
-                break;
-            case InstMode_RT:
-                ts = data_fb->real_ts();
-                break;
-            default:
-                break;
-        }
-
-        int id = data_fb->entity_id();
-
-        // first we need to check to see if this is data for an existing sampling point
-        auto sample_it = data_manager_->find_data(data_fb->mode(), ts);
-        if (sample_it != data_manager_->end())
-        {
-            (*sample_it)->push_ds_ptr(id, data_fb->event_id(), ds);
-            //cout << "num ds_ptrs " << (*sample_it)->get_ds_ptr_size() << endl;
-        }
-        else // couldn't find it
-        {
-            DataSample s(ts, data_fb->mode(), DataStatus_speculative);
-            s.push_ds_ptr(id, data_fb->event_id(), ds);
-            data_manager_->insert_data(std::move(s));
-            //data_manager_->print_manager_info();
-        }
-
-        cur_mode_ = data_fb->mode();
-        cur_ts_ = ts;
-
-        //auto obj = data_fb->UnPack();
-        //flatbuffers::FlatBufferBuilder fbb;
-        //auto new_samp = DamarisDataSample::Pack(fbb, obj);
-        //fbb.Finish(new_samp);
-        //cout << "FB size: " << fbb.GetSize() << endl;
-        //auto mode = data_fb->mode();
-}
-
-void RDServer::forward_data(int32_t step)
-{
-    if (use_threads_)
-        return;
-
-    if (cur_mode_ == InstMode_VT)
-        processor_->forward_data(cur_mode_, last_gvt_, step);
-    else
-        processor_->forward_data(cur_mode_, cur_ts_, step);
 }
 

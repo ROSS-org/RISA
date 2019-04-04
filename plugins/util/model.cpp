@@ -3,6 +3,8 @@
 #include <plugins/util/FlatBufferHelper.h>
 #include <ross.h>
 #include <iostream>
+// TODO remove flatbuffers stuff and move to damaris/core
+// shouldn't be part of plugins library
 
 // may not need flatbuffers stuff in this file
 using namespace ross_damaris::sample;
@@ -92,16 +94,29 @@ void st_damaris_sample_lp_data(int inst_type, tw_lpid *lpids, int nlps)
     }
 }
 
-void st_damaris_invalidate_sample(double ts, int kp_gid, int event_id)
+void st_damaris_invalidate_sample(double vts, double rts, int kp_gid)
 {
     int err;
 
-    if ((err = damaris_write_block("ross/vt_rb/ts", block, &ts)) != DAMARIS_OK)
-        st_damaris_error(TW_LOC, err, "ross/vt_rb/ts");
+    if ((err = damaris_write_block("ross/vt_rb/vts", block, &vts)) != DAMARIS_OK)
+        st_damaris_error(TW_LOC, err, "ross/vt_rb/vts");
+    if ((err = damaris_write_block("ross/vt_rb/rts", block, &rts)) != DAMARIS_OK)
+        st_damaris_error(TW_LOC, err, "ross/vt_rb/rts");
     if ((err = damaris_write_block("ross/vt_rb/kp_gid", block, &kp_gid)) != DAMARIS_OK)
         st_damaris_error(TW_LOC, err, "ross/vt_rb/kp_gid");
-    if ((err = damaris_write_block("ross/vt_rb/event_id", block, &event_id)) != DAMARIS_OK)
-        st_damaris_error(TW_LOC, err, "ross/vt_rb/event_id");
+    block++;
+}
+
+void st_damaris_validate_sample(double vts, double rts, int kp_gid)
+{
+    int err;
+
+    if ((err = damaris_write_block("ross/vt_commit/vts", block, &vts)) != DAMARIS_OK)
+        st_damaris_error(TW_LOC, err, "ross/vt_commit/vts");
+    if ((err = damaris_write_block("ross/vt_commit/rts", block, &rts)) != DAMARIS_OK)
+        st_damaris_error(TW_LOC, err, "ross/vt_commit/rts");
+    if ((err = damaris_write_block("ross/vt_commit/kp_gid", block, &kp_gid)) != DAMARIS_OK)
+        st_damaris_error(TW_LOC, err, "ross/vt_commit/kp_gid");
     block++;
 }
 

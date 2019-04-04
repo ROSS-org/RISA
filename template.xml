@@ -48,11 +48,16 @@
             <variable name="nkp" layout="int" visualizable="false" time-varying="false" />
             <variable name="last_gvt" layout="double" time-varying="true" />
 
-            <!-- for dealing with RB related stuff -->
+            <!-- for dealing with RB related stuff for VTS model data -->
             <group name="vt_rb">
-                <variable name="ts" layout="double" time-varying="true" />
+                <variable name="vts" layout="double" time-varying="true" />
+                <variable name="rts" layout="double" time-varying="true" />
                 <variable name="kp_gid" layout="int" time-varying="true" />
-                <variable name="event_id" layout="int" time-varying="true" />
+            </group>
+            <group name="vt_commit">
+                <variable name="vts" layout="double" time-varying="true" />
+                <variable name="rts" layout="double" time-varying="true" />
+                <variable name="kp_gid" layout="int" time-varying="true" />
             </group>
         </group>
         <group name="model_map">

@@ -39,16 +39,6 @@ struct data_agg_args
 void initialize_task(void *arguments);
 
 /**
- * @brief Aggregates data for a given sampling point.
- */
-void aggregate_data(void *arg);
-
-/**
- * @brief Removes data from the DataManager up to a given sampling point.
- */
-void remove_data_mic(void *arg);
-
-/**
  * @brief Adds Damaris DataSpaces to the DataManager.
  */
 void initial_data_processing(void *arguments);

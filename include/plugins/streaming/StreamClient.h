@@ -67,7 +67,7 @@ public:
     /**
      * @brief get shared ownership to the SimConfig
      */
-    void set_config_ptr(boost::shared_ptr<config::SimConfig>&& ptr);
+    void set_config_ptr(std::shared_ptr<config::SimConfig>&& ptr);
 
     /**
      * @brief put in StreamClient's buffer of data to send
@@ -111,7 +111,7 @@ private:
     typedef std::deque<sample_msg*> sample_queue;
     sample_queue write_msgs_;
 
-    boost::shared_ptr<config::SimConfig> sim_config_;
+    std::shared_ptr<config::SimConfig> sim_config_;
     boost::asio::io_service service_;
     bip::tcp::resolver resolver_;
     bip::tcp::socket socket_;

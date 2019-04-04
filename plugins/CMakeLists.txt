@@ -37,10 +37,7 @@ SET(plugin_srcs
     util/model.cpp
     server/RDServer.cpp
     server/events.cpp
-    data/DataProcessor.cpp
     data/ArgobotsManager.cpp
-    data/DataSample.cpp
-    data/DataManager.cpp
     data/analysis-tasks.cpp
     streaming/StreamClient.cpp)
 

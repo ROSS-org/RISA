@@ -269,6 +269,7 @@ void st_damaris_expose_data(tw_pe *me, int inst_type, tw_lp* lp, int vts_commit)
         rt_block_counter++;
     }
 
+    int data_sampled = 0;
     size_t buf_size = 0;
     char* damaris_buf;
     sample_metadata* sample_md;
@@ -284,8 +285,10 @@ void st_damaris_expose_data(tw_pe *me, int inst_type, tw_lp* lp, int vts_commit)
 
         if (model_modes[inst_type] && inst_type != VT_INST)
             buf_size += model_data_sizes[inst_type];
-        else if (model_modes[inst_type] && inst_type == VT_INST && vts_commit)
+        else if (model_modes[inst_type] && inst_type == VT_INST && !vts_commit)
         {
+            // when using damaris, we only want to send when it isn't commit time
+            // at commit or RC we will just send some basic info saying this sample is valid/invalid
             model_data_sizes[inst_type] = get_model_data_size(lp->cur_state, &model_num_lps[inst_type]);
             buf_size += model_data_sizes[inst_type];
             //printf("%lu: size = %lu\n", g_tw_mynode, model_data_sizes[inst_type]);
@@ -294,6 +297,7 @@ void st_damaris_expose_data(tw_pe *me, int inst_type, tw_lp* lp, int vts_commit)
 
         if (buf_size > sizeof(sample_metadata))
         {
+            data_sampled = 1;
             if ((err = damaris_parameter_set("sample_size", &buf_size, sizeof(buf_size)))
                     != DAMARIS_OK)
                 st_damaris_error(TW_LOC, err, "sample_size");
@@ -321,6 +325,10 @@ void st_damaris_expose_data(tw_pe *me, int inst_type, tw_lp* lp, int vts_commit)
 
             sample_md->peid = (unsigned int)g_tw_mynode;
             sample_md->num_model_lps = model_num_lps[inst_type];
+            if (inst_type == VT_INST)
+                sample_md->kp_gid = (int)(g_tw_mynode * g_tw_nkp) + (int)lp->kp->id;
+            else
+                sample_md->kp_gid = -1;
         }
         else
         {
@@ -345,7 +353,7 @@ void st_damaris_expose_data(tw_pe *me, int inst_type, tw_lp* lp, int vts_commit)
             st_collect_model_data(me, inst_type, damaris_buf, model_data_sizes[inst_type]);
             buf_size -= model_data_sizes[inst_type];
         }
-        else if (inst_type == VT_INST && vts_commit)
+        else if (inst_type == VT_INST && !vts_commit)
         {
             sample_md->has_model = 1;
             st_collect_model_data_vts(me, lp, inst_type, damaris_buf, sample_md, model_data_sizes[inst_type]);
@@ -356,8 +364,11 @@ void st_damaris_expose_data(tw_pe *me, int inst_type, tw_lp* lp, int vts_commit)
     if (buf_size != 0)
         tw_error(TW_LOC, "buf_size = %lu", buf_size);
 
-    err = damaris_commit_block(inst_var_name[inst_type], block);
-    err = damaris_clear_block(inst_var_name[inst_type], block);
+    if (data_sampled)
+    {
+        err = damaris_commit_block(inst_var_name[inst_type], block);
+        err = damaris_clear_block(inst_var_name[inst_type], block);
+    }
 
 }
 
