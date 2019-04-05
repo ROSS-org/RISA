@@ -18,7 +18,8 @@ using namespace ross_damaris::util;
 extern "C" {
 
 // TODO maybe should be unique_ptr
-boost::shared_ptr<RDServer> server;
+//boost::shared_ptr<RDServer> server;
+RDServer *server;
 
 /**
  * @brief Damaris event to set up simulation configuration
@@ -32,7 +33,9 @@ void damaris_rank_init(const std::string& event, int32_t src, int32_t step, cons
     (void) step;
     (void) args;
     //cout << "damaris_rank_init() step " << step << endl;
-    server.reset(new RDServer());
+
+    //server.reset(new RDServer());
+    server = RDServer::get_instance();
     server->set_model_metadata();
     //cout << "end of damaris_rank_init()\n";
 }

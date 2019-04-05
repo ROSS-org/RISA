@@ -31,10 +31,7 @@ namespace server {
  */
 class RDServer {
 public:
-    /**
-     * @brief Sets up sim config, StreamClient, and DataProcessor
-     */
-    RDServer();
+    static RDServer* get_instance();
 
     /**
      * @brief Closes any open output files, and notifies the StreamClient to close.
@@ -43,23 +40,31 @@ public:
 
     void update_gvt(int32_t step);
 
-    void initial_data_tasks(int32_t step) { argobots_manager_->create_insert_data_mic_task(step); }
+    void initial_data_tasks(int32_t step) { argobots_manager_->create_initial_data_task(step); }
 
     void set_model_metadata();
 
 private:
-    std::shared_ptr<config::SimConfig> sim_config_;
+    static RDServer* instance;
+    /**
+     * @brief Sets up sim config, StreamClient, and DataProcessor
+     */
+    RDServer();
+
+    RDServer(const RDServer&) = delete;
+    const RDServer& operator=(const RDServer&) = delete;
+
+    config::SimConfig* sim_config_;
     // TODO need to improve output to file
     // for now this is just for testing, but
     // eventually we'd like to save some data to file
     std::ofstream data_file_;
 
     // streaming-related members
-    std::shared_ptr<streaming::StreamClient> client_;
+    streaming::StreamClient* stream_client_;
 
     // data processing members
-    //boost::shared_ptr<data::DataProcessor> processor_;
-    std::shared_ptr<data::ArgobotsManager> argobots_manager_;
+    data::ArgobotsManager* argobots_manager_;
 
     sample::InstMode cur_mode_;
     double cur_ts_;

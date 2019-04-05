@@ -28,6 +28,30 @@ void parse_file(const char *filename)
     SimConfig::set_ross_parameters(vars);
 }
 
+SimConfig* SimConfig::instance = nullptr;
+
+SimConfig* SimConfig::create_instance(int local_pe, int total_pe, int num_kp_pe,
+        std::vector<int>&& num_lp)
+{
+    if (instance)
+        cout << "error in SimConfig\n";
+    instance = new SimConfig(local_pe, total_pe, num_kp_pe, std::move(num_lp));
+    return instance;
+}
+
+SimConfig* SimConfig::get_instance()
+{
+    if (!instance)
+        cout << "error in SimConfig\n";
+    return instance;
+}
+
+void SimConfig::free_instance()
+{
+    if (instance)
+        delete instance;
+}
+
 po::options_description SimConfig::set_options()
 {
     po::options_description opts;

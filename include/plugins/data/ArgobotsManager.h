@@ -13,30 +13,29 @@ namespace data {
 class ArgobotsManager
 {
 public:
-    ArgobotsManager();
-    ArgobotsManager(ArgobotsManager&& m);
-    ~ArgobotsManager();
+    static ArgobotsManager* create_instance();
+    static ArgobotsManager* get_instance();
+    static void free_instance();
 
-    void set_shared_ptrs(
-            std::shared_ptr<streaming::StreamClient>& sc_ptr,
-            std::shared_ptr<config::SimConfig>& conf_ptr);
-    void create_insert_data_mic_task(int32_t step);
+    void create_initial_data_task(int32_t step);
     void finalize();
 
 
 private:
+    static ArgobotsManager* instance;
+    ArgobotsManager();
+    ~ArgobotsManager();
+
     // no copying
     ArgobotsManager(const ArgobotsManager&) = delete;
     ArgobotsManager& operator=(const ArgobotsManager&) = delete;
-    // shouldn't need move assignment either
-    ArgobotsManager& operator=(ArgobotsManager&& m) = delete;
 
     double last_processed_gvt_;
     double last_processed_rts_;
     double last_processed_vts_;
 
-    std::shared_ptr<streaming::StreamClient> stream_client_;
-    std::shared_ptr<config::SimConfig> sim_config_;
+    streaming::StreamClient* stream_client_;
+    config::SimConfig* sim_config_;
 
     // This ends up being Main Damaris thread, so do not assign any
     // actual argobots tasks to this.
@@ -44,16 +43,6 @@ private:
     ABT_xstream *proc_xstream_;
     ABT_pool *pool_;
     ABT_sched *scheduler_;
-
-    void set_last_processed(sample::InstMode mode, double ts)
-    {
-        if (mode == sample::InstMode_GVT)
-            last_processed_gvt_ = ts;
-        else if (mode == sample::InstMode_RT)
-            last_processed_rts_ = ts;
-        else if (mode == sample::InstMode_VT)
-            last_processed_vts_ = ts;
-    }
 };
 
 } // end namespace data

@@ -22,45 +22,41 @@ using namespace std;
 using namespace damaris;
 namespace bip = boost::asio::ip;
 
+RDServer* RDServer::instance = nullptr;
+
+RDServer* RDServer::get_instance()
+{
+    if (!instance)
+        instance = new RDServer();
+    return instance;
+}
+
 RDServer::RDServer() :
         cur_mode_(sample::InstMode_GVT),
         cur_ts_(0.0),
         last_gvt_(0.0),
-        client_(std::make_shared<streaming::StreamClient>(streaming::StreamClient())),
-        sim_config_(std::make_shared<config::SimConfig>(config::SimConfig())),
-        argobots_manager_(std::make_shared<data::ArgobotsManager>(data::ArgobotsManager()))
+        stream_client_(nullptr),
+        sim_config_(nullptr),
+        argobots_manager_(nullptr)
 {
     int my_id = damaris::Environment::GetEntityProcessID();
-    //cout << "IsClient() " << damaris::Environment::IsClient() << endl;
-    //cout << "IsServer() " << damaris::Environment::IsServer() << endl;
-    //cout << "IsDedicatedCore() " << damaris::Environment::IsDedicatedCore() << endl;
-    //cout << "IsDedicatedNode() " << damaris::Environment::IsDedicatedNode() << endl;
-    //cout << "[" << my_id << "] ClientsPerNode() " << damaris::Environment::ClientsPerNode() << endl;
-    //cout << "[" << my_id << "] CoresPerNode() " << damaris::Environment::CoresPerNode() << endl;
-    //cout << "[" << my_id << "] ServersPerNode() " << damaris::Environment::ServersPerNode() << endl;
-    //cout << "[" << my_id << "] CountTotalClients() " << damaris::Environment::CountTotalClients() << endl;
-    //cout << "[" << my_id << "] CountTotalServers() " << damaris::Environment::CountTotalServers() << endl;
-    // I think CountTotalClients() is computed incorrectly in Damaris if you have
-    // more than one Damaris Rank per node
-    // CountTotalServers() seems to only be Damaris Ranks
-    sim_config_->num_local_pe_ = damaris::Environment::ClientsPerNode() /
+    int num_local_pe = damaris::Environment::ClientsPerNode() /
             damaris::Environment::ServersPerNode();
-    //cout << "My PEs: " << sim_config_->num_local_pe_ << endl;
-    sim_config_->total_pe_ = sim_config_->num_local_pe_ *
-            damaris::Environment::CountTotalServers();
-    //cout << "Total PEs: " << sim_config_->total_pe_ << endl;
+    int total_pe = num_local_pe * damaris::Environment::CountTotalServers();
 
     // TODO should this be for this Server's PEs or all PEs?
     my_pes_ = damaris::Environment::GetKnownLocalClients();
+    vector<int> num_lp;
+    int num_kp_pe = *(static_cast<int*>(DUtil::get_value_from_damaris(
+                    "ross/nkp", my_pes_.front(), 0, 0)));
     for (int pe : my_pes_)
     {
         //cout << "[" << my_id << "] pe: " << pe << endl;
         auto val = *(static_cast<int*>(DUtil::get_value_from_damaris("ross/nlp", pe, 0, 0)));
-        sim_config_->num_lp_.push_back(val);
-        sim_config_->num_kp_pe_ = *(static_cast<int*>(DUtil::get_value_from_damaris(
-                        "ross/nkp", pe, 0, 0)));
+        num_lp.push_back(val);
     }
 
+    sim_config_ = SimConfig::create_instance(num_local_pe, total_pe, num_kp_pe, std::move(num_lp));
     auto opts = SimConfig::set_options();
     po::variables_map vars;
     string config_file = &((char *)DUtil::get_value_from_damaris(
@@ -75,12 +71,13 @@ RDServer::RDServer() :
 
     if (sim_config_->stream_data_)
     {
-        client_->set_config_ptr(std::move(sim_config_));
-        client_->connect();
+        stream_client_ = streaming::StreamClient::create_instance();
+        stream_client_->connect();
     }
 
-    argobots_manager_->set_shared_ptrs(client_, sim_config_);
+    argobots_manager_ = ArgobotsManager::create_instance();
 }
+
 
 void RDServer::set_model_metadata()
 {
@@ -89,19 +86,27 @@ void RDServer::set_model_metadata()
 
 void RDServer::finalize()
 {
+    argobots_manager_->finalize();
+
     if (sim_config_->write_data_)
         data_file_.close();
 
     if (sim_config_->stream_data_)
-        client_->close();
+    {
+        stream_client_->close();
+        stream_client_->free_instance();
+    }
 
-    argobots_manager_->finalize();
+    sim_config_->free_instance();
+
+    if (instance)
+        delete instance;
 }
 
 void RDServer::update_gvt(int32_t step)
 {
     last_gvt_ = *(static_cast<double*>(DUtil::get_value_from_damaris("ross/last_gvt",
                     my_pes_.front(), step, 0)));
-    cout << "[RDServer] last GVT " << last_gvt_ << endl;
+    //cout << "[RDServer] last GVT " << last_gvt_ << endl;
 }
 

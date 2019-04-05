@@ -3,6 +3,8 @@
 #include <plugins/data/analysis-tasks.h>
 #include <plugins/flatbuffers/data_sample_generated.h>
 #include <plugins/util/damaris-util.h>
+#include <plugins/util/SimConfig.h>
+#include <plugins/streaming/StreamClient.h>
 
 #include <damaris/buffer/DataSpace.hpp>
 #include <damaris/buffer/Buffer.hpp>
@@ -15,12 +17,12 @@
 using namespace ross_damaris;
 using namespace ross_damaris::util;
 using namespace ross_damaris::sample;
-using namespace ross_damaris::data;
+//using namespace ross_damaris::data;
 using namespace std;
 namespace fb = flatbuffers;
 
-std::shared_ptr<config::SimConfig> sim_config = nullptr;
-std::shared_ptr<streaming::StreamClient> stream_client = nullptr;
+config::SimConfig* sim_config = nullptr;
+streaming::StreamClient* stream_client = nullptr;
 
 const char * const inst_buffer_names[] = {
     "",
@@ -29,13 +31,10 @@ const char * const inst_buffer_names[] = {
     "ross/inst_sample/rts_inst"
 };
 
-void initialize_task(void *arguments)
+void init_analysis_tasks()
 {
-    init_args *args;
-    args = (init_args*)arguments;
-    sim_config = *reinterpret_cast<std::shared_ptr<config::SimConfig>*>(args->sim_config);
-    stream_client = *reinterpret_cast<std::shared_ptr<streaming::StreamClient>*>(args->stream_client);
-    free(args);
+    sim_config = config::SimConfig::get_instance();
+    stream_client = streaming::StreamClient::get_instance();
 }
 
 // TODO add in size checking for errors

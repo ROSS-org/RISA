@@ -31,43 +31,15 @@ namespace bip = boost::asio::ip;
 class StreamClient
 {
 public:
-    StreamClient() :
-        socket_(service_),
-        resolver_(service_),
-        connected_(false),
-        t_(nullptr),
-        sim_config_(nullptr) {
-            process_id_ = damaris::Environment::GetEntityProcessID();
-        }
-
-    StreamClient(StreamClient&& sc) :
-        socket_(service_),
-        resolver_(service_),
-        connected_(sc.connected_),
-        t_(sc.t_),
-        process_id_(sc.process_id_),
-        sim_config_(std::move(sc.sim_config_)),
-        write_msgs_(std::move(sc.write_msgs_)) {  }
-
-    ~StreamClient()
-    {
-        if (t_ && t_->joinable())
-        {
-            t_->join();
-            delete t_;
-        }
-    }
+    static StreamClient* create_instance();
+    static StreamClient* get_instance();
+    static void free_instance();
 
     /**
      * @brief Attempts to connect to specified address/port,
      * starting a new thread in the process.
      */
     void connect();
-
-    /**
-     * @brief get shared ownership to the SimConfig
-     */
-    void set_config_ptr(std::shared_ptr<config::SimConfig>&& ptr);
 
     /**
      * @brief put in StreamClient's buffer of data to send
@@ -85,6 +57,26 @@ public:
     void close();
 
 private:
+    static StreamClient* instance;
+
+    StreamClient() :
+        socket_(service_),
+        resolver_(service_),
+        connected_(false),
+        t_(nullptr),
+        sim_config_(config::SimConfig::get_instance()) {
+            process_id_ = damaris::Environment::GetEntityProcessID();
+        }
+
+    ~StreamClient()
+    {
+        if (t_ && t_->joinable())
+        {
+            t_->join();
+            delete t_;
+        }
+    }
+
     struct sample_msg
     {
         uint8_t *raw_;  // points to start of fb dynamically allocated memory
@@ -111,7 +103,7 @@ private:
     typedef std::deque<sample_msg*> sample_queue;
     sample_queue write_msgs_;
 
-    std::shared_ptr<config::SimConfig> sim_config_;
+    config::SimConfig* sim_config_;
     boost::asio::io_service service_;
     bip::tcp::resolver resolver_;
     bip::tcp::socket socket_;

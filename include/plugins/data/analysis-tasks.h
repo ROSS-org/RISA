@@ -9,7 +9,6 @@
 
 #include <damaris/buffer/DataSpace.hpp>
 #include <damaris/buffer/Buffer.hpp>
-#include <plugins/data/ArgobotsManager.h>
 #include <abt.h>
 
 #ifdef __cplusplus
@@ -36,7 +35,7 @@ struct data_agg_args
     double upper_ts;
 };
 
-void initialize_task(void *arguments);
+void init_analysis_tasks(void);
 
 /**
  * @brief Adds Damaris DataSpaces to the DataManager.

@@ -1,16 +1,41 @@
 #include <plugins/data/ArgobotsManager.h>
 #include <plugins/data/analysis-tasks.h>
+#include <iostream>
 
 using namespace ross_damaris::data;
 using namespace ross_damaris::sample;
+
+ArgobotsManager* ArgobotsManager::instance = nullptr;
+
+ArgobotsManager* ArgobotsManager::create_instance()
+{
+    if (instance)
+        std::cout << "ArgobotsMananger error!\n";
+    instance = new ArgobotsManager();
+    return instance;
+}
+
+ArgobotsManager* ArgobotsManager::get_instance()
+{
+    if (!instance)
+        std::cout << "ArgobotsMananger error!\n";
+    return instance;
+}
+
+void ArgobotsManager::free_instance()
+{
+    if (instance)
+        delete instance;
+}
 
 ArgobotsManager::ArgobotsManager() :
     last_processed_gvt_(0.0),
     last_processed_rts_(0.0),
     last_processed_vts_(0.0),
-    stream_client_(nullptr),
-    sim_config_(nullptr)
+    stream_client_(streaming::StreamClient::get_instance()),
+    sim_config_(config::SimConfig::get_instance())
 {
+    init_analysis_tasks();
     primary_xstream_ = (ABT_xstream*)malloc(sizeof(ABT_xstream));
     proc_xstream_ = (ABT_xstream*)malloc(sizeof(ABT_xstream));
     pool_ = (ABT_pool*)malloc(sizeof(ABT_pool));
@@ -30,23 +55,6 @@ ArgobotsManager::ArgobotsManager() :
     //cout << "[ArgobotsManager] shared pool " << pool_id << " created\n";
 }
 
-ArgobotsManager::ArgobotsManager(ArgobotsManager&& m) :
-    last_processed_gvt_(m.last_processed_gvt_),
-    last_processed_rts_(m.last_processed_rts_),
-    last_processed_vts_(m.last_processed_vts_),
-    stream_client_(std::move(m.stream_client_)),
-    sim_config_(std::move(m.sim_config_)),
-    primary_xstream_(m.primary_xstream_),
-    proc_xstream_(m.proc_xstream_),
-    pool_(m.pool_),
-    scheduler_(m.scheduler_)
-{
-    m.primary_xstream_ = nullptr;
-    m.proc_xstream_ = nullptr;
-    m.pool_ = nullptr;
-    m.scheduler_ = nullptr;
-}
-
 ArgobotsManager::~ArgobotsManager()
 {
     if (primary_xstream_)
@@ -59,20 +67,7 @@ ArgobotsManager::~ArgobotsManager()
         free(scheduler_);
 }
 
-void ArgobotsManager::set_shared_ptrs(
-            std::shared_ptr<streaming::StreamClient>& sc_ptr,
-            std::shared_ptr<config::SimConfig>& conf_ptr)
-{
-    stream_client_ = std::shared_ptr<streaming::StreamClient>(sc_ptr);
-    sim_config_ = std::shared_ptr<config::SimConfig>(conf_ptr);
-
-    init_args *args = (init_args*)malloc(sizeof(init_args));
-    args->sim_config = reinterpret_cast<void*>(&sim_config_);
-    args->stream_client = reinterpret_cast<void*>(&stream_client_);
-    ABT_task_create(*pool_, initialize_task, args, NULL);
-}
-
-void ArgobotsManager::create_insert_data_mic_task(int32_t step)
+void ArgobotsManager::create_initial_data_task(int32_t step)
 {
     initial_task_args *args = (initial_task_args*)malloc(sizeof(initial_task_args));
     args->step = step;
@@ -89,4 +84,6 @@ void ArgobotsManager::finalize()
         ABT_xstream_free(proc_xstream_);
         ABT_finalize();
     }
+
+    free_instance();
 }

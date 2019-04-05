@@ -11,6 +11,29 @@ using namespace ross_damaris::config;
 using namespace ross_damaris::sample;
 using namespace std;
 
+StreamClient* StreamClient::instance = nullptr;
+
+StreamClient* StreamClient::create_instance()
+{
+    if (instance)
+        cout << "StreamClient error!\n";
+    instance = new StreamClient();
+    return instance;
+}
+
+StreamClient* StreamClient::get_instance()
+{
+    if (!instance)
+        cout << "StreamClient error!\n";
+    return instance;
+}
+
+void StreamClient::free_instance()
+{
+    if (instance)
+        delete instance;
+}
+
 void StreamClient::connect()
 {
         cout << "[StreamClient " << process_id_ << "] Attempting to setup connection to " <<
@@ -19,11 +42,6 @@ void StreamClient::connect()
         auto it = resolver_.resolve(q);
         do_connect(it);
         t_ = new std::thread([this](){ this->service_.run(); });
-}
-
-void StreamClient::set_config_ptr(std::shared_ptr<SimConfig>&& ptr)
-{
-    sim_config_ = std::shared_ptr<SimConfig>(ptr);
 }
 
 void StreamClient::enqueue_data(DamarisDataSampleT* samp)
