@@ -30,6 +30,8 @@ public:
     }
 
 private:
+    ModelLPMetadata(const ModelLPMetadata&) = delete;
+    ModelLPMetadata& operator=(const ModelLPMetadata&) = delete;
     int peid_;
     int kpid_;
     int lpid_;

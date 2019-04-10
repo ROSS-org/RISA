@@ -15,24 +15,16 @@
 extern "C" {
 #endif
 
-struct init_args
-{
-    void* data_manager;
-    void* sim_config;
-    void* stream_client;
-};
-
 struct initial_task_args
 {
     int step;
-    const void* ds;
+    int mode;
 };
 
-struct data_agg_args
+struct forward_task_args
 {
-    int mode;
-    double lower_ts;
-    double upper_ts;
+    double lower; // exclusive
+    double last_gvt; // inclusive
 };
 
 void init_analysis_tasks(void);
@@ -41,6 +33,12 @@ void init_analysis_tasks(void);
  * @brief Adds Damaris DataSpaces to the DataManager.
  */
 void initial_data_processing(void *arguments);
+
+void remove_invalid_data(void *arguments);
+//void update_committed_data(void *arguments);
+void forward_vts_task(void* arguments);
+
+void sample_processing_task(void *arguments);
 
 #ifdef __cplusplus
 } // end extern "C"

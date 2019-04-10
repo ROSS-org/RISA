@@ -11,33 +11,16 @@ using namespace ross_damaris::config;
 using namespace ross_damaris::sample;
 using namespace std;
 
-StreamClient* StreamClient::instance = nullptr;
-
-StreamClient* StreamClient::create_instance()
-{
-    if (instance)
-        cout << "StreamClient error!\n";
-    instance = new StreamClient();
-    return instance;
-}
-
 StreamClient* StreamClient::get_instance()
 {
-    if (!instance)
-        cout << "StreamClient error!\n";
-    return instance;
-}
-
-void StreamClient::free_instance()
-{
-    if (instance)
-        delete instance;
+    static StreamClient instance;
+    return &instance;
 }
 
 void StreamClient::connect()
 {
-        cout << "[StreamClient " << process_id_ << "] Attempting to setup connection to " <<
-            sim_config_->stream_addr() << ":" << sim_config_->stream_port() << endl;
+        //cout << "[StreamClient " << process_id_ << "] Attempting to setup connection to " <<
+        //    sim_config_->stream_addr() << ":" << sim_config_->stream_port() << endl;
         tcp::resolver::query q(sim_config_->stream_addr(), sim_config_->stream_port());
         auto it = resolver_.resolve(q);
         do_connect(it);
@@ -61,10 +44,11 @@ void StreamClient::enqueue_data(DamarisDataSampleT* samp)
     write_msgs_.push_back(msg);
 }
 
-void StreamClient::enqueue_data(uint8_t *raw, uint8_t *data, int size)
+void StreamClient::enqueue_data(uint8_t *raw, uint8_t *data, size_t size)
 {
     sample_msg *msg = new sample_msg();
-    msg->size_ = size;
+    // TODO why is size an int? I think it was changed for Kelvin, but can't remember
+    msg->size_ = (int) size;
     msg->raw_ = raw;
     msg->data_ = data;
     write_msgs_.push_back(msg);
@@ -74,14 +58,20 @@ void StreamClient::close()
 {
     if (!connected_)
         return;
-    if (!write_msgs_.empty())
-        cout << "[StreamClient " << process_id_ << "] closing socket, but there are still messages queued!\n";
 
     service_.post(
             [this]() {
-                cout << "[StreamClient " << process_id_ << "] closing socket\n";
-                connected_ = false;
-                socket_.close();
+                if (!write_msgs_.empty())
+                {
+                    //cout << "[StreamClient " << process_id_ << "] closing socket, but there are still messages queued!\n";
+                    close();
+                }
+                else
+                {
+                    cout << "[StreamClient " << process_id_ << "] closing socket\n";
+                    connected_ = false;
+                    socket_.close();
+                }
             });
 }
 

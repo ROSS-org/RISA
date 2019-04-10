@@ -33,10 +33,7 @@ class SimConfig {
 public:
     friend class server::RDServer;
 
-    static SimConfig* create_instance(int local_pe, int total_pe, int num_kp_pe,
-            std::vector<int>&& num_lp);
     static SimConfig* get_instance();
-    static void free_instance();
 
     void set_parameters(po::variables_map& var_map);
     void print_parameters();
@@ -68,26 +65,13 @@ public:
     static void set_ross_parameters(po::variables_map& var_map);
 
     void set_model_metadata();
+    ross_damaris::util::ModelMDByFullID::iterator end();
     ross_damaris::util::ModelMDByFullID::iterator get_lp_model_md(int peid, int kpid, int lpid);
 
 private:
-    static SimConfig* instance;
-
-    SimConfig(int local_pe, int total_pe, int num_kp_pe, std::vector<int>&& num_lp) :
-        num_local_pe_(local_pe),
-        total_pe_(total_pe),
-        num_kp_pe_(num_kp_pe),
-        num_lp_(num_lp),
-        pe_data_(true),
-        kp_data_(false),
-        lp_data_(false),
-        num_gvt_(10),
-        rt_interval_(0.0),
-        vt_interval_(0.0),
-        vt_samp_end_(0.0),
-        write_data_(false),
-        stream_data_(true) {  }
-
+    SimConfig();
+    SimConfig(const SimConfig&) = delete;
+    SimConfig& operator=(const SimConfig&) = delete;
 
     int total_pe_;
     int num_local_pe_;

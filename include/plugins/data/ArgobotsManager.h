@@ -13,16 +13,15 @@ namespace data {
 class ArgobotsManager
 {
 public:
-    static ArgobotsManager* create_instance();
     static ArgobotsManager* get_instance();
-    static void free_instance();
 
     void create_initial_data_task(int32_t step);
+    void check_for_rb_data(int32_t step);
+    void forward_vts_data(double gvt);
     void finalize();
 
 
 private:
-    static ArgobotsManager* instance;
     ArgobotsManager();
     ~ArgobotsManager();
 
@@ -34,15 +33,17 @@ private:
     double last_processed_rts_;
     double last_processed_vts_;
 
-    streaming::StreamClient* stream_client_;
-    config::SimConfig* sim_config_;
-
     // This ends up being Main Damaris thread, so do not assign any
     // actual argobots tasks to this.
     ABT_xstream *primary_xstream_;
+    int *primary_rank_;
     ABT_xstream *proc_xstream_;
+    int *proc_rank_;
     ABT_pool *pool_;
     ABT_sched *scheduler_;
+
+    streaming::StreamClient* stream_client_;
+    config::SimConfig* sim_config_;
 };
 
 } // end namespace data

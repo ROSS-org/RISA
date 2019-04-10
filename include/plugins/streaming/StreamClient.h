@@ -31,9 +31,7 @@ namespace bip = boost::asio::ip;
 class StreamClient
 {
 public:
-    static StreamClient* create_instance();
     static StreamClient* get_instance();
-    static void free_instance();
 
     /**
      * @brief Attempts to connect to specified address/port,
@@ -49,7 +47,7 @@ public:
      * queue to be sent.
      */
     void enqueue_data(sample::DamarisDataSampleT* samp);
-    void enqueue_data(uint8_t *raw, uint8_t *data, int size);
+    void enqueue_data(uint8_t *raw, uint8_t *data, size_t size);
 
     /**
      * @brief Close the streaming connection
@@ -57,16 +55,18 @@ public:
     void close();
 
 private:
-    static StreamClient* instance;
 
     StreamClient() :
-        socket_(service_),
         resolver_(service_),
-        connected_(false),
+        socket_(service_),
         t_(nullptr),
+        connected_(false),
         sim_config_(config::SimConfig::get_instance()) {
             process_id_ = damaris::Environment::GetEntityProcessID();
         }
+
+    StreamClient(const StreamClient&) = delete;
+    StreamClient& operator=(const StreamClient&) = delete;
 
     ~StreamClient()
     {
@@ -86,9 +86,9 @@ private:
         // we take ownership of the memory allocated by the flatbuffer
         // so we don't need to do any initialization of our own
         sample_msg() :
-            size_(0),
+            raw_(nullptr),
             data_(nullptr),
-            raw_(nullptr) {  }
+            size_(0) {  }
 
         ~sample_msg()
         {
@@ -103,7 +103,6 @@ private:
     typedef std::deque<sample_msg*> sample_queue;
     sample_queue write_msgs_;
 
-    config::SimConfig* sim_config_;
     boost::asio::io_service service_;
     bip::tcp::resolver resolver_;
     bip::tcp::socket socket_;
@@ -111,6 +110,7 @@ private:
 
     bool connected_;
     std::array<char, 1> dummy_buf_;
+    config::SimConfig* sim_config_;
 
     void do_connect(bip::tcp::resolver::iterator it);
     void do_write();

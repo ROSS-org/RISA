@@ -35,6 +35,7 @@ SET(plugin_srcs
     util/SimConfig.cpp
     server/RDServer.cpp
     server/events.cpp
+    data/SampleFBBuilder.cpp
     data/ArgobotsManager.cpp
     data/analysis-tasks.cpp
     streaming/StreamClient.cpp)

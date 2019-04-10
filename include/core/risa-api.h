@@ -64,7 +64,9 @@ void risa_finalize(void);
  * Can use the sampling functions provided by ROSS instrumentation layer, instead of
  * having to create new ones.
  */
-void risa_expose_data(tw_pe *me, int inst_type, tw_lp* lp, int vts_commit);
+void risa_expose_data_gvt(tw_pe *me, int inst_type);
+void risa_expose_data_rts(tw_pe *me, int inst_type);
+void risa_expose_data_vts(tw_pe *me, int inst_type, tw_lp* lp, int vts_commit);
 
 /**
  * @brief Signals to Damaris that the current iteration is over.

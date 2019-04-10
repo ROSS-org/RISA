@@ -3,9 +3,11 @@
  *
  * This file defines all the possible events that Damaris will call for plugins.
  */
+#include <iostream>
 #include <plugins/server/RDServer.h>
 #include <plugins/flatbuffers/data_sample_generated.h>
 #include <plugins/util/damaris-util.h>
+#include <plugins/util/SimConfig.h>
 
 #include <damaris/buffer/DataSpace.hpp>
 #include <damaris/buffer/Buffer.hpp>
@@ -14,6 +16,7 @@
 using namespace ross_damaris::server;
 using namespace ross_damaris::sample;
 using namespace ross_damaris::util;
+using namespace std;
 
 extern "C" {
 
@@ -36,7 +39,7 @@ void damaris_rank_init(const std::string& event, int32_t src, int32_t step, cons
 
     //server.reset(new RDServer());
     server = RDServer::get_instance();
-    server->set_model_metadata();
+    //server->set_model_metadata();
     //cout << "end of damaris_rank_init()\n";
 }
 
@@ -48,13 +51,21 @@ void damaris_rank_init(const std::string& event, int32_t src, int32_t step, cons
  */
 void damaris_rank_end_iteration(const std::string& event, int32_t src, int32_t step, const char* args)
 {
+    (void)event;
+    (void)src;
+    (void)args;
+
     // want the last step because the data is now complete
     step--;
     //cout << "damaris_rank_end_iteration() rank " << src << " step " << step << endl;
-
-    server->update_gvt(step);
+    if (step == 0)
+    {
+        auto sim_config = ross_damaris::config::SimConfig::get_instance();
+        sim_config->set_model_metadata();
+    }
 
     server->initial_data_tasks(step);
+    server->update_gvt(step);
 }
 
 /**

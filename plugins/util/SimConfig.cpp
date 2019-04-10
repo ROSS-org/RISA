@@ -1,10 +1,12 @@
 #include <boost/program_options.hpp>
 #include <damaris/data/VariableManager.hpp>
 #include <damaris/data/ParameterManager.hpp>
+#include <plugins/util/damaris-util.h>
 #include <plugins/util/config-c.h>
 #include <plugins/util/SimConfig.h>
 #include <ross.h>
 #include <instrumentation/st-instrumentation-internal.h>
+#include <core/risa-interface.h>
 
 using namespace std;
 //namespace po = boost::program_options;
@@ -28,28 +30,35 @@ void parse_file(const char *filename)
     SimConfig::set_ross_parameters(vars);
 }
 
-SimConfig* SimConfig::instance = nullptr;
-
-SimConfig* SimConfig::create_instance(int local_pe, int total_pe, int num_kp_pe,
-        std::vector<int>&& num_lp)
-{
-    if (instance)
-        cout << "error in SimConfig\n";
-    instance = new SimConfig(local_pe, total_pe, num_kp_pe, std::move(num_lp));
-    return instance;
-}
-
 SimConfig* SimConfig::get_instance()
 {
-    if (!instance)
-        cout << "error in SimConfig\n";
-    return instance;
+    static SimConfig instance;
+    return &instance;
 }
 
-void SimConfig::free_instance()
+SimConfig::SimConfig() :
+    pe_data_(true),
+    kp_data_(false),
+    lp_data_(false),
+    num_gvt_(10),
+    rt_interval_(0.0),
+    vt_interval_(0.0),
+    vt_samp_end_(0.0),
+    write_data_(false),
+    stream_data_(true)
 {
-    if (instance)
-        delete instance;
+    num_local_pe_ = damaris::Environment::ClientsPerNode() /
+            damaris::Environment::ServersPerNode();
+    total_pe_ = num_local_pe_ * damaris::Environment::CountTotalServers();
+    auto my_pes_ = damaris::Environment::GetKnownLocalClients();
+    num_kp_pe_ = *(static_cast<int*>(DUtil::get_value_from_damaris(
+                    "ross/nkp", my_pes_.front(), 0, 0)));
+    for (int pe : my_pes_)
+    {
+        //cout << "[" << my_id << "] pe: " << pe << endl;
+        auto val = *(static_cast<int*>(DUtil::get_value_from_damaris("ross/nlp", pe, 0, 0)));
+        num_lp_.push_back(val);
+    }
 }
 
 po::options_description SimConfig::set_options()
@@ -106,7 +115,7 @@ void SimConfig::set_ross_parameters(po::variables_map& var_map)
     g_st_engine_stats = var_map["inst.engine-stats"].as<int>();
     g_st_model_stats = var_map["inst.model-stats"].as<int>();
     g_st_num_gvt = var_map["inst.num-gvt"].as<int>();
-    g_st_rt_interval = var_map["inst.rt-interval"].as<double>();
+    g_st_rt_int_ms = var_map["inst.rt-interval"].as<double>();
     g_st_vt_interval = var_map["inst.vt-interval"].as<double>();
     g_st_sampling_end = var_map["inst.vt-samp-end"].as<double>();
     g_st_ev_trace = var_map["inst.event-trace"].as<int>();
@@ -151,6 +160,12 @@ void SimConfig::set_parameters(po::variables_map& var_map)
         inst_mode_sim_[rds::InstMode_RT] = true;
         inst_mode_sim_[rds::InstMode_VT] = true;
     }
+    else
+    {
+        inst_mode_sim_[rds::InstMode_GVT] = false;
+        inst_mode_sim_[rds::InstMode_RT] = false;
+        inst_mode_sim_[rds::InstMode_VT] = false;
+    }
 
     if (var_map["inst.model-stats"].as<int>() == 1)
     {
@@ -175,6 +190,12 @@ void SimConfig::set_parameters(po::variables_map& var_map)
         inst_mode_model_[rds::InstMode_GVT] = true;
         inst_mode_model_[rds::InstMode_RT] = true;
         inst_mode_model_[rds::InstMode_VT] = true;
+    }
+    else
+    {
+        inst_mode_model_[rds::InstMode_GVT] = false;
+        inst_mode_model_[rds::InstMode_RT] = false;
+        inst_mode_model_[rds::InstMode_VT] = false;
     }
 
     // TODO need to set event tracing
@@ -235,58 +256,60 @@ void SimConfig::print_mode_types(int type)
 
 void SimConfig::set_model_metadata()
 {
-    // TODO add a check to see if simulation is even collecting model data
+    //cout << "SimConfig: set model metadata\n";
     std::shared_ptr<Variable> v = VariableManager::Search("model_map/lp_md");
     BlocksByIteration::iterator begin, end;
     v->GetBlocksByIteration(0, begin, end);
+    // TODO there is some bug but not exactly sure what.
+    // Have noticed that on the ROSS processes, valgrind reports a conditional
+    // move based on an uninitialized value based on damaris_commit and clear calls, but only
+    // for the model metadata. No issues when making those same calls in the regular expose_data
+    // calls for sample data
+    //cout << "set model md num blocks " << v->CountLocalBlocks(0) << endl;
+    //int lowest, biggest;
+    //v->GetIterationRange(lowest, biggest);
+    //cout << "set model md iteration range " << lowest << " - " << biggest << endl;
+    //v->GetSourceRange(lowest, biggest);
+    //cout << "set model md source range " << lowest << " - " << biggest << endl;
+    //v->GetIDRange(lowest, biggest);
+    //cout << "set model md ID range " << lowest << " - " << biggest << endl;
     while (begin != end)
     {
         // each iterator points to a single LP's model metadata
         DataSpace<Buffer> ds((*begin)->GetDataSpace());
         char* dbuf_cur = reinterpret_cast<char*>(ds.GetData());
         size_t cur_size = 0;
-
-        int *peid = reinterpret_cast<int*>(dbuf_cur);
-        dbuf_cur += sizeof(*peid);
-        cur_size += sizeof(*peid);
-        int *kpid = reinterpret_cast<int*>(dbuf_cur);
-        dbuf_cur += sizeof(*kpid);
-        cur_size += sizeof(*kpid);
-        int *lpid = reinterpret_cast<int*>(dbuf_cur);
-        dbuf_cur += sizeof(*lpid);
-        cur_size += sizeof(*lpid);
-        int *num_vars = reinterpret_cast<int*>(dbuf_cur);
-        dbuf_cur += sizeof(*num_vars);
-        cur_size += sizeof(*num_vars);
-        size_t *name_sz = reinterpret_cast<size_t*>(dbuf_cur);
-        dbuf_cur += sizeof(*name_sz);
-        cur_size += sizeof(*name_sz);
+        model_lp_metadata* mlp = reinterpret_cast<model_lp_metadata*>(dbuf_cur);
+        dbuf_cur += sizeof(*mlp);
+        cur_size += sizeof(*mlp);
         char* lp_name = reinterpret_cast<char*>(dbuf_cur);
-        dbuf_cur += *name_sz;
-        cur_size += *name_sz;
-        shared_ptr<ModelLPMetadata> lp_md = std::make_shared<ModelLPMetadata>(
-                *peid, *kpid, *lpid, string(lp_name));
+        dbuf_cur += mlp->name_sz;
+        cur_size += mlp->name_sz;
 
-        for (int i = 0; i < *num_vars; i++)
+        shared_ptr<ModelLPMetadata> lp_md = std::make_shared<ModelLPMetadata>(
+                mlp->peid, mlp->kpid, mlp->lpid, string(lp_name));
+
+        for (int i = 0; i < mlp->num_vars; i++)
         {
-            size_t *var_name_sz = reinterpret_cast<size_t*>(dbuf_cur);
-            dbuf_cur += sizeof(*var_name_sz);
-            cur_size += sizeof(*var_name_sz);
-            int *id = reinterpret_cast<int*>(dbuf_cur);
-            dbuf_cur += sizeof(*id);
-            cur_size += sizeof(*id);
-            dbuf_cur += 4;
-            cur_size += 4;
+            mlp_var_metadata* var_md = reinterpret_cast<mlp_var_metadata*>(dbuf_cur);
+            dbuf_cur += sizeof(*var_md);
+            cur_size += sizeof(*var_md);
             char* var_name = reinterpret_cast<char*>(dbuf_cur);
-            dbuf_cur += *var_name_sz;
-            cur_size += *var_name_sz;
-            lp_md->add_variable(string(var_name), *id);
+            dbuf_cur += var_md->name_sz;
+            cur_size += var_md->name_sz;
+            lp_md->add_variable(string(var_name), var_md->id);
         }
         md_index_.insert(std::move(lp_md));
 
         ++begin;
     }
+    //cout << "simconfig size of md_index_ " << md_index_.size() << endl;
 
+}
+
+ModelMDByFullID::iterator SimConfig::end()
+{
+    return md_index_.get<by_full_id>().end();
 }
 
 ModelMDByFullID::iterator SimConfig::get_lp_model_md(int peid, int kpid, int lpid)

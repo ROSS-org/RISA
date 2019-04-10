@@ -9,15 +9,11 @@ int g_st_ross_rank = 0;
 int g_st_risa_enabled = 0;
 
 static int damaris_initialized = 0;
-static double *pe_id, *kp_id, *lp_id;
-static tw_statistics last_pe_stats[3];
 static int rt_block_counter = 0;
 static int vt_block_counter = 0;
 static int vt_invalid_block_counter = 0;
 static int vt_valid_block_counter = 0;
-static int max_block_counter = 0;
 static int iterations = 0;
-static double current_rt = 0.0;
 static char damaris_xml[4096];
 
 static const char* inst_var_name[] = {
@@ -119,32 +115,39 @@ void risa_inst_init(const char *config_file)
 
             model_lp_metadata *md = (model_lp_metadata*)damaris_buf;
             damaris_buf += sizeof(*md);
-            md->peid = clp->pe->id;
-            md->kpid = clp->kp->id;
-            md->lpid = clp->gid;
+            buf_size -= sizeof(*md);
+            md->peid = (int)clp->pe->id;
+            md->kpid = (int)clp->kp->id;
+            md->lpid = (int)clp->gid;
             md->num_vars = clp->model_types->num_vars;
             md->name_sz = strlen(clp->model_types->lp_name) + 1;
-            strncpy(damaris_buf, clp->model_types->lp_name, md->name_sz);
+            memcpy(damaris_buf, clp->model_types->lp_name, md->name_sz);
             damaris_buf += md->name_sz;
+            buf_size -= md->name_sz;
 
             for (int j = 0; j < md->num_vars; j++)
             {
                 mlp_var_metadata *var_md = (mlp_var_metadata*)damaris_buf;
                 damaris_buf += sizeof(*var_md);
+                buf_size -= sizeof(*var_md);
                 var_md->id = j;
                 var_md->name_sz = strlen(clp->model_types->model_vars[j].var_name) + 1;
-                strncpy(damaris_buf, clp->model_types->model_vars[j].var_name, var_md->name_sz);
+                memcpy(damaris_buf, clp->model_types->model_vars[j].var_name, var_md->name_sz);
                 damaris_buf += var_md->name_sz;
+                buf_size -= var_md->name_sz;
             }
+            if (buf_size != 0)
+                printf("risa_inst_init buf_size = %lu\n", buf_size);
 
-            if ((err = damaris_commit_block("model_map/lp_md", block))
+            if ((err = damaris_commit_block_iteration("model_map/lp_md", block, 0))
                     != DAMARIS_OK)
                 risa_damaris_error(TW_LOC, err, "model_map/lp_md");
-            if ((err = damaris_clear_block("model_map/lp_md", block))
+            if ((err = damaris_clear_block_iteration("model_map/lp_md", block, 0))
                     != DAMARIS_OK)
                 risa_damaris_error(TW_LOC, err, "model_map/lp_md");
             block++;
         }
+//        printf("PE %ld: num blocks %d\n", g_tw_mynode, block);
     }
 
     signal_init();
@@ -206,6 +209,16 @@ void risa_finalize()
     int err;
     if (g_st_ross_rank)
     {
+        double gvt = DBL_MAX;
+        if ((err = damaris_write("ross/last_gvt", &gvt)) != DAMARIS_OK)
+            risa_damaris_error(TW_LOC, err, "ross/last_gvt");
+
+        if ((err = damaris_end_iteration()) != DAMARIS_OK)
+            risa_damaris_error(TW_LOC, err, "end iteration");
+        //printf("[%f] PE %ld damaris_end_iteration %d num_blocks: %d\n",
+        //        g_tw_pe[0]->GVT, g_tw_mynode, iterations, vt_block_counter);
+        if ((err = damaris_signal("end_iteration")) != DAMARIS_OK)
+            risa_damaris_error(TW_LOC, err, "end_iteration");
         if ((err = damaris_signal("damaris_rank_finalize")) != DAMARIS_OK)
             risa_damaris_error(TW_LOC, err, "damaris_rank_finalize");
         damaris_stop();
@@ -216,18 +229,94 @@ void risa_finalize()
         tw_error(TW_LOC, "Failed to finalize MPI");
 }
 
-// TODO may be able to simplfiy this and just grab the buffer pointer and return it to
-// the call from inst_sample
-void risa_expose_data(tw_pe *me, int inst_type, tw_lp* lp, int vts_commit)
+void risa_expose_data_gvt(tw_pe *me, int inst_type)
 {
     //printf("PE %ld: damaris_expose_data type: %d\n", g_tw_mynode, inst_type);
     int err;
     int block = 0;
-    if (inst_type == VT_INST)
+    int data_sampled = 0;
+    size_t buf_size = 0;
+    char* damaris_buf;
+    sample_metadata* sample_md;
+
+    if (engine_modes[inst_type] || model_modes[inst_type])
     {
-        block = vt_block_counter;
-        vt_block_counter++;
+        buf_size = sizeof(*sample_md);
+        if (engine_modes[inst_type])
+            buf_size += engine_data_sizes[inst_type];
+
+        if (model_modes[inst_type])
+            buf_size += model_data_sizes[inst_type];
+        //printf("st_inst_sample: buf_size %lu\n", buf_size);
+
+        if (buf_size > sizeof(sample_metadata))
+        {
+            data_sampled = 1;
+            if ((err = damaris_parameter_set("sample_size", &buf_size, sizeof(buf_size)))
+                    != DAMARIS_OK)
+                risa_damaris_error(TW_LOC, err, "sample_size");
+
+            //printf("getting pointer to shared memory from Damaris for size %lu\n", buf_size);
+            void* dbuf_ptr;
+            if ((err = damaris_alloc_block(inst_var_name[inst_type], block, &dbuf_ptr))
+                    != DAMARIS_OK)
+                risa_damaris_error(TW_LOC, err, inst_var_name[inst_type]);
+            damaris_buf = (char*)dbuf_ptr;
+
+            sample_md = (sample_metadata*)damaris_buf;
+            damaris_buf += sizeof(*sample_md);
+            buf_size -= sizeof(*sample_md);
+
+            bzero(sample_md, sizeof(*sample_md));
+            sample_md->last_gvt = me->GVT;
+
+            sample_md->peid = (unsigned int)g_tw_mynode;
+            sample_md->num_model_lps = model_num_lps[inst_type];
+            sample_md->kp_gid = -1;
+        }
+        else
+        {
+            buf_size = 0;
+            //printf("%lu: Not writing data!\n", g_tw_mynode);
+        }
     }
+
+    if (buf_size && engine_modes[inst_type] && g_tw_synchronization_protocol != SEQUENTIAL)
+    {
+        st_collect_engine_data(me, inst_type, damaris_buf, engine_data_sizes[inst_type], sample_md, NULL);
+        damaris_buf += engine_data_sizes[inst_type];
+        buf_size -= engine_data_sizes[inst_type];
+    }
+    if (buf_size && model_modes[inst_type])
+    {
+        sample_md->has_model = 1;
+        st_collect_model_data(me, inst_type, damaris_buf, model_data_sizes[inst_type]);
+        buf_size -= model_data_sizes[inst_type];
+    }
+
+    if (buf_size != 0)
+        tw_error(TW_LOC, "buf_size = %lu", buf_size);
+
+    if (data_sampled)
+    {
+        //printf("risa-interface: peid: %u kp_gid: %d vts: %f rts: %f last_gvt: %f\n", sample_md->peid,
+        //        sample_md->kp_gid, sample_md->vts, sample_md->rts, sample_md->last_gvt);
+        if ((err = damaris_commit_block(inst_var_name[inst_type], block))
+                != DAMARIS_OK)
+            risa_damaris_error(TW_LOC, err, inst_var_name[inst_type]);
+        if ((err = damaris_clear_block(inst_var_name[inst_type], block))
+                != DAMARIS_OK)
+            risa_damaris_error(TW_LOC, err, inst_var_name[inst_type]);
+    }
+
+}
+
+void risa_expose_data_rts(tw_pe *me, int inst_type)
+{
+    static double rts_count = 0.0;
+    //printf("PE %ld: damaris_expose_data type: %d\n", g_tw_mynode, inst_type);
+    int err;
+    int block = 0;
     if (inst_type == RT_INST)
     {
         block = rt_block_counter;
@@ -242,23 +331,11 @@ void risa_expose_data(tw_pe *me, int inst_type, tw_lp* lp, int vts_commit)
     if (engine_modes[inst_type] || model_modes[inst_type])
     {
         buf_size = sizeof(*sample_md);
-        // TODO handle VTS differently when using damaris?
-        if (inst_type == VT_INST && engine_modes[VT_INST])
-            engine_data_sizes[VT_INST] = calc_sim_engine_sample_size_vts(lp);
-        if (!vts_commit && engine_modes[inst_type])
+        if (engine_modes[inst_type])
             buf_size += engine_data_sizes[inst_type];
 
-        if (model_modes[inst_type] && inst_type != VT_INST)
+        if (model_modes[inst_type])
             buf_size += model_data_sizes[inst_type];
-        else if (model_modes[inst_type] && inst_type == VT_INST && !vts_commit)
-        {
-            // when using damaris, we only want to send when it isn't commit time
-            // at commit or RC we will just send some basic info saying this sample is valid/invalid
-            model_data_sizes[inst_type] = get_model_data_size(lp->cur_state, &model_num_lps[inst_type]);
-            buf_size += model_data_sizes[inst_type];
-            //printf("%lu: size = %lu\n", g_tw_mynode, model_data_sizes[inst_type]);
-        }
-        //printf("st_inst_sample: buf_size %lu\n", buf_size);
 
         if (buf_size > sizeof(sample_metadata))
         {
@@ -267,6 +344,117 @@ void risa_expose_data(tw_pe *me, int inst_type, tw_lp* lp, int vts_commit)
                     != DAMARIS_OK)
                 risa_damaris_error(TW_LOC, err, "sample_size");
 
+            //printf("getting pointer to shared memory from Damaris for size %lu\n", buf_size);
+            void* dbuf_ptr;
+            if ((err = damaris_alloc_block(inst_var_name[inst_type], block, &dbuf_ptr))
+                    != DAMARIS_OK)
+                risa_damaris_error(TW_LOC, err, inst_var_name[inst_type]);
+            damaris_buf = (char*)dbuf_ptr;
+
+            sample_md = (sample_metadata*)damaris_buf;
+            damaris_buf += sizeof(*sample_md);
+            buf_size -= sizeof(*sample_md);
+
+            bzero(sample_md, sizeof(*sample_md));
+            sample_md->last_gvt = me->GVT;
+            if (inst_type == RT_INST)
+            {
+                sample_md->rts = rts_count;
+                rts_count += g_st_rt_int_ms;
+            }
+
+            sample_md->peid = (unsigned int)g_tw_mynode;
+            sample_md->num_model_lps = model_num_lps[inst_type];
+            sample_md->kp_gid = -1;
+        }
+        else
+        {
+            buf_size = 0;
+            //printf("%lu: Not writing data!\n", g_tw_mynode);
+        }
+    }
+
+    if (buf_size && engine_modes[inst_type] && g_tw_synchronization_protocol != SEQUENTIAL)
+    {
+        st_collect_engine_data(me, inst_type, damaris_buf, engine_data_sizes[inst_type], sample_md, NULL);
+        damaris_buf += engine_data_sizes[inst_type];
+        buf_size -= engine_data_sizes[inst_type];
+    }
+    if (buf_size && model_modes[inst_type])
+    {
+        sample_md->has_model = 1;
+        st_collect_model_data(me, inst_type, damaris_buf, model_data_sizes[inst_type]);
+        buf_size -= model_data_sizes[inst_type];
+    }
+
+    if (buf_size != 0)
+        tw_error(TW_LOC, "buf_size = %lu", buf_size);
+
+    if (data_sampled)
+    {
+        //printf("risa-interface: peid: %u kp_gid: %d vts: %f rts: %f last_gvt: %f\n", sample_md->peid,
+        //        sample_md->kp_gid, sample_md->vts, sample_md->rts, sample_md->last_gvt);
+        if ((err = damaris_commit_block(inst_var_name[inst_type], block))
+                != DAMARIS_OK)
+            risa_damaris_error(TW_LOC, err, inst_var_name[inst_type]);
+        if ((err = damaris_clear_block(inst_var_name[inst_type], block))
+                != DAMARIS_OK)
+            risa_damaris_error(TW_LOC, err, inst_var_name[inst_type]);
+    }
+
+}
+
+// TODO may be able to simplfiy this and just grab the buffer pointer and return it to
+// the call from inst_sample
+void risa_expose_data_vts(tw_pe *me, int inst_type, tw_lp* lp, int vts_commit)
+{
+    if (vts_commit)
+        tw_error(TW_LOC, "should not happen at commit!");
+    //printf("PE %ld: damaris_expose_data type: %d\n", g_tw_mynode, inst_type);
+    int err;
+    int block = 0;
+    if (inst_type == VT_INST && !vts_commit)
+    {
+        block = vt_block_counter;
+        vt_block_counter++;
+    }
+
+    int data_sampled = 0;
+    size_t buf_size = 0;
+    char* damaris_buf;
+    sample_metadata* sample_md;
+
+    if (inst_type == VT_INST)
+    {
+        // For now we're not worried about getting sim engine data in VTS
+        engine_modes[inst_type] = 0;
+    }
+    if (engine_modes[inst_type] || model_modes[inst_type])
+    {
+        buf_size = sizeof(*sample_md);
+        // TODO handle VTS differently when using damaris?
+        if (engine_modes[VT_INST])
+            engine_data_sizes[VT_INST] = calc_sim_engine_sample_size_vts(lp);
+        if (!vts_commit && engine_modes[inst_type])
+            buf_size += engine_data_sizes[inst_type];
+
+        if (model_modes[inst_type] && !vts_commit)
+        {
+            // when using damaris, we only want to send when it isn't commit time
+            // at commit or RC we will just send some basic info saying this sample is valid/invalid
+            model_data_sizes[inst_type] = get_model_data_size(lp->cur_state, &model_num_lps[inst_type]);
+            buf_size += model_data_sizes[inst_type];
+            //printf("%lu: size = %lu\n", g_tw_mynode, model_data_sizes[inst_type]);
+        }
+
+        if (buf_size > sizeof(sample_metadata))
+        {
+            data_sampled = 1;
+            if ((err = damaris_parameter_set("sample_size", &buf_size, sizeof(buf_size)))
+                    != DAMARIS_OK)
+                risa_damaris_error(TW_LOC, err, "sample_size");
+
+            //printf("getting pointer to shared memory from Damaris for size %lu\n", buf_size);
             void* dbuf_ptr;
             if ((err = damaris_alloc_block(inst_var_name[inst_type], block, &dbuf_ptr))
                     != DAMARIS_OK)
@@ -280,7 +468,6 @@ void risa_expose_data(tw_pe *me, int inst_type, tw_lp* lp, int vts_commit)
 
             bzero(sample_md, sizeof(*sample_md));
             sample_md->last_gvt = me->GVT;
-            sample_md->rts = (double)tw_clock_read() / g_tw_clock_rate;
             //if(inst_type == VT_INST)
             //{
             //    // TODO this happens only at commit time, so this is incorrect
@@ -290,10 +477,8 @@ void risa_expose_data(tw_pe *me, int inst_type, tw_lp* lp, int vts_commit)
 
             sample_md->peid = (unsigned int)g_tw_mynode;
             sample_md->num_model_lps = model_num_lps[inst_type];
-            if (inst_type == VT_INST)
-                sample_md->kp_gid = (int)(g_tw_mynode * g_tw_nkp) + (int)lp->kp->id;
-            else
-                sample_md->kp_gid = -1;
+            sample_md->kp_gid = (int)(g_tw_mynode * g_tw_nkp) + (int)lp->kp->id;
+            sample_md->vts = tw_now(lp);
         }
         else
         {
@@ -304,26 +489,15 @@ void risa_expose_data(tw_pe *me, int inst_type, tw_lp* lp, int vts_commit)
 
     if (!vts_commit && buf_size && engine_modes[inst_type] && g_tw_synchronization_protocol != SEQUENTIAL)
     {
-        if (inst_type == VT_INST)
-            sample_md->vts = tw_now(lp);
         st_collect_engine_data(me, inst_type, damaris_buf, engine_data_sizes[inst_type], sample_md, lp);
         damaris_buf += engine_data_sizes[inst_type];
         buf_size -= engine_data_sizes[inst_type];
     }
-    if (buf_size && model_modes[inst_type])
+    if (!vts_commit && buf_size && model_modes[inst_type])
     {
-        if (inst_type != VT_INST)
-        {
-            sample_md->has_model = 1;
-            st_collect_model_data(me, inst_type, damaris_buf, model_data_sizes[inst_type]);
-            buf_size -= model_data_sizes[inst_type];
-        }
-        else if (inst_type == VT_INST && !vts_commit)
-        {
-            sample_md->has_model = 1;
-            st_collect_model_data_vts(me, lp, inst_type, damaris_buf, sample_md, model_data_sizes[inst_type]);
-            buf_size -= model_data_sizes[inst_type];
-        }
+        sample_md->has_model = 1;
+        st_collect_model_data_vts(me, lp, inst_type, damaris_buf, sample_md, model_data_sizes[inst_type]);
+        buf_size -= model_data_sizes[inst_type];
     }
 
     if (buf_size != 0)
@@ -331,8 +505,14 @@ void risa_expose_data(tw_pe *me, int inst_type, tw_lp* lp, int vts_commit)
 
     if (data_sampled)
     {
-        err = damaris_commit_block(inst_var_name[inst_type], block);
-        err = damaris_clear_block(inst_var_name[inst_type], block);
+        //printf("risa-interface: peid: %u kp_gid: %d vts: %f rts: %f last_gvt: %f\n", sample_md->peid,
+        //        sample_md->kp_gid, sample_md->vts, sample_md->rts, sample_md->last_gvt);
+        if ((err = damaris_commit_block(inst_var_name[inst_type], block))
+                != DAMARIS_OK)
+            risa_damaris_error(TW_LOC, err, inst_var_name[inst_type]);
+        if ((err = damaris_clear_block(inst_var_name[inst_type], block))
+                != DAMARIS_OK)
+            risa_damaris_error(TW_LOC, err, inst_var_name[inst_type]);
     }
 
 }
@@ -350,7 +530,8 @@ void risa_end_iteration(tw_stime gvt)
 
         if ((err = damaris_end_iteration()) != DAMARIS_OK)
             risa_damaris_error(TW_LOC, err, "end iteration");
-        //printf("[%f] PE %ld damaris_end_iteration\n", g_tw_pe[0]->GVT, g_tw_mynode);
+        //printf("[%f] PE %ld damaris_end_iteration %d num_blocks: %d\n",
+        //        g_tw_pe[0]->GVT, g_tw_mynode, iterations, vt_block_counter);
         if ((err = damaris_signal("end_iteration")) != DAMARIS_OK)
             risa_damaris_error(TW_LOC, err, "end_iteration");
     }
@@ -362,8 +543,10 @@ void risa_end_iteration(tw_stime gvt)
     vt_valid_block_counter = 0;
 }
 
+// TODO update rts being a count and not system time
 void risa_invalidate_sample(double vts, double rts, int kp_gid)
 {
+    //printf("invalidating sample vts %f, rts %f, kpgid %d\n", vts, rts, kp_gid);
     int err;
 
     if ((err = damaris_write_block("ross/vt_rb/vts", vt_invalid_block_counter, &vts)) != DAMARIS_OK)
