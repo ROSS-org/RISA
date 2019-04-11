@@ -430,6 +430,7 @@ void forward_vts_task(void* arguments)
             DamarisDataSampleT* cur_obj = ds->UnPack();
             std::move(cur_obj->model_data.begin(), cur_obj->model_data.end(),
                     std::back_inserter(combined.model_data));
+            delete cur_obj;
             //cout << "model_data vector size " << combined.model_data.size() << endl;
 
             ++begin;
