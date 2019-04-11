@@ -39,7 +39,8 @@ void damaris_rank_init(const std::string& event, int32_t src, int32_t step, cons
 
     //server.reset(new RDServer());
     server = RDServer::get_instance();
-    //server->set_model_metadata();
+    auto sim_config = ross_damaris::config::SimConfig::get_instance();
+    sim_config->set_model_metadata();
     //cout << "end of damaris_rank_init()\n";
 }
 
@@ -58,11 +59,6 @@ void damaris_rank_end_iteration(const std::string& event, int32_t src, int32_t s
     // want the last step because the data is now complete
     step--;
     //cout << "damaris_rank_end_iteration() rank " << src << " step " << step << endl;
-    if (step == 0)
-    {
-        auto sim_config = ross_damaris::config::SimConfig::get_instance();
-        sim_config->set_model_metadata();
-    }
 
     server->initial_data_tasks(step);
     server->update_gvt(step);

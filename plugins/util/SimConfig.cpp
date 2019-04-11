@@ -59,6 +59,14 @@ SimConfig::SimConfig() :
         auto val = *(static_cast<int*>(DUtil::get_value_from_damaris("ross/nlp", pe, 0, 0)));
         num_lp_.push_back(val);
     }
+    auto opts = set_options();
+    po::variables_map vars;
+    string config_file = &((char *)DUtil::get_value_from_damaris(
+                "ross/inst_config", my_pes_.front(), 0, 0))[0];
+    ifstream ifs(config_file.c_str());
+    parse_file(ifs, opts, vars);
+    set_parameters(vars);
+    //print_parameters();
 }
 
 po::options_description SimConfig::set_options()

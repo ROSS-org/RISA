@@ -42,19 +42,11 @@ RDServer::RDServer() :
     my_pes_ = damaris::Environment::GetKnownLocalClients();
 
     sim_config_ = SimConfig::get_instance();
-    auto opts = SimConfig::set_options();
-    po::variables_map vars;
-    string config_file = &((char *)DUtil::get_value_from_damaris(
-                "ross/inst_config", my_pes_.front(), 0, 0))[0];
-    ifstream ifs(config_file.c_str());
-    SimConfig::parse_file(ifs, opts, vars);
-    sim_config_->set_parameters(vars);
-    //sim_config_->print_parameters();
 
-    if (sim_config_->write_data_)
+    if (sim_config_->write_data())
         data_file_.open("test-fb.bin", ios::out | ios::trunc | ios::binary);
 
-    if (sim_config_->stream_data_)
+    if (sim_config_->stream_data())
     {
         stream_client_ = streaming::StreamClient::get_instance();
         stream_client_->connect();
@@ -63,20 +55,14 @@ RDServer::RDServer() :
     argobots_manager_ = ArgobotsManager::get_instance();
 }
 
-
-void RDServer::set_model_metadata()
-{
-    sim_config_->set_model_metadata();
-}
-
 void RDServer::finalize()
 {
     argobots_manager_->finalize();
 
-    if (sim_config_->write_data_)
+    if (sim_config_->write_data())
         data_file_.close();
 
-    if (sim_config_->stream_data_)
+    if (sim_config_->stream_data())
     {
         stream_client_->close();
     }

@@ -14,6 +14,8 @@
 #include <deque>
 #include <iostream>
 #include <thread>
+#include <atomic>
+#include <mutex>
 #include <boost/asio.hpp>
 #include <plugins/flatbuffers/data_sample_generated.h>
 #include <plugins/util/SimConfig.h>
@@ -61,6 +63,7 @@ private:
         socket_(service_),
         t_(nullptr),
         connected_(false),
+        close_now_(false),
         sim_config_(config::SimConfig::get_instance()) {
             process_id_ = damaris::Environment::GetEntityProcessID();
         }
@@ -102,6 +105,7 @@ private:
     int process_id_;
     typedef std::deque<sample_msg*> sample_queue;
     sample_queue write_msgs_;
+    std::mutex queue_mtx_;
 
     boost::asio::io_service service_;
     bip::tcp::resolver resolver_;
@@ -109,12 +113,14 @@ private:
     std::thread *t_;
 
     bool connected_;
+    std::atomic<bool> close_now_;
     std::array<char, 1> dummy_buf_;
     config::SimConfig* sim_config_;
 
     void do_connect(bip::tcp::resolver::iterator it);
     void do_write();
     void do_read();
+    void do_close();
 
 };
 

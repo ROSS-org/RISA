@@ -42,8 +42,6 @@ public:
 
     void initial_data_tasks(int32_t step);
 
-    void set_model_metadata();
-
 private:
     /**
      * @brief Sets up sim config, StreamClient, and DataProcessor

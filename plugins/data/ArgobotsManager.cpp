@@ -19,9 +19,7 @@ ArgobotsManager::ArgobotsManager() :
     last_processed_rts_(0.0),
     last_processed_vts_(0.0),
     primary_rank_(new int(-1)),
-    proc_rank_(new int(-1)),
-    stream_client_(streaming::StreamClient::get_instance()),
-    sim_config_(config::SimConfig::get_instance())
+    proc_rank_(new int(-1))
 {
     init_analysis_tasks();
     primary_xstream_ = (ABT_xstream*)malloc(sizeof(ABT_xstream));
@@ -39,7 +37,7 @@ ArgobotsManager::ArgobotsManager() :
 
     ABT_xstream_self(primary_xstream_);
     ABT_xstream_create_basic(ABT_SCHED_DEFAULT, 1, pool_, ABT_SCHED_CONFIG_NULL, proc_xstream_);
-    int rc = ABT_xstream_start(*proc_xstream_);
+    //int rc = ABT_xstream_start(*proc_xstream_);
     //if (rc == ABT_SUCCESS)
     //    cout << "processing ES successfully started!\n";
     ABT_xstream_get_rank(*primary_xstream_, primary_rank_);

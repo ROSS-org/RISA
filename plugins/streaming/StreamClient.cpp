@@ -41,7 +41,9 @@ void StreamClient::enqueue_data(DamarisDataSampleT* samp)
     size_t size, offset;
     msg->raw_ = fbb.ReleaseRaw(size, offset);
     msg->data_ = &msg->raw_[offset];
+    queue_mtx_.lock();
     write_msgs_.push_back(msg);
+    queue_mtx_.unlock();
 }
 
 void StreamClient::enqueue_data(uint8_t *raw, uint8_t *data, size_t size)
@@ -51,28 +53,14 @@ void StreamClient::enqueue_data(uint8_t *raw, uint8_t *data, size_t size)
     msg->size_ = (int) size;
     msg->raw_ = raw;
     msg->data_ = data;
+    queue_mtx_.lock();
     write_msgs_.push_back(msg);
+    queue_mtx_.unlock();
 }
 
 void StreamClient::close()
 {
-    if (!connected_)
-        return;
-
-    service_.post(
-            [this]() {
-                if (!write_msgs_.empty())
-                {
-                    //cout << "[StreamClient " << process_id_ << "] closing socket, but there are still messages queued!\n";
-                    close();
-                }
-                else
-                {
-                    cout << "[StreamClient " << process_id_ << "] closing socket\n";
-                    connected_ = false;
-                    socket_.close();
-                }
-            });
+    close_now_ = true;
 }
 
 void StreamClient::do_connect(tcp::resolver::iterator it)
@@ -82,15 +70,14 @@ void StreamClient::do_connect(tcp::resolver::iterator it)
             {
                 if (ec)
                 {
-                    cout << ec.category().name() << " error " << ec.value();
-                    cout << ": StreamClient " << process_id_ << " do_connect() " << ec.message();
-                    cout << ". Closing Socket\n";
+                    printf("%s error %d: StreamClient %d do_connect() %s. Closing Socket\n",
+                            ec.category().name(), ec.value(), process_id_, ec.message().c_str());
                     connected_ = false;
                     socket_.close();
                 }
                 else
                 {
-                    cout << "[StreamClient " << process_id_ << "] successfully connected!\n" << endl;
+                    printf("[StreamClient %d] successfully connected!\n", process_id_);
                     connected_ = true;
                     do_read();
                 }
@@ -99,30 +86,42 @@ void StreamClient::do_connect(tcp::resolver::iterator it)
 
 void StreamClient::do_write()
 {
+    queue_mtx_.lock();
     if (write_msgs_.empty() || !connected_)
+    {
+        queue_mtx_.unlock();
         return;
+    }
     std::vector<boost::asio::const_buffer> buf;
     buf.push_back(boost::asio::buffer(&write_msgs_.front()->size_,
                 sizeof(write_msgs_.front()->size_)));
     buf.push_back(boost::asio::buffer(write_msgs_.front()->data_, write_msgs_.front()->size_));
+    queue_mtx_.unlock();
     boost::asio::async_write(socket_, buf,
             [this](boost::system::error_code ec, std::size_t /*length*/)
             {
                 if (!ec)
                 {
+                    queue_mtx_.lock();
                     sample_msg *msg = write_msgs_.front();
-                    delete msg;
                     write_msgs_.pop_front();
-                    if (!write_msgs_.empty())
+                    auto is_empty = write_msgs_.empty();
+                    queue_mtx_.unlock();
+                    delete msg;
+                    if (!is_empty)
                         do_write();
                     else
-                        do_read();
+                    {
+                        if (close_now_)
+                            do_close();
+                        else
+                            do_read();
+                    }
                 }
                 else
                 {
-                    cout << ec.category().name() << " error " << ec.value();
-                    cout << ": StreamClient " << process_id_ << " do_write() " << ec.message();
-                    cout << ". Closing Socket\n";
+                    printf("%s error %d: StreamClient %d do_connect() %s. Closing Socket\n",
+                            ec.category().name(), ec.value(), process_id_, ec.message().c_str());
                     connected_ = false;
                     socket_.close();
                 }
@@ -141,16 +140,43 @@ void StreamClient::do_read()
             {
                 if (!ec)
                 {
-                    if (!write_msgs_.empty())
+                    queue_mtx_.lock();
+                    auto is_empty = write_msgs_.empty();
+                    queue_mtx_.unlock();
+                    if (!is_empty)
                         do_write();
                     else
-                        do_read();
+                    {
+                        if (close_now_)
+                            do_close();
+                        else
+                            do_read();
+                    }
                 }
                 else
                 {
-                    cout << ec.category().name() << " error " << ec.value();
-                    cout << ": StreamClient " << process_id_ << " do_read() " << ec.message();
-                    cout << ". Closing Socket\n";
+                    printf("%s error %d: StreamClient %d do_connect() %s. Closing Socket\n",
+                            ec.category().name(), ec.value(), process_id_, ec.message().c_str());
+                    connected_ = false;
+                    socket_.close();
+                }
+            });
+}
+
+void StreamClient::do_close()
+{
+    service_.post(
+            [this]() {
+                queue_mtx_.lock();
+                auto is_empty = write_msgs_.empty();
+                queue_mtx_.unlock();
+                if (!is_empty)
+                {
+                    do_write();
+                }
+                else
+                {
+                    printf("[StreamClient %d] closing socket\n", process_id_);
                     connected_ = false;
                     socket_.close();
                 }

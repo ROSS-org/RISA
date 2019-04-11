@@ -31,11 +31,8 @@ namespace config {
  */
 class SimConfig {
 public:
-    friend class server::RDServer;
-
     static SimConfig* get_instance();
 
-    void set_parameters(po::variables_map& var_map);
     void print_parameters();
     void print_mode_types(int type);
 
@@ -72,6 +69,8 @@ private:
     SimConfig();
     SimConfig(const SimConfig&) = delete;
     SimConfig& operator=(const SimConfig&) = delete;
+
+    void set_parameters(po::variables_map& var_map);
 
     int total_pe_;
     int num_local_pe_;

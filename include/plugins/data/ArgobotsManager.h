@@ -41,9 +41,6 @@ private:
     int *proc_rank_;
     ABT_pool *pool_;
     ABT_sched *scheduler_;
-
-    streaming::StreamClient* stream_client_;
-    config::SimConfig* sim_config_;
 };
 
 } // end namespace data
