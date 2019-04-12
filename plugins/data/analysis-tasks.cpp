@@ -7,6 +7,7 @@
 #include <plugins/streaming/StreamClient.h>
 #include <plugins/data/SampleFBBuilder.h>
 #include <plugins/data/VTIndex.h>
+#include <plugins/data/TableBuilder.h>
 
 #include <damaris/buffer/DataSpace.hpp>
 #include <damaris/buffer/Buffer.hpp>
@@ -34,6 +35,8 @@ const char * const inst_buffer_names[] = {
     "ross/inst_sample/rts_inst"
 };
 
+static TableBuilder* table_builder;
+
 map<double, SampleFBBuilder> sample_processing_gvt(int mode, int step);
 map<double, SampleFBBuilder> sample_processing_rts(int mode, int step);
 void sample_processing_vts(int mode, int step);
@@ -42,6 +45,7 @@ void init_analysis_tasks()
 {
     sim_config = config::SimConfig::get_instance();
     stream_client = streaming::StreamClient::get_instance();
+    table_builder = new TableBuilder();
 }
 
 // TODO add in size checking for errors
@@ -119,7 +123,8 @@ void initial_data_processing(void *arguments)
     int step = args->step;
     //cout << "initial data processing: step " << step << endl;
     //printf("initial_data_processing() called at step %d, pool_id %d\n", step, pool_id);
-
+    //TODO could just move all this to the argobots manager instead of creating a task to create
+    //potentially 3 new tasks
     const InstMode *modes = EnumValuesInstMode();
     for (int mode = InstMode_GVT; mode <= InstMode_RT; mode++)
     {
@@ -214,23 +219,24 @@ map<double, SampleFBBuilder> sample_processing_gvt(int mode, int step)
 
         damaris::DataSpace<damaris::Buffer> ds((*begin)->GetDataSpace());
         size_t ds_size = ds.GetSize();
-        char* dbuf_cur = reinterpret_cast<char*>(ds.GetData());
-        sample_metadata *sample_md = reinterpret_cast<sample_metadata*>(dbuf_cur);
-        dbuf_cur += sizeof(*sample_md);
-        ds_size -= sizeof(*sample_md);
+        table_builder->save_data(reinterpret_cast<char*>(ds.GetData()), ds_size);
+        //char* dbuf_cur = reinterpret_cast<char*>(ds.GetData());
+        //sample_metadata *sample_md = reinterpret_cast<sample_metadata*>(dbuf_cur);
+        //dbuf_cur += sizeof(*sample_md);
+        //ds_size -= sizeof(*sample_md);
 
-        //cout << "peid: " << sample_md->peid << " vts: " << sample_md->vts << " rts: " << sample_md->rts
-        //    << " last_gvt: " << sample_md->last_gvt << endl;
-        auto sample_fbb = fb_map.find(sample_md->last_gvt);
-        if (sample_fbb == fb_map.end())
-        {
-            //cout << "not found in fb_map for time " << sample_md->last_gvt << endl;
-            auto ret = fb_map.insert(make_pair(sample_md->last_gvt, SampleFBBuilder(sample_md->vts,
-                            sample_md->rts, sample_md->last_gvt, modes[mode])));
-            sample_fbb = ret.first;
-        }
+        ////cout << "peid: " << sample_md->peid << " vts: " << sample_md->vts << " rts: " << sample_md->rts
+        ////    << " last_gvt: " << sample_md->last_gvt << endl;
+        //auto sample_fbb = fb_map.find(sample_md->last_gvt);
+        //if (sample_fbb == fb_map.end())
+        //{
+        //    //cout << "not found in fb_map for time " << sample_md->last_gvt << endl;
+        //    auto ret = fb_map.insert(make_pair(sample_md->last_gvt, SampleFBBuilder(sample_md->vts,
+        //                    sample_md->rts, sample_md->last_gvt, modes[mode])));
+        //    sample_fbb = ret.first;
+        //}
 
-        create_flatbuffer(modes[mode], dbuf_cur, ds_size, sample_md, sample_fbb->second);
+        //create_flatbuffer(modes[mode], dbuf_cur, ds_size, sample_md, sample_fbb->second);
 
         ++begin;
     }

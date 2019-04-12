@@ -53,12 +53,15 @@ SimConfig::SimConfig() :
     auto my_pes_ = damaris::Environment::GetKnownLocalClients();
     num_kp_pe_ = *(static_cast<int*>(DUtil::get_value_from_damaris(
                     "ross/nkp", my_pes_.front(), 0, 0)));
+    num_local_lp_ = 0;
     for (int pe : my_pes_)
     {
         //cout << "[" << my_id << "] pe: " << pe << endl;
         auto val = *(static_cast<int*>(DUtil::get_value_from_damaris("ross/nlp", pe, 0, 0)));
         num_lp_.push_back(val);
+        num_local_lp_ += val;
     }
+
     auto opts = set_options();
     po::variables_map vars;
     string config_file = &((char *)DUtil::get_value_from_damaris(

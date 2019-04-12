@@ -4,7 +4,7 @@
     <architecture>
         <domains count="10000"/>
         <dedicated cores="1" nodes="0"/>
-        <buffer name="buffer" size="1073700000"/>
+        <buffer name="buffer" size="1073700000" blocks="1"/>
         <queue name="queue" size="100"/>
     </architecture>
     <data>

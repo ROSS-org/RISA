@@ -42,6 +42,7 @@ public:
     int num_kp_pe() { return num_kp_pe_; }
     const std::vector<int>& num_lp() { return num_lp_; }
     int num_lp(int peid) { return num_lp_[peid]; }
+    int num_local_lp() { return num_local_lp_; }
     bool pe_data() { return pe_data_; }
     bool kp_data() { return kp_data_; }
     bool lp_data() { return lp_data_; }
@@ -76,6 +77,7 @@ private:
     int num_local_pe_;
     int num_kp_pe_;
     std::vector<int> num_lp_; // TODO is this for all PEs, or just my PEs?
+    int num_local_lp_;
 
     bool inst_mode_sim_[ross_damaris::sample::InstMode_MAX];
     bool inst_mode_model_[ross_damaris::sample::InstMode_MAX];
