@@ -8,6 +8,7 @@
 #include <plugins/data/SampleFBBuilder.h>
 #include <plugins/data/VTIndex.h>
 #include <plugins/data/TableBuilder.h>
+#include <plugins/data/FeatureExtractor.h>
 
 #include <damaris/buffer/DataSpace.hpp>
 #include <damaris/buffer/Buffer.hpp>
@@ -447,4 +448,15 @@ void forward_vts_task(void* arguments)
 
     last_processed_vts = cur_vts - sim_config->vt_interval();
     free(args);
+}
+
+void feature_extraction_task(void* arguments)
+{
+    // TODO figure out how to get only the last 10 steps
+    int *num_steps = reinterpret_cast<int*>(arguments);
+    vtkSmartPointer<FeatureExtractor> extractor = FeatureExtractor::New();
+    extractor->SetInputData(toUType(Port::PE_DATA), table_builder->pe_pds);
+    extractor->SetNumSteps(*num_steps);
+    extractor->Update();
+    free(num_steps);
 }

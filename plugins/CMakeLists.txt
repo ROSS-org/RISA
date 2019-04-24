@@ -37,7 +37,7 @@ PKG_CHECK_MODULES(ARGOBOTS REQUIRED argobots)
 INCLUDE_DIRECTORIES(${Damaris_INCLUDE_DIRS} ${ARGOBOTS_INCLUDE_DIRS})
 
 # VTK
-FIND_PACKAGE(VTK 8.2 COMPONENTS vtkCommonDataModel)
+FIND_PACKAGE(VTK 8.2)
 INCLUDE(${VTK_USE_FILE})
 
 INCLUDE_DIRECTORIES(../include)
@@ -50,6 +50,7 @@ SET(plugin_srcs
     data/SampleFBBuilder.cpp
     data/ArgobotsManager.cpp
     data/TableBuilder.cpp
+    data/FeatureExtractor.cpp
     data/analysis-tasks.cpp
     streaming/StreamClient.cpp)
 

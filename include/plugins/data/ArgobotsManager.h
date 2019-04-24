@@ -32,6 +32,9 @@ private:
     double last_processed_gvt_;
     double last_processed_rts_;
     double last_processed_vts_;
+    // TODO needed for each inst mode?
+    int num_steps_to_process_;
+    int total_steps_;
 
     // This ends up being Main Damaris thread, so do not assign any
     // actual argobots tasks to this.

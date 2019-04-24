@@ -18,6 +18,8 @@ ArgobotsManager::ArgobotsManager() :
     last_processed_gvt_(0.0),
     last_processed_rts_(0.0),
     last_processed_vts_(0.0),
+    num_steps_to_process_(10),
+    total_steps_(0),
     primary_rank_(new int(-1)),
     proc_rank_(new int(-1))
 {
@@ -70,6 +72,14 @@ void ArgobotsManager::create_initial_data_task(int32_t step)
     ABT_task_create(*pool_, initial_data_processing, args, NULL);
     // TODO could add a check for if we're even collecting for VTS
     check_for_rb_data(step);
+    total_steps_++;
+    if (total_steps_ >= num_steps_to_process_)
+    {
+        //set up task to kick off a feature extraction phase
+        int *num_steps = (int*)malloc(sizeof(int));
+        *num_steps = num_steps_to_process_;
+        ABT_task_create(*pool_, feature_extraction_task, num_steps, NULL);
+    }
 }
 
 void ArgobotsManager::check_for_rb_data(int32_t step)

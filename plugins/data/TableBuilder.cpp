@@ -1,59 +1,9 @@
 #include <plugins/data/TableBuilder.h>
+#include <plugins/data/Features.h>
 #include <instrumentation/st-instrumentation-internal.h>
 #include <iostream>
 
 using namespace std;
-
-vtkStdString pe_cols[] =
-{
-    "event_proc",
-    "event_abort",
-    "event_rbs",
-    "rb_total",
-    "rb_primary",
-    "rb_secondary",
-    "fc_attempts",
-    "pq_size",
-    "net_send",
-    "net_recv",
-    "num_gvt",
-    "pe_event_ties",
-    "all_red_count",
-    "net_read_time",
-    "net_other_time",
-    "gvt_time",
-    "fc_time",
-    "ev_abort_time",
-    "ev_proc_time",
-    "pq_time",
-    "rb_time",
-    "cancelq_time",
-    "avl_time",
-    "buddy_time",
-    "lz4_time"
-};
-
-vtkStdString kp_cols[] =
-{
-    "event_proc",
-    "event_abort",
-    "event_rbs",
-    "rb_total",
-    "rb_primary",
-    "rb_secondary",
-    "net_send",
-    "net_recv",
-    "virtual_time_diff"
-};
-
-vtkStdString lp_cols[] =
-{
-    "event_proc",
-    "event_abort",
-    "event_rbs",
-    "net_send",
-    "net_recv"
-};
 
 using namespace ross_damaris::data;
 
@@ -64,6 +14,9 @@ TableBuilder::TableBuilder() :
     lp_pds(vtkPartitionedDataSet::New()),
     sim_config_(config::SimConfig::get_instance())
 {
+    const char * const* pe_cols = EnumNamesPEMetrics();
+    const char * const* kp_cols = EnumNamesKPMetrics();
+    const char * const* lp_cols = EnumNamesLPMetrics();
     // vtkPartitionedDataSetCollection will have 3 vtkPartitionedDataSets
     // one each for PEs, KPs, and LPs
     // Then each partition will be an entity id and its data in a vtkTable
@@ -76,7 +29,7 @@ TableBuilder::TableBuilder() :
         {
             vtkSmartPointer<vtkUnsignedIntArray> col = vtkUnsignedIntArray::New();
             col->SetNumberOfComponents(1);
-            col->SetName(pe_cols[i].c_str());
+            col->SetName(pe_cols[i]);
             col->SetNumberOfTuples(0);
             cur_table->AddColumn(col);
         }
@@ -84,7 +37,7 @@ TableBuilder::TableBuilder() :
         {
             vtkSmartPointer<vtkFloatArray> col = vtkFloatArray::New();
             col->SetNumberOfComponents(1);
-            col->SetName(pe_cols[NUM_PE_UINT - 1 + i].c_str());
+            col->SetName(pe_cols[NUM_PE_UINT - 1 + i]);
             col->SetNumberOfTuples(0);
             cur_table->AddColumn(col);
         }
@@ -99,7 +52,7 @@ TableBuilder::TableBuilder() :
         {
             vtkSmartPointer<vtkUnsignedIntArray> col = vtkUnsignedIntArray::New();
             col->SetNumberOfComponents(1);
-            col->SetName(kp_cols[i].c_str());
+            col->SetName(kp_cols[i]);
             col->SetNumberOfTuples(0);
             cur_table->AddColumn(col);
         }
@@ -107,7 +60,7 @@ TableBuilder::TableBuilder() :
         {
             vtkSmartPointer<vtkFloatArray> col = vtkFloatArray::New();
             col->SetNumberOfComponents(1);
-            col->SetName(kp_cols[NUM_KP_UINT - 1 + i].c_str());
+            col->SetName(kp_cols[NUM_KP_UINT - 1 + i]);
             col->SetNumberOfTuples(0);
             cur_table->AddColumn(col);
         }
@@ -122,7 +75,7 @@ TableBuilder::TableBuilder() :
         {
             vtkSmartPointer<vtkUnsignedIntArray> col = vtkUnsignedIntArray::New();
             col->SetNumberOfComponents(1);
-            col->SetName(lp_cols[i].c_str());
+            col->SetName(lp_cols[i]);
             col->SetNumberOfTuples(0);
             cur_table->AddColumn(col);
         }
@@ -171,7 +124,15 @@ void TableBuilder::save_data(char* buffer, size_t buf_size)
         //        sample_md->peid, sample_md->last_gvt, pe_table->GetNumberOfRows(),
         //        pe_table->GetNumberOfColumns());
         //if (pe_table->GetNumberOfRows() >= 17 && sample_md->peid == 0)
-        //    pe_table->Dump(7, 20);
+        //{
+        //    FeatureExtractor* fe = FeatureExtractor::New();
+        //    fe->SetInputData(vtkStatisticsAlgorithm::INPUT_DATA, pe_table);
+        //    fe->AddColumn("event_proc");
+        //    fe->SetLearnOption(true);
+        //    fe->SetDeriveOption(true);
+        //    fe->Update();
+        //    //    pe_table->Dump(7, 20);
+        //}
     }
 
     for (int kp = 0; kp < sample_md->has_kp; kp++)

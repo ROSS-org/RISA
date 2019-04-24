@@ -40,6 +40,8 @@ void forward_vts_task(void* arguments);
 
 void sample_processing_task(void *arguments);
 
+void feature_extraction_task(void *arguments);
+
 #ifdef __cplusplus
 } // end extern "C"
 #endif
