@@ -455,7 +455,10 @@ void feature_extraction_task(void* arguments)
     // TODO figure out how to get only the last 10 steps
     int *num_steps = reinterpret_cast<int*>(arguments);
     vtkSmartPointer<FeatureExtractor> extractor = FeatureExtractor::New();
-    extractor->SetInputData(toUType(Port::PE_DATA), table_builder->pe_pds);
+    vtkPartitionedDataSetCollection* collection = vtkPartitionedDataSetCollection::New();
+    collection->SetNumberOfPartitionedDataSets(1);
+    collection->SetPartitionedDataSet(toUType(Port::PE_DATA), table_builder->pe_pds);
+    extractor->SetInputData(FeatureExtractor::INPUT_DATA, collection);
     extractor->SetNumSteps(*num_steps);
     extractor->Update();
     free(num_steps);
