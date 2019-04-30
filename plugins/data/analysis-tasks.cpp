@@ -452,7 +452,6 @@ void forward_vts_task(void* arguments)
 
 void feature_extraction_task(void* arguments)
 {
-    // TODO figure out how to get only the last 10 steps
     int *num_steps = reinterpret_cast<int*>(arguments);
     vtkSmartPointer<FeatureExtractor> extractor = FeatureExtractor::New();
     vtkPartitionedDataSetCollection* collection = vtkPartitionedDataSetCollection::New();

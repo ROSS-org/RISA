@@ -93,7 +93,10 @@ int FeatureExtractor::RequestData(vtkInformation* request, vtkInformationVector*
         lp_data = raw_data->GetPartitionedDataSet(toUType(Port::LP_DATA));
 
     vtkPartitionedDataSet* full_pds = vtkPartitionedDataSet::GetData(output_vec, FULL_FEATURES);
+    full_pds->SetNumberOfPartitions(3);
+
     vtkPartitionedDataSet* selected_pds = vtkPartitionedDataSet::GetData(output_vec, SELECTED_FEATURES);
+    selected_pds->SetNumberOfPartitions(3);
 
     vtkTable* pe_features = nullptr;
     vtkTable* kp_features = nullptr;
@@ -162,10 +165,12 @@ int FeatureExtractor::RequestData(vtkInformation* request, vtkInformationVector*
         }
     }
 
-    full_pds->SetNumberOfPartitions(3);
     full_pds->SetPartition(0, pe_features);
     full_pds->SetPartition(1, kp_features);
     full_pds->SetPartition(2, lp_features);
+    selected_pds->SetPartition(0, pe_selected);
+    selected_pds->SetPartition(1, kp_selected);
+    selected_pds->SetPartition(2, lp_selected);
 
     return 1;
 }
