@@ -28,6 +28,8 @@ namespace fb = flatbuffers;
 config::SimConfig* sim_config = nullptr;
 streaming::StreamClient* stream_client = nullptr;
 VTIndex vtsamples;
+VTIndex rtsamples;
+VTIndex gvtsamples;
 
 const char * const inst_buffer_names[] = {
     "",
@@ -38,9 +40,10 @@ const char * const inst_buffer_names[] = {
 
 static TableBuilder* table_builder;
 
-map<double, SampleFBBuilder> sample_processing_gvt(int mode, int step);
-map<double, SampleFBBuilder> sample_processing_rts(int mode, int step);
+void sample_processing_gvt(int mode, int step);
+void sample_processing_rts(int mode, int step);
 void sample_processing_vts(int mode, int step);
+void table_to_flatbuffer(vtkPartitionedDataSet* pds);
 
 void init_analysis_tasks()
 {
@@ -153,17 +156,16 @@ void sample_processing_task(void *arguments)
     //cout << inst_buffer_names[args->mode];
     //cout << " number of blocks " << v1->CountLocalBlocks(args->step) << endl;
 
-    map<double, SampleFBBuilder> fb_map;
     switch (args->mode)
     {
         case InstMode_GVT:
-            fb_map = sample_processing_gvt(args->mode, args->step);
+            sample_processing_gvt(args->mode, args->step);
             break;
         case InstMode_VT:
             sample_processing_vts(args->mode, args->step);
             break;
         case InstMode_RT:
-            fb_map = sample_processing_rts(args->mode, args->step);
+            sample_processing_rts(args->mode, args->step);
             break;
         default:
             //cout << "sample_processing: wrong mode!\n";
@@ -171,15 +173,14 @@ void sample_processing_task(void *arguments)
     }
 
     //cout << "fb_map size = " << fb_map.size() << endl;
-    for (auto it = fb_map.begin(); it != fb_map.end(); ++it)
-    {
-        SampleFBBuilder& sample_fbb = it->second;
-        sample_fbb.finish();
-        size_t size, offset;
-        uint8_t* raw = sample_fbb.release_raw(size, offset);
-        stream_client->enqueue_data(raw, &raw[offset], size);
-    }
-
+    //for (auto it = fb_map.begin(); it != fb_map.end(); ++it)
+    //{
+    //    SampleFBBuilder& sample_fbb = it->second;
+    //    sample_fbb.finish();
+    //    size_t size, offset;
+    //    uint8_t* raw = sample_fbb.release_raw(size, offset);
+    //    stream_client->enqueue_data(raw, &raw[offset], size);
+    //}
 
     // GC this variable for this time step
     std::shared_ptr<damaris::Variable> v = damaris::VariableManager::Search(inst_buffer_names[args->mode]);
@@ -189,7 +190,7 @@ void sample_processing_task(void *arguments)
 }
 
 //TODO return a map of flatbuffers (one for each sampling point)
-map<double, SampleFBBuilder> sample_processing_gvt(int mode, int step)
+void sample_processing_gvt(int mode, int step)
 {
     int my_rank;
     ABT_xstream_self_rank(&my_rank);
@@ -208,9 +209,6 @@ map<double, SampleFBBuilder> sample_processing_gvt(int mode, int step)
         //cout << "sample_processing_gvt: begin == end\n";
     }
 
-    map<double, SampleFBBuilder> fb_map;
-    const InstMode *modes = EnumValuesInstMode();
-
     while (begin != end)
     {
         // each iterator is to a buffer sample from ROSS
@@ -220,32 +218,30 @@ map<double, SampleFBBuilder> sample_processing_gvt(int mode, int step)
 
         damaris::DataSpace<damaris::Buffer> ds((*begin)->GetDataSpace());
         size_t ds_size = ds.GetSize();
-        table_builder->save_data(reinterpret_cast<char*>(ds.GetData()), ds_size);
-        //char* dbuf_cur = reinterpret_cast<char*>(ds.GetData());
-        //sample_metadata *sample_md = reinterpret_cast<sample_metadata*>(dbuf_cur);
-        //dbuf_cur += sizeof(*sample_md);
-        //ds_size -= sizeof(*sample_md);
+        char* dbuf_cur = reinterpret_cast<char*>(ds.GetData());
+        sample_metadata *sample_md = reinterpret_cast<sample_metadata*>(dbuf_cur);
+        table_builder->save_data(dbuf_cur, ds_size, sample_md->last_gvt);
+        dbuf_cur += sizeof(*sample_md);
+        ds_size -= sizeof(*sample_md);
 
-        ////cout << "peid: " << sample_md->peid << " vts: " << sample_md->vts << " rts: " << sample_md->rts
-        ////    << " last_gvt: " << sample_md->last_gvt << endl;
-        //auto sample_fbb = fb_map.find(sample_md->last_gvt);
-        //if (sample_fbb == fb_map.end())
-        //{
-        //    //cout << "not found in fb_map for time " << sample_md->last_gvt << endl;
-        //    auto ret = fb_map.insert(make_pair(sample_md->last_gvt, SampleFBBuilder(sample_md->vts,
-        //                    sample_md->rts, sample_md->last_gvt, modes[mode])));
-        //    sample_fbb = ret.first;
-        //}
-
-        //create_flatbuffer(modes[mode], dbuf_cur, ds_size, sample_md, sample_fbb->second);
+        //cout << "peid: " << sample_md->peid << " vts: " << sample_md->vts << " rts: " << sample_md->rts
+        //    << " last_gvt: " << sample_md->last_gvt << endl;
+        auto it = gvtsamples.get<by_pe_gvt>().find(make_tuple(sample_md->peid, sample_md->last_gvt));
+        SampleFBBuilder* sample_fbb;
+        if (it != gvtsamples.get<by_pe_gvt>().end())
+        {
+            //cout << "not found in fb_map for time " << sample_md->last_gvt << endl;
+            auto samp = rtsamples.insert(std::make_shared<VTSample>(sample_md->kp_gid, sample_md->vts,
+                        sample_md->rts, sample_md->last_gvt));
+            //sample_fbb = (*(samp.first))->get_sample_fbb();
+            //create_flatbuffer(modes[mode], dbuf_cur, ds_size, sample_md, *sample_fbb);
+        }
 
         ++begin;
     }
-
-    return fb_map;
 }
 
-map<double, SampleFBBuilder> sample_processing_rts(int mode, int step)
+void sample_processing_rts(int mode, int step)
 {
     damaris::BlocksByIteration::iterator begin, end;
     DUtil::get_damaris_iterators(inst_buffer_names[mode], step, begin, end);
@@ -261,9 +257,6 @@ map<double, SampleFBBuilder> sample_processing_rts(int mode, int step)
         //cout << "sample_processing_rts: begin == end\n";
     }
 
-    map<double, SampleFBBuilder> fb_map;
-    const InstMode *modes = EnumValuesInstMode();
-
     while (begin != end)
     {
         // each iterator is to a buffer sample from ROSS
@@ -275,25 +268,28 @@ map<double, SampleFBBuilder> sample_processing_rts(int mode, int step)
         size_t ds_size = ds.GetSize();
         char* dbuf_cur = reinterpret_cast<char*>(ds.GetData());
         sample_metadata *sample_md = reinterpret_cast<sample_metadata*>(dbuf_cur);
+        table_builder->save_data(dbuf_cur, ds_size, sample_md->rts);
         dbuf_cur += sizeof(*sample_md);
         ds_size -= sizeof(*sample_md);
 
         //cout << "peid: " << sample_md->peid << " vts: " << sample_md->vts << " rts: " << sample_md->rts
         //    << " last_gvt: " << sample_md->vts << endl;
-        auto sample_fbb = fb_map.find(sample_md->rts);
-        if (sample_fbb == fb_map.end())
+        auto it = rtsamples.get<by_pe_rt>().find(make_tuple(sample_md->peid, sample_md->rts));
+        SampleFBBuilder* sample_fbb;
+        if (it != rtsamples.get<by_pe_rt>().end())
         {
-            auto ret = fb_map.insert(make_pair(sample_md->rts, SampleFBBuilder(sample_md->vts,
-                            sample_md->rts, sample_md->last_gvt, modes[mode])));
-            sample_fbb = ret.first;
+        }
+        else
+        {
+            auto samp = rtsamples.insert(std::make_shared<VTSample>(sample_md->kp_gid, sample_md->vts,
+                        sample_md->rts, sample_md->last_gvt));
+            //sample_fbb = (*(samp.first))->get_sample_fbb();
+            //create_flatbuffer(modes[mode], dbuf_cur, ds_size, sample_md, *sample_fbb);
         }
 
-        create_flatbuffer(modes[mode], dbuf_cur, ds_size, sample_md, sample_fbb->second);
 
         ++begin;
     }
-
-    return fb_map;
 }
 
 // TODO for the time being, we are only handling model data with VTS
@@ -461,4 +457,13 @@ void feature_extraction_task(void* arguments)
     extractor->SetNumSteps(*num_steps);
     extractor->Update();
     free(num_steps);
+
+    vtkPartitionedDataSet* selected = vtkPartitionedDataSet::SafeDownCast(
+            extractor->GetOutputDataObject(FeatureExtractor::SELECTED_FEATURES));
+    table_to_flatbuffer(selected);
+}
+
+void table_to_flatbuffer(vtkPartitionedDataSet* pds)
+{
+
 }

@@ -11,6 +11,7 @@
 #include <vtkStdString.h>
 #include <vtkUnsignedIntArray.h>
 #include <vtkFloatArray.h>
+#include <vtkDoubleArray.h>
 
 #include <plugins/util/SimConfig.h>
 
@@ -43,7 +44,7 @@ struct TableBuilder
     config::SimConfig* sim_config_;
 
     TableBuilder();
-    void save_data(char* buffer, size_t buf_size);
+    void save_data(char* buffer, size_t buf_size, double ts);
 };
 
 } // end namespace data

@@ -25,6 +25,12 @@ TableBuilder::TableBuilder() :
     for (int i = 0; i < sim_config_->num_local_pe(); i++)
     {
         vtkTable *cur_table = vtkTable::New();
+        vtkSmartPointer<vtkDoubleArray> time_col = vtkDoubleArray::New();
+        time_col->SetNumberOfComponents(1);
+        time_col->SetName("timestamp");
+        time_col->SetNumberOfTuples(0);
+        cur_table->AddColumn(time_col);
+
         for (int i = 0; i < NUM_PE_UINT - 1; i++)
         {
             vtkSmartPointer<vtkUnsignedIntArray> col = vtkUnsignedIntArray::New();
@@ -48,6 +54,11 @@ TableBuilder::TableBuilder() :
     for (int i = 0; i < sim_config_->num_local_pe() * sim_config_->num_kp_pe(); i++)
     {
         vtkTable *cur_table = vtkTable::New();
+        vtkSmartPointer<vtkDoubleArray> time_col = vtkDoubleArray::New();
+        time_col->SetNumberOfComponents(1);
+        time_col->SetName("timestamp");
+        time_col->SetNumberOfTuples(0);
+        cur_table->AddColumn(time_col);
         for (int i = 0; i < NUM_KP_UINT - 1; i++)
         {
             vtkSmartPointer<vtkUnsignedIntArray> col = vtkUnsignedIntArray::New();
@@ -71,6 +82,11 @@ TableBuilder::TableBuilder() :
     for (int i = 0; i < sim_config_->num_local_lp(); i++)
     {
         vtkTable *cur_table = vtkTable::New();
+        vtkSmartPointer<vtkDoubleArray> time_col = vtkDoubleArray::New();
+        time_col->SetNumberOfComponents(1);
+        time_col->SetName("timestamp");
+        time_col->SetNumberOfTuples(0);
+        cur_table->AddColumn(time_col);
         for (int i = 0; i < NUM_LP_UINT - 2; i++)
         {
             vtkSmartPointer<vtkUnsignedIntArray> col = vtkUnsignedIntArray::New();
@@ -90,7 +106,7 @@ TableBuilder::TableBuilder() :
     collection->SetPartitionedDataSet(LP_PARTITION, lp_pds);
 }
 
-void TableBuilder::save_data(char* buffer, size_t buf_size)
+void TableBuilder::save_data(char* buffer, size_t buf_size, double ts)
 {
     // pe_pds->GetNumberOfPartitions();
     // vtkDataObject = pe_pds->GetPartionAsDataObject(id);
@@ -103,6 +119,7 @@ void TableBuilder::save_data(char* buffer, size_t buf_size)
     {
         // create a vtkVariantArray, which will become a row for this PE's table
         vtkSmartPointer<vtkVariantArray> arr = vtkVariantArray::New();
+        arr->InsertNextValue(ts);
 
         unsigned int* pe_int_data = reinterpret_cast<unsigned int*>(buffer);
         buffer += sizeof(unsigned int) * NUM_PE_UINT;
@@ -123,16 +140,6 @@ void TableBuilder::save_data(char* buffer, size_t buf_size)
         //printf("saved PE %d for GVT %f: num rows %lld, num cols %lld\n",
         //        sample_md->peid, sample_md->last_gvt, pe_table->GetNumberOfRows(),
         //        pe_table->GetNumberOfColumns());
-        //if (pe_table->GetNumberOfRows() >= 17 && sample_md->peid == 0)
-        //{
-        //    FeatureExtractor* fe = FeatureExtractor::New();
-        //    fe->SetInputData(vtkStatisticsAlgorithm::INPUT_DATA, pe_table);
-        //    fe->AddColumn("event_proc");
-        //    fe->SetLearnOption(true);
-        //    fe->SetDeriveOption(true);
-        //    fe->Update();
-        //    //    pe_table->Dump(7, 20);
-        //}
     }
 
     for (int kp = 0; kp < sample_md->has_kp; kp++)
@@ -142,6 +149,7 @@ void TableBuilder::save_data(char* buffer, size_t buf_size)
         int kpid = sample_md->peid * sim_config_->num_kp_pe() + kp;
         // create a vtkVariantArray, which will become a row for this PE's table
         vtkSmartPointer<vtkVariantArray> arr = vtkVariantArray::New();
+        arr->InsertNextValue(ts);
 
         unsigned int* kp_int_data = reinterpret_cast<unsigned int*>(buffer);
         buffer += sizeof(unsigned int) * NUM_KP_UINT;
@@ -170,6 +178,7 @@ void TableBuilder::save_data(char* buffer, size_t buf_size)
     {
         // create a vtkVariantArray, which will become a row for this PE's table
         vtkSmartPointer<vtkVariantArray> arr = vtkVariantArray::New();
+        arr->InsertNextValue(ts);
 
         unsigned int* lp_int_data = reinterpret_cast<unsigned int*>(buffer);
         buffer += sizeof(unsigned int) * NUM_LP_UINT;

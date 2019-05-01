@@ -21,6 +21,20 @@ enum DataStatus:int {
     invalid
 }
 
+enum FeatureType:int {
+    MIN_VAL,
+    MAX_VAL,
+    SUM,
+    MEAN,
+    M2,
+    M3,
+    M4,
+    STD_DEV,
+    VAR,
+    SKEW,
+    KURTOSIS
+}
+
 /// Sim engine metrics that are collected by ROSS instrumentation
 table SimEngineMetrics {
     nevent_processed:int;
@@ -50,6 +64,11 @@ table SimEngineMetrics {
     comm_data:[int];
 }
 
+table FeatureData {
+    type:FeatureType;
+    data:SimEngineMetrics;
+}
+
 table LPData {
     peid:int;
     kpid:int;
@@ -57,6 +76,7 @@ table LPData {
     lpid:int;
     lp_gid:int;
     data:SimEngineMetrics;
+    feature_data:FeatureData;
 }
 
 table KPData {
@@ -64,11 +84,13 @@ table KPData {
     kpid:int;
     kp_gid:int;
     data:SimEngineMetrics;
+    feature_data:FeatureData;
 }
 
 table PEData {
     peid:int;
     data:SimEngineMetrics;
+    feature_data:FeatureData;
 }
 
 table IntVar {

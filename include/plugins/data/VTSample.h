@@ -13,6 +13,7 @@ public:
         kp_gid_(kp_gid),
         vts_(vts),
         rts_(rts),
+        gvt_(gvt),
         status_(status),
         sample_fbb_(vts, rts, gvt, sample::InstMode_VT) {  }
 
@@ -20,6 +21,7 @@ public:
         kp_gid_(s.kp_gid_),
         vts_(s.vts_),
         rts_(s.rts_),
+        gvt_(s.gvt_),
         status_(s.status_),
         sample_fbb_(std::move(s.sample_fbb_)) {  }
 
@@ -28,14 +30,17 @@ public:
         kp_gid_ = s.kp_gid_;
         vts_ = s.vts_;
         rts_ = s.rts_;
+        gvt_ = s.gvt_;
         status_ = s.status_;
         sample_fbb_ = std::move(s.sample_fbb_);
         return *this;
     }
 
+    virtual int get_peid() const { return peid_; }
     virtual int get_kp_gid() const { return kp_gid_; }
     virtual double get_vts() const { return vts_; }
     virtual double get_rts() const { return rts_; }
+    virtual double get_gvt() const { return gvt_; }
 
     SampleFBBuilder* get_sample_fbb() { return &sample_fbb_; }
 
@@ -53,9 +58,11 @@ private:
     VTSample(const VTSample&) = delete;
     VTSample& operator=(const VTSample&) = delete;
 
+    int peid_;
     int kp_gid_;
     double vts_;
     double rts_;
+    double gvt_;
     sample::DataStatus status_;
     SampleFBBuilder sample_fbb_;
 };

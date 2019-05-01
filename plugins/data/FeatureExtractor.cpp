@@ -83,14 +83,9 @@ int FeatureExtractor::RequestData(vtkInformation* request, vtkInformationVector*
     vtkPartitionedDataSet* kp_data;
     vtkPartitionedDataSet* lp_data;
 
-    //if (num_pds >= 1)
-        pe_data = raw_data->GetPartitionedDataSet(toUType(Port::PE_DATA));
-
-    //if (num_pds >= 2)
-        kp_data = raw_data->GetPartitionedDataSet(toUType(Port::KP_DATA));
-
-    //if (num_pds >= 3)
-        lp_data = raw_data->GetPartitionedDataSet(toUType(Port::LP_DATA));
+    pe_data = raw_data->GetPartitionedDataSet(toUType(Port::PE_DATA));
+    kp_data = raw_data->GetPartitionedDataSet(toUType(Port::KP_DATA));
+    lp_data = raw_data->GetPartitionedDataSet(toUType(Port::LP_DATA));
 
     vtkPartitionedDataSet* full_pds = vtkPartitionedDataSet::GetData(output_vec, FULL_FEATURES);
     full_pds->SetNumberOfPartitions(3);
