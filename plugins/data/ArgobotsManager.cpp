@@ -73,13 +73,13 @@ void ArgobotsManager::create_initial_data_task(int32_t step)
     // TODO could add a check for if we're even collecting for VTS
     check_for_rb_data(step);
     total_steps_++;
-    if (total_steps_ >= num_steps_to_process_)
-    {
-        //set up task to kick off a feature extraction phase
-        int *num_steps = (int*)malloc(sizeof(int));
-        *num_steps = num_steps_to_process_;
-        ABT_task_create(*pool_, feature_extraction_task, num_steps, NULL);
-    }
+    //if (total_steps_ >= num_steps_to_process_)
+    //{
+    //    //set up task to kick off a feature extraction phase
+    //    feature_extraction_args *args = (feature_extraction_args*)malloc(sizeof(feature_extraction_args));
+    //    args->num_steps = num_steps_to_process_;
+    //    ABT_task_create(*pool_, feature_extraction_task, args, NULL);
+    //}
 }
 
 void ArgobotsManager::check_for_rb_data(int32_t step)

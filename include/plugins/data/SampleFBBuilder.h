@@ -7,6 +7,7 @@
 #include <plugins/util/SimConfig.h>
 #include <instrumentation/st-instrumentation-internal.h>
 #include <instrumentation/st-model-data.h>
+#include <vtkDoubleArray.h>
 
 namespace ross_damaris {
 namespace data {
@@ -29,6 +30,7 @@ public:
     void add_pe(const st_pe_stats* pe_stats);
     void add_kp(const st_kp_stats* kp_stats, int peid);
     void add_lp(const st_lp_stats* lp_stats, int peid);
+    void add_feature(vtkDoubleArray* arr);
     char* add_model_lp(st_model_data* model_lp, char* buffer, size_t& buf_size, int peid);
     void finish();
     uint8_t* release_raw(size_t& fb_size, size_t& offset);
@@ -42,6 +44,7 @@ private:
     std::vector<flatbuffers::Offset<sample::PEData>> pe_vector_;
     std::vector<flatbuffers::Offset<sample::KPData>> kp_vector_;
     std::vector<flatbuffers::Offset<sample::LPData>> lp_vector_;
+    std::vector<flatbuffers::Offset<sample::FeatureData>> feature_vector_;
     std::vector<flatbuffers::Offset<sample::ModelLP>> mlp_vector_;
 
     config::SimConfig* sim_config_;

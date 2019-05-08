@@ -132,6 +132,17 @@ void SampleFBBuilder::add_lp(const st_lp_stats* lp_stats, int peid)
                 lp_stats->lpid, sim_data));
 }
 
+void SampleFBBuilder::add_feature(vtkDoubleArray* arr)
+{
+    vector<double> data;
+    for (int i = 0; i < arr->GetNumberOfValues(); i++)
+    {
+        data.push_back(arr->GetValue(i));
+    }
+
+    feature_vector_.push_back(CreateFeatureDataDirect(fbb_));
+}
+
 char* SampleFBBuilder::add_model_lp(st_model_data* model_lp, char* buffer, size_t& buf_size, int peid)
 {
     auto lp_md = sim_config_->get_lp_model_md(peid, model_lp->kpid, model_lp->lpid);

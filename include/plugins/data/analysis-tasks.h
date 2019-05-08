@@ -27,6 +27,13 @@ struct forward_task_args
     double last_gvt; // inclusive
 };
 
+struct feature_extraction_args
+{
+    double ts;
+    int num_steps;
+    int mode;
+};
+
 void init_analysis_tasks(void);
 
 /**

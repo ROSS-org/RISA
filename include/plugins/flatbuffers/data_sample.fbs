@@ -35,6 +35,35 @@ enum FeatureType:int {
     KURTOSIS
 }
 
+enum MetricType:int {
+    EVENT_PROC,
+    EVENT_ABORT,
+    EVENT_RB,
+    RB_TOTAL,
+    RB_PRIM,
+    RB_SEC,
+    FC_ATTEMPTS,
+    PQ_QSIZE,
+    NET_SEND,
+    NET_RECV,
+    NUM_GVT,
+    EVENT_TIES,
+    ALLRED,
+    NET_READ_TIME,
+    NET_OTHER_TIME,
+    GVT_TIME,
+    FC_TIME,
+    EVENT_ABORT_TIME,
+    EVENT_PROC_TIME,
+    PQ_TIME,
+    RB_TIME,
+    CANCEL_Q_TIME,
+    AVL_TIME,
+    BUDDY_TIME,
+    LZ4_TIME,
+    VIRT_TIME_DIFF
+}
+
 /// Sim engine metrics that are collected by ROSS instrumentation
 table SimEngineMetrics {
     nevent_processed:int;
@@ -65,8 +94,9 @@ table SimEngineMetrics {
 }
 
 table FeatureData {
-    type:FeatureType;
-    data:SimEngineMetrics;
+    feature:FeatureType;
+    metric:MetricType;
+    data:[double];
 }
 
 table LPData {
@@ -76,7 +106,6 @@ table LPData {
     lpid:int;
     lp_gid:int;
     data:SimEngineMetrics;
-    feature_data:FeatureData;
 }
 
 table KPData {
@@ -84,13 +113,11 @@ table KPData {
     kpid:int;
     kp_gid:int;
     data:SimEngineMetrics;
-    feature_data:FeatureData;
 }
 
 table PEData {
     peid:int;
     data:SimEngineMetrics;
-    feature_data:FeatureData;
 }
 
 table IntVar {
@@ -137,6 +164,7 @@ table DamarisDataSample {
     kp_data:[KPData];
     lp_data:[LPData];
     model_data:[ModelLP];
+    pe_features:[FeatureData];
     /// next three used for internal info
     entity_id:int = -1;
     event_id:int = -1;

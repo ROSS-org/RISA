@@ -47,13 +47,13 @@ typedef boost::multi_index_container<
                         bmi::const_mem_fun<VTSample,double,&VTSample::get_vts>
                     >
                 >,
-                bmi::ordered_non_unique<bmi::tag<by_pe_gvt>,
+                bmi::ordered_unique<bmi::tag<by_pe_gvt>,
                     bmi::composite_key<VTSample,
                         bmi::const_mem_fun<VTSample,int,&VTSample::get_peid>,
                         bmi::const_mem_fun<VTSample,double,&VTSample::get_gvt>
                     >
                 >,
-                bmi::ordered_non_unique<bmi::tag<by_pe_rt>,
+                bmi::ordered_unique<bmi::tag<by_pe_rt>,
                     bmi::composite_key<VTSample,
                         bmi::const_mem_fun<VTSample,int,&VTSample::get_peid>,
                         bmi::const_mem_fun<VTSample,double,&VTSample::get_rts>
@@ -78,6 +78,11 @@ typedef VTIndex::index<by_kp_vt>::type VTSByKPVT;
 typedef VTIndex::index<by_pe_rt>::type VTSByPERT;
 typedef VTIndex::index<by_pe_gvt>::type VTSByPEGVT;
 typedef VTIndex::index<by_kp_vt_rt>::type VTSByKPVTRT;
+
+struct SampleVisitor
+{
+    void operator()(VTIndex* samples, VTSByPERT samp) const {}
+};
 
 } // end namespace data
 } // end namespace ross_damaris

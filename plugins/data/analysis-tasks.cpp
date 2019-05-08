@@ -14,7 +14,7 @@
 #include <damaris/buffer/Buffer.hpp>
 #include <damaris/data/VariableManager.hpp>
 #include <damaris/data/Variable.hpp>
-
+#include <boost/variant.hpp>
 #include <instrumentation/st-instrumentation-internal.h>
 //#include <instrumentation/st-model-data.h>
 
@@ -39,11 +39,13 @@ const char * const inst_buffer_names[] = {
 };
 
 static TableBuilder* table_builder;
+static int num_steps_to_process = 10;
 
 void sample_processing_gvt(int mode, int step);
 void sample_processing_rts(int mode, int step);
 void sample_processing_vts(int mode, int step);
-void table_to_flatbuffer(vtkPartitionedDataSet* pds);
+void table_to_flatbuffer(vtkPartitionedDataSet* pds, feature_extraction_args *args);
+void queue_feature_extraction_task(set<double>& timestamps, int mode);
 
 void init_analysis_tasks()
 {
@@ -189,6 +191,26 @@ void sample_processing_task(void *arguments)
     free(args);
 }
 
+void queue_feature_extraction_task(set<double>& timestamps, int mode)
+{
+    ABT_xstream xstream;
+    ABT_pool pool;
+    ABT_xstream_self(&xstream);
+    ABT_xstream_get_main_pools(xstream, 1, &pool);
+    int pool_id;
+    ABT_pool_get_id(pool, &pool_id);
+
+    //set up task to kick off a feature extraction phase
+    for (double ts : timestamps)
+    {
+        feature_extraction_args *args = (feature_extraction_args*)malloc(sizeof(feature_extraction_args));
+        args->num_steps = num_steps_to_process;
+        args->mode = mode;
+        args->ts = ts;
+        ABT_task_create(pool, feature_extraction_task, args, NULL);
+    }
+}
+
 //TODO return a map of flatbuffers (one for each sampling point)
 void sample_processing_gvt(int mode, int step)
 {
@@ -209,6 +231,7 @@ void sample_processing_gvt(int mode, int step)
         //cout << "sample_processing_gvt: begin == end\n";
     }
 
+    set<double> timestamps;
     while (begin != end)
     {
         // each iterator is to a buffer sample from ROSS
@@ -223,6 +246,7 @@ void sample_processing_gvt(int mode, int step)
         table_builder->save_data(dbuf_cur, ds_size, sample_md->last_gvt);
         dbuf_cur += sizeof(*sample_md);
         ds_size -= sizeof(*sample_md);
+        timestamps.insert(sample_md->last_gvt);
 
         //cout << "peid: " << sample_md->peid << " vts: " << sample_md->vts << " rts: " << sample_md->rts
         //    << " last_gvt: " << sample_md->last_gvt << endl;
@@ -231,7 +255,7 @@ void sample_processing_gvt(int mode, int step)
         if (it != gvtsamples.get<by_pe_gvt>().end())
         {
             //cout << "not found in fb_map for time " << sample_md->last_gvt << endl;
-            auto samp = rtsamples.insert(std::make_shared<VTSample>(sample_md->kp_gid, sample_md->vts,
+            auto samp = gvtsamples.insert(std::make_shared<VTSample>(sample_md->kp_gid, sample_md->vts,
                         sample_md->rts, sample_md->last_gvt));
             //sample_fbb = (*(samp.first))->get_sample_fbb();
             //create_flatbuffer(modes[mode], dbuf_cur, ds_size, sample_md, *sample_fbb);
@@ -239,6 +263,8 @@ void sample_processing_gvt(int mode, int step)
 
         ++begin;
     }
+
+    queue_feature_extraction_task(timestamps, mode);
 }
 
 void sample_processing_rts(int mode, int step)
@@ -257,6 +283,7 @@ void sample_processing_rts(int mode, int step)
         //cout << "sample_processing_rts: begin == end\n";
     }
 
+    set<double> timestamps;
     while (begin != end)
     {
         // each iterator is to a buffer sample from ROSS
@@ -271,6 +298,7 @@ void sample_processing_rts(int mode, int step)
         table_builder->save_data(dbuf_cur, ds_size, sample_md->rts);
         dbuf_cur += sizeof(*sample_md);
         ds_size -= sizeof(*sample_md);
+        timestamps.insert(sample_md->rts);
 
         //cout << "peid: " << sample_md->peid << " vts: " << sample_md->vts << " rts: " << sample_md->rts
         //    << " last_gvt: " << sample_md->vts << endl;
@@ -290,6 +318,7 @@ void sample_processing_rts(int mode, int step)
 
         ++begin;
     }
+    queue_feature_extraction_task(timestamps, mode);
 }
 
 // TODO for the time being, we are only handling model data with VTS
@@ -448,22 +477,42 @@ void forward_vts_task(void* arguments)
 
 void feature_extraction_task(void* arguments)
 {
-    int *num_steps = reinterpret_cast<int*>(arguments);
+    feature_extraction_args* args = reinterpret_cast<feature_extraction_args*>(arguments);
     vtkSmartPointer<FeatureExtractor> extractor = FeatureExtractor::New();
     vtkPartitionedDataSetCollection* collection = vtkPartitionedDataSetCollection::New();
     collection->SetNumberOfPartitionedDataSets(1);
     collection->SetPartitionedDataSet(toUType(Port::PE_DATA), table_builder->pe_pds);
     extractor->SetInputData(FeatureExtractor::INPUT_DATA, collection);
-    extractor->SetNumSteps(*num_steps);
+    extractor->SetNumSteps(args->num_steps);
     extractor->Update();
-    free(num_steps);
 
     vtkPartitionedDataSet* selected = vtkPartitionedDataSet::SafeDownCast(
             extractor->GetOutputDataObject(FeatureExtractor::SELECTED_FEATURES));
-    table_to_flatbuffer(selected);
+    table_to_flatbuffer(selected, args);
+    free(args);
 }
 
-void table_to_flatbuffer(vtkPartitionedDataSet* pds)
+void table_to_flatbuffer(vtkPartitionedDataSet* pds, feature_extraction_args* args)
 {
+    VTIndex* samples = NULL;
+    //boost::variant<VTSByPERT, VTSByPEGVT> samp;
+    if (static_cast<InstMode>(args->mode) == InstMode_GVT)
+        samples = &gvtsamples;
+    else if (static_cast<InstMode>(args->mode) == InstMode_RT)
+        samples = &rtsamples;
 
+    if (!samples)
+        return;
+
+    //auto sample_it = samples->get<by_pe_rt>().find(make_tuple());
+    //if (sample_it != samples->get<by_kp_vt_rt>().end())
+
+    vtkTable* pe_selected = vtkTable::SafeDownCast(pds->GetPartitionAsDataObject(0));
+    pe_selected->Dump(15, 5);
+
+    for (vtkIdType i = 1; i < pe_selected->GetNumberOfColumns(); i++)
+    {
+        vtkDoubleArray* col = vtkDoubleArray::SafeDownCast(pe_selected->GetColumn(i));
+        
+    }
 }

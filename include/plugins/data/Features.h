@@ -1,8 +1,30 @@
 #ifndef FEATURES_H
 #define FEATURES_H
 
+#include <unordered_map>
+#include <string>
+#include <plugins/flatbuffers/data_sample_generated.h>
+
 namespace ross_damaris {
 namespace data {
+
+struct FeatureTypeMap : public std::unordered_map<std::string, sample::FeatureType>
+{
+    FeatureTypeMap()
+    {
+        this->operator[]("min") = sample::FeatureType_MIN_VAL;
+        this->operator[]("max") = sample::FeatureType_MAX_VAL;
+        this->operator[]("sum") = sample::FeatureType_SUM;
+        this->operator[]("mean") = sample::FeatureType_MEAN;
+        this->operator[]("m2") = sample::FeatureType_M2;
+        this->operator[]("m3") = sample::FeatureType_M3;
+        this->operator[]("m4") = sample::FeatureType_M4;
+        this->operator[]("stddev") = sample::FeatureType_STD_DEV;
+        this->operator[]("var") = sample::FeatureType_VAR;
+        this->operator[]("skew") = sample::FeatureType_SKEW;
+        this->operator[]("kurtosis") = sample::FeatureType_KURTOSIS;
+    }
+};
 
 enum class PrimaryFeatures
 {
