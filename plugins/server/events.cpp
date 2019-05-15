@@ -8,6 +8,7 @@
 #include <plugins/flatbuffers/data_sample_generated.h>
 #include <plugins/util/damaris-util.h>
 #include <plugins/util/SimConfig.h>
+#include <plugins/data/analysis-tasks.h>
 
 #include <damaris/buffer/DataSpace.hpp>
 #include <damaris/buffer/Buffer.hpp>
@@ -79,6 +80,11 @@ void damaris_rank_finalize(const std::string& event, int32_t src, int32_t step, 
     //cout << "damaris_rank_finalize() step " << step << endl;
     server->finalize();
     //cout << "end of damaris_rank_finalize()\n";
+    size_t raw, reduced;
+    get_reduction_sizes(&raw, &reduced);
+    double red_percent = 100.0 * (raw - reduced) / raw;
+    cout << "RISA End\nRaw data size: " << raw << "\nReduced data size: " << reduced <<
+        "\nPercent reduced: " << red_percent << "%" << endl;
 }
 
 }

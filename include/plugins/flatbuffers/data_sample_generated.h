@@ -837,7 +837,7 @@ struct FeatureDataT : public flatbuffers::NativeTable {
   typedef FeatureData TableType;
   FeatureType feature;
   MetricType metric;
-  std::vector<double> data;
+  std::vector<float> data;
   FeatureDataT()
       : feature(FeatureType_MIN_VAL),
         metric(MetricType_EVENT_PROC) {
@@ -860,8 +860,8 @@ struct FeatureData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   MetricType metric() const {
     return static_cast<MetricType>(GetField<int32_t>(VT_METRIC, 0));
   }
-  const flatbuffers::Vector<double> *data() const {
-    return GetPointer<const flatbuffers::Vector<double> *>(VT_DATA);
+  const flatbuffers::Vector<float> *data() const {
+    return GetPointer<const flatbuffers::Vector<float> *>(VT_DATA);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -885,7 +885,7 @@ struct FeatureDataBuilder {
   void add_metric(MetricType metric) {
     fbb_.AddElement<int32_t>(FeatureData::VT_METRIC, static_cast<int32_t>(metric), 0);
   }
-  void add_data(flatbuffers::Offset<flatbuffers::Vector<double>> data) {
+  void add_data(flatbuffers::Offset<flatbuffers::Vector<float>> data) {
     fbb_.AddOffset(FeatureData::VT_DATA, data);
   }
   explicit FeatureDataBuilder(flatbuffers::FlatBufferBuilder &_fbb)
@@ -904,7 +904,7 @@ inline flatbuffers::Offset<FeatureData> CreateFeatureData(
     flatbuffers::FlatBufferBuilder &_fbb,
     FeatureType feature = FeatureType_MIN_VAL,
     MetricType metric = MetricType_EVENT_PROC,
-    flatbuffers::Offset<flatbuffers::Vector<double>> data = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<float>> data = 0) {
   FeatureDataBuilder builder_(_fbb);
   builder_.add_data(data);
   builder_.add_metric(metric);
@@ -916,8 +916,8 @@ inline flatbuffers::Offset<FeatureData> CreateFeatureDataDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     FeatureType feature = FeatureType_MIN_VAL,
     MetricType metric = MetricType_EVENT_PROC,
-    const std::vector<double> *data = nullptr) {
-  auto data__ = data ? _fbb.CreateVector<double>(*data) : 0;
+    const std::vector<float> *data = nullptr) {
+  auto data__ = data ? _fbb.CreateVector<float>(*data) : 0;
   return ross_damaris::sample::CreateFeatureData(
       _fbb,
       feature,
@@ -2768,7 +2768,7 @@ inline const flatbuffers::TypeTable *FeatureDataTypeTable() {
   static const flatbuffers::TypeCode type_codes[] = {
     { flatbuffers::ET_INT, 0, 0 },
     { flatbuffers::ET_INT, 0, 1 },
-    { flatbuffers::ET_DOUBLE, 1, -1 }
+    { flatbuffers::ET_FLOAT, 1, -1 }
   };
   static const flatbuffers::TypeFunction type_refs[] = {
     FeatureTypeTypeTable,

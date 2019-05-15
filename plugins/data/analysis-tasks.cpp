@@ -40,6 +40,8 @@ const char * const inst_buffer_names[] = {
 
 static TableBuilder* table_builder;
 static int num_steps_to_process = 10;
+static size_t raw_data_size = 0;
+static size_t reduced_data_size = 0;
 
 void sample_processing_gvt(int mode, int step);
 void sample_processing_rts(int mode, int step);
@@ -241,6 +243,7 @@ void sample_processing_gvt(int mode, int step)
 
         damaris::DataSpace<damaris::Buffer> ds((*begin)->GetDataSpace());
         size_t ds_size = ds.GetSize();
+        raw_data_size += ds_size;
         char* dbuf_cur = reinterpret_cast<char*>(ds.GetData());
         sample_metadata *sample_md = reinterpret_cast<sample_metadata*>(dbuf_cur);
         table_builder->save_data(dbuf_cur, ds_size, sample_md->last_gvt);
@@ -284,6 +287,7 @@ void sample_processing_rts(int mode, int step)
 
         damaris::DataSpace<damaris::Buffer> ds((*begin)->GetDataSpace());
         size_t ds_size = ds.GetSize();
+        raw_data_size += ds_size;
         char* dbuf_cur = reinterpret_cast<char*>(ds.GetData());
         sample_metadata *sample_md = reinterpret_cast<sample_metadata*>(dbuf_cur);
         table_builder->save_data(dbuf_cur, ds_size, sample_md->rts);
@@ -505,7 +509,7 @@ void table_to_flatbuffer(vtkPartitionedDataSet* pds, feature_extraction_args* ar
 
         for (vtkIdType i = 1; i < selected->GetNumberOfColumns(); i++)
         {
-            vtkDoubleArray* col = vtkDoubleArray::SafeDownCast(selected->GetColumn(i));
+            vtkFloatArray* col = vtkFloatArray::SafeDownCast(selected->GetColumn(i));
             string col_name = col->GetName();
             int delim_pos = col_name.find("/");
             auto feat = ft_map[col_name.substr(delim_pos+1)];
@@ -521,5 +525,12 @@ void table_to_flatbuffer(vtkPartitionedDataSet* pds, feature_extraction_args* ar
         size_t size, offset;
         uint8_t* raw = samp_fbb->release_raw(size, offset);
         stream_client->enqueue_data(raw, &raw[offset], size);
+        reduced_data_size += size;
     }
+}
+
+void get_reduction_sizes(size_t* raw, size_t* reduced)
+{
+    *raw = raw_data_size;
+    *reduced = reduced_data_size;
 }

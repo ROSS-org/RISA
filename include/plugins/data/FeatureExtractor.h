@@ -3,7 +3,7 @@
 
 #include <vtkTableAlgorithm.h>
 #include <vtkPartitionedDataSet.h>
-#include <vtkDoubleArray.h>
+#include <vtkFloatArray.h>
 #include <plugins/data/Features.h>
 #include <vector>
 
@@ -53,10 +53,10 @@ protected:
     void PerformHypothesisTests(vtkTable* in_features, vtkTable *selected);
 
     template <typename T>
-    double GetColumnMean(const T* array);
+    float GetColumnMean(const T* array);
 
-    std::vector<double> GetRankVector(const vtkDoubleArray* array);
-    std::vector<bool> benjamini_yekutieli(std::vector<double>& pvals, double alpha);
+    std::vector<float> GetRankVector(const vtkFloatArray* array);
+    std::vector<bool> benjamini_yekutieli(std::vector<float>& pvals, float alpha);
 
     template <typename T>
     void print_vector(std::vector<T> vect);

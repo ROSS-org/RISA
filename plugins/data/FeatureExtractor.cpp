@@ -8,7 +8,7 @@
 #include <vtkObjectFactory.h>
 #include <vtkTable.h>
 #include <vtkUnsignedIntArray.h>
-#include <vtkDoubleArray.h>
+#include <vtkFloatArray.h>
 #include <vtkVariantArray.h>
 #include <vtkMultiBlockDataSet.h>
 #include <vtkCompositeDataSet.h>
@@ -190,7 +190,7 @@ void FeatureExtractor::CalculatePrimaryFeatures(vtkPartitionedDataSet* in_data, 
     features->AddColumn(entity_col);
     entity_col->Delete();
 
-    vtkDoubleArray* eff_col = vtkDoubleArray::New();
+    vtkFloatArray* eff_col = vtkFloatArray::New();
     eff_col->SetName("efficiency");
     features->AddColumn(eff_col);
     eff_col->Delete();
@@ -209,7 +209,7 @@ void FeatureExtractor::CalculatePrimaryFeatures(vtkPartitionedDataSet* in_data, 
         // TODO incorrect when using more than 1 compute node
         row->SetValue(0, p);
         int row_idx = 2;
-        double ev_proc, ev_rb;
+        float ev_proc, ev_rb;
 
         for (int m = 0; m < num_metrics; m++)
         {
@@ -221,7 +221,7 @@ void FeatureExtractor::CalculatePrimaryFeatures(vtkPartitionedDataSet* in_data, 
                 {
                     std::string col_name = metric_name + "/" +
                         EnumNamePrimaryFeatures(static_cast<PrimaryFeatures>(f));
-                    vtkDoubleArray* col = vtkDoubleArray::New();
+                    vtkFloatArray* col = vtkFloatArray::New();
                     col->SetName(col_name.c_str());
                     features->AddColumn(col);
                     col->Delete();
@@ -232,24 +232,24 @@ void FeatureExtractor::CalculatePrimaryFeatures(vtkPartitionedDataSet* in_data, 
                 {
                     std::string col_name = metric_name + "/" +
                         EnumNameDerivedFeatures(static_cast<DerivedFeatures>(f));
-                    vtkDoubleArray* col = vtkDoubleArray::New();
+                    vtkFloatArray* col = vtkFloatArray::New();
                     col->SetName(col_name.c_str());
                     features->AddColumn(col);
                     col->Delete();
                 }
             }
 
-            double min_val = table->GetValueByName(0, metric_name.c_str()).ToDouble();
-            double max_val = min_val;
-            double sum = 0, mean = 0, m2 = 0, m3 = 0, m4 = 0;
-            double n, inv_n, val, delta, A, B;
+            float min_val = table->GetValueByName(0, metric_name.c_str()).ToFloat();
+            float max_val = min_val;
+            float sum = 0, mean = 0, m2 = 0, m3 = 0, m4 = 0;
+            float n, inv_n, val, delta, A, B;
 
             for (vtkIdType r = start_row; r < num_row; r++)
             {
                 n = r + 1.;
                 inv_n = 1. / n;
 
-                val = table->GetValueByName(r, metric_name.c_str()).ToDouble();
+                val = table->GetValueByName(r, metric_name.c_str()).ToFloat();
                 delta = val - mean;
                 sum += val;
 
@@ -268,12 +268,12 @@ void FeatureExtractor::CalculatePrimaryFeatures(vtkPartitionedDataSet* in_data, 
 
             }
 
-            double std_dev = 0, var = 0, skew = 0, kur = 0;
+            float std_dev = 0, var = 0, skew = 0, kur = 0;
             if (num_row > 1 && m2 > 1.e-150)
             {
-                double n = static_cast<double>(num_row);
-                double inv_n = 1. / n;
-                double nm1 = n - 1.;
+                float n = static_cast<float>(num_row);
+                float inv_n = 1. / n;
+                float nm1 = n - 1.;
 
                 // Variance
                 var = m2 / nm1;
@@ -282,8 +282,8 @@ void FeatureExtractor::CalculatePrimaryFeatures(vtkPartitionedDataSet* in_data, 
                 std_dev = sqrt(var);
 
                 // Skeweness and kurtosis
-                double var_inv = nm1 / m2;
-                double nvar_inv = var_inv * inv_n;
+                float var_inv = nm1 / m2;
+                float nvar_inv = var_inv * inv_n;
                 skew = nvar_inv * sqrt(var_inv) * m3;
                 kur = nvar_inv * var_inv * m4 - 3.;
 
@@ -309,8 +309,8 @@ void FeatureExtractor::CalculatePrimaryFeatures(vtkPartitionedDataSet* in_data, 
                 static_cast<int>(DerivedFeatures::NUM_FEAT);
         }
 
-        double net_events = ev_proc - ev_rb;
-        double eff = 0;
+        float net_events = ev_proc - ev_rb;
+        float eff = 0;
         if (net_events > 0)
             eff = 1 - (ev_rb/net_events);
         row->SetValue(1, eff);
@@ -332,10 +332,10 @@ void FeatureExtractor::PerformHypothesisTests(vtkTable* in_features, vtkTable* s
         return;
 
     vtkIdType num_cols = in_features->GetNumberOfColumns();
-    vtkDoubleArray* eff_col = vtkDoubleArray::SafeDownCast(in_features->GetColumnByName("efficiency"));
+    vtkFloatArray* eff_col = vtkFloatArray::SafeDownCast(in_features->GetColumnByName("efficiency"));
     auto eff_ranks = GetRankVector(eff_col);
-    double eff_mean = accumulate(eff_ranks.begin(), eff_ranks.end(), 0.0) / eff_ranks.size();
-    double eff_stddev = 0.0;
+    float eff_mean = accumulate(eff_ranks.begin(), eff_ranks.end(), 0.0) / eff_ranks.size();
+    float eff_stddev = 0.0;
     auto n = eff_col->GetNumberOfValues();
 
     for (int i = 0; i < n; i++)
@@ -348,7 +348,7 @@ void FeatureExtractor::PerformHypothesisTests(vtkTable* in_features, vtkTable* s
     if (n <= 2)
         return;
     students_t t_dist(n-2);
-    vector<double> p_vals;
+    vector<float> p_vals;
     // TODO update to generic entity
     //vtkUnsignedIntArray* pe_array = vtkUnsignedIntArray::New();
     //pe_array->SetName("pe");
@@ -362,10 +362,10 @@ void FeatureExtractor::PerformHypothesisTests(vtkTable* in_features, vtkTable* s
         //selected->AddColumn(new_col);
         //new_col->Delete();
 
-        vtkDoubleArray* col = vtkDoubleArray::SafeDownCast(in_features->GetColumn(i));
+        vtkFloatArray* col = vtkFloatArray::SafeDownCast(in_features->GetColumn(i));
         auto col_ranks = GetRankVector(col);
-        double col_mean = accumulate(col_ranks.begin(), col_ranks.end(), 0.0) / col_ranks.size();
-        double col_stddev = 0.0;
+        float col_mean = accumulate(col_ranks.begin(), col_ranks.end(), 0.0) / col_ranks.size();
+        float col_stddev = 0.0;
         for (int i = 0; i < n; i++)
             col_stddev += pow(col_ranks[i] - col_mean, 2);
         col_stddev = sqrt(col_stddev / (n-1));
@@ -373,24 +373,24 @@ void FeatureExtractor::PerformHypothesisTests(vtkTable* in_features, vtkTable* s
         //print_vector(col_ranks);
         //cout << "col mean = " << col_mean << ", std dev = " << col_stddev << endl;
 
-        double denom = col_stddev * eff_stddev;
-        double cov = 0.0;
+        float denom = col_stddev * eff_stddev;
+        float cov = 0.0;
         for (int i = 0; i < n; i++)
             cov += (col_ranks[i] - col_mean) * (eff_ranks[i] - eff_mean);
         cov /= (n - 1);
         //cout << "cov = " << cov << ", denom = " << denom << endl;
 
-        double r = 0.0;
+        float r = 0.0;
         if (denom != 0)
             r = cov / denom;
         if (r > 0)
             r -= 0.0001;
         else if (r < 0)
             r += 0.0001;
-        double t = (r * sqrt(n-2)) / sqrt(1 - r * r);
+        float t = (r * sqrt(n-2)) / sqrt(1 - r * r);
         //cout << "r = " << r << ", t = " << t;
         // mult by 2 for 2-tailed test
-        double p = 2 * cdf(complement(t_dist, fabs(t)));
+        float p = 2 * cdf(complement(t_dist, fabs(t)));
         //cout << ", p-val: " << p << endl;
         p_vals.push_back(p);
     }
@@ -410,20 +410,20 @@ void FeatureExtractor::PerformHypothesisTests(vtkTable* in_features, vtkTable* s
 }
 
 template <typename T>
-double FeatureExtractor::GetColumnMean(const T* array)
+float FeatureExtractor::GetColumnMean(const T* array)
 {
-    double sum = 0.0;
+    float sum = 0.0;
     auto n = array->GetNumberOfValues();
     for (vtkIdType i = 0; i < n; i++)
         sum += array->GetValue(i);
     return sum / n;
 }
 
-std::vector<double> FeatureExtractor::GetRankVector(const vtkDoubleArray* array)
+std::vector<float> FeatureExtractor::GetRankVector(const vtkFloatArray* array)
 {
     int n = array->GetNumberOfValues();
-    vector<double> ranks(n);
-    vector<pair<double, int>> tuples;
+    vector<float> ranks(n);
+    vector<pair<float, int>> tuples;
     for (int i = 0; i < n; i++)
     {
         tuples.push_back(make_pair(array->GetValue(i), i));
@@ -435,7 +435,7 @@ std::vector<double> FeatureExtractor::GetRankVector(const vtkDoubleArray* array)
     while (i < n)
     {
         j = i;
-        double sum = i + 1;
+        float sum = i + 1;
         while (j < n && tuples[j].first == tuples[j+1].first)
         {
             j++;
@@ -443,9 +443,9 @@ std::vector<double> FeatureExtractor::GetRankVector(const vtkDoubleArray* array)
         }
 
         int num_ties = j - i + 1;
-        double rank = sum / num_ties;
+        float rank = sum / num_ties;
 
-        while (i <= j)
+        while (i <= j && i < n)
         {
             ranks[tuples[i].second] = rank;
             i++;
@@ -463,9 +463,9 @@ void FeatureExtractor::print_vector(vector<T> vect)
     cout << "]" << endl;
 }
 
-vector<bool> FeatureExtractor::benjamini_yekutieli(vector<double>& pvals, double alpha)
+vector<bool> FeatureExtractor::benjamini_yekutieli(vector<float>& pvals, float alpha)
 {
-    vector<pair<double, int>> tuples;
+    vector<pair<float, int>> tuples;
     int m = pvals.size();
     for (int i = 0; i < m; i++)
         tuples.push_back(make_pair(pvals[i], i));
@@ -475,12 +475,12 @@ vector<bool> FeatureExtractor::benjamini_yekutieli(vector<double>& pvals, double
     for (int i = 1; i <= m; i++)
         K.push_back(i);
 
-    vector<double> C;
+    vector<float> C;
     C.push_back(1.0 / K[0]);
     for (int i = 1; i < K.size(); i++)
         C.push_back(C[i-1] + (1.0 / K[i]));
 
-    vector<double> T;
+    vector<float> T;
     for (int i = 0; i < K.size(); i++)
         T.push_back((alpha * K[i]) / (m * C[i]));
 
@@ -496,8 +496,8 @@ vector<bool> FeatureExtractor::benjamini_yekutieli(vector<double>& pvals, double
     }
 
     // TODO putting a limit on this for now
-    if (k_max > 4)
-        k_max = 4;
+    if (k_max > 9)
+        k_max = 9;
 
     // need to put answers in original order
     for (int i = 0; i < tuples.size(); i++)

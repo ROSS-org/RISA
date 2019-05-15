@@ -136,9 +136,9 @@ void SampleFBBuilder::add_lp(const st_lp_stats* lp_stats, int peid)
                 lp_stats->lpid, sim_data));
 }
 
-void SampleFBBuilder::add_feature(Port type, vtkDoubleArray* arr, sample::FeatureType ft, sample::MetricType mt)
+void SampleFBBuilder::add_feature(Port type, vtkFloatArray* arr, sample::FeatureType ft, sample::MetricType mt)
 {
-    vector<double> data;
+    vector<float> data;
     for (int i = 0; i < arr->GetNumberOfValues(); i++)
     {
         data.push_back(arr->GetValue(i));

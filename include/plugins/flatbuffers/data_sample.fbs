@@ -96,7 +96,7 @@ table SimEngineMetrics {
 table FeatureData {
     feature:FeatureType;
     metric:MetricType;
-    data:[double];
+    data:[float];
 }
 
 table LPData {
