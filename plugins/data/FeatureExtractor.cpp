@@ -495,6 +495,10 @@ vector<bool> FeatureExtractor::benjamini_yekutieli(vector<double>& pvals, double
         }
     }
 
+    // TODO putting a limit on this for now
+    if (k_max > 4)
+        k_max = 4;
+
     // need to put answers in original order
     for (int i = 0; i < tuples.size(); i++)
     {

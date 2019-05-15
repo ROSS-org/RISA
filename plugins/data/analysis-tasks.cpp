@@ -461,8 +461,9 @@ void feature_extraction_task(void* arguments)
     feature_extraction_args* args = reinterpret_cast<feature_extraction_args*>(arguments);
     vtkSmartPointer<FeatureExtractor> extractor = FeatureExtractor::New();
     vtkPartitionedDataSetCollection* collection = vtkPartitionedDataSetCollection::New();
-    collection->SetNumberOfPartitionedDataSets(1);
+    collection->SetNumberOfPartitionedDataSets(2);
     collection->SetPartitionedDataSet(toUType(Port::PE_DATA), table_builder->pe_pds);
+    collection->SetPartitionedDataSet(toUType(Port::KP_DATA), table_builder->kp_pds);
     extractor->SetInputData(FeatureExtractor::INPUT_DATA, collection);
     extractor->SetNumSteps(args->num_steps);
     extractor->Update();
@@ -495,23 +496,30 @@ void table_to_flatbuffer(vtkPartitionedDataSet* pds, feature_extraction_args* ar
 
     //auto sample_it = samples->get<by_pe_rt>().find(make_tuple());
     //if (sample_it != samples->get<by_kp_vt_rt>().end())
-
-    vtkTable* pe_selected = vtkTable::SafeDownCast(pds->GetPartitionAsDataObject(0));
-    if (pe_selected->GetNumberOfColumns() == 0)
-        return;
-
-    for (vtkIdType i = 1; i < pe_selected->GetNumberOfColumns(); i++)
+    bool data_to_write = false;
+    for (int p = 0; p < 2; p++)
     {
-        vtkDoubleArray* col = vtkDoubleArray::SafeDownCast(pe_selected->GetColumn(i));
-        string col_name = col->GetName();
-        int delim_pos = col_name.find("/");
-        auto feat = ft_map[col_name.substr(delim_pos+1)];
-        auto metric = mt_map[col_name.substr(0, delim_pos)];
-        samp_fbb->add_feature(col, feat, metric);
+        vtkTable* selected = vtkTable::SafeDownCast(pds->GetPartitionAsDataObject(p));
+        if (selected->GetNumberOfColumns() == 0)
+            continue;
+
+        for (vtkIdType i = 1; i < selected->GetNumberOfColumns(); i++)
+        {
+            vtkDoubleArray* col = vtkDoubleArray::SafeDownCast(selected->GetColumn(i));
+            string col_name = col->GetName();
+            int delim_pos = col_name.find("/");
+            auto feat = ft_map[col_name.substr(delim_pos+1)];
+            auto metric = mt_map[col_name.substr(0, delim_pos)];
+            samp_fbb->add_feature(static_cast<Port>(p), col, feat, metric);
+            data_to_write = true;
+        }
     }
 
-    samp_fbb->finish();
-    size_t size, offset;
-    uint8_t* raw = samp_fbb->release_raw(size, offset);
-    stream_client->enqueue_data(raw, &raw[offset], size);
+    if (data_to_write)
+    {
+        samp_fbb->finish();
+        size_t size, offset;
+        uint8_t* raw = samp_fbb->release_raw(size, offset);
+        stream_client->enqueue_data(raw, &raw[offset], size);
+    }
 }

@@ -165,6 +165,7 @@ table DamarisDataSample {
     lp_data:[LPData];
     model_data:[ModelLP];
     pe_features:[FeatureData];
+    kp_features:[FeatureData];
     /// next three used for internal info
     entity_id:int = -1;
     event_id:int = -1;

@@ -11,7 +11,8 @@ SampleFBBuilder::SampleFBBuilder(SampleFBBuilder&& s) :
     kp_vector_(move(s.kp_vector_)),
     lp_vector_(move(s.lp_vector_)),
     mlp_vector_(move(s.mlp_vector_)),
-    feature_vector_(move(s.feature_vector_)),
+    pe_feature_vector_(move(s.pe_feature_vector_)),
+    kp_feature_vector_(move(s.kp_feature_vector_)),
     sim_config_(s.sim_config_),
     vts_(s.vts_),
     rts_(s.rts_),
@@ -35,7 +36,8 @@ SampleFBBuilder& SampleFBBuilder::operator=(SampleFBBuilder&& s)
     kp_vector_ = move(s.kp_vector_);
     lp_vector_ = move(s.lp_vector_);
     mlp_vector_ = move(s.mlp_vector_);
-    feature_vector_ = move(s.feature_vector_);
+    pe_feature_vector_ = move(s.pe_feature_vector_);
+    kp_feature_vector_ = move(s.kp_feature_vector_);
     is_finished_ = s.is_finished_;
     raw_ = s.raw_;
     offset_ = s.offset_;
@@ -134,7 +136,7 @@ void SampleFBBuilder::add_lp(const st_lp_stats* lp_stats, int peid)
                 lp_stats->lpid, sim_data));
 }
 
-void SampleFBBuilder::add_feature(vtkDoubleArray* arr, sample::FeatureType ft, sample::MetricType mt)
+void SampleFBBuilder::add_feature(Port type, vtkDoubleArray* arr, sample::FeatureType ft, sample::MetricType mt)
 {
     vector<double> data;
     for (int i = 0; i < arr->GetNumberOfValues(); i++)
@@ -142,7 +144,11 @@ void SampleFBBuilder::add_feature(vtkDoubleArray* arr, sample::FeatureType ft, s
         data.push_back(arr->GetValue(i));
     }
 
-    feature_vector_.push_back(CreateFeatureDataDirect(fbb_, ft, mt, &data));
+    auto feature_data = CreateFeatureDataDirect(fbb_, ft, mt, &data);
+    if (type == Port::PE_DATA)
+        pe_feature_vector_.push_back(feature_data);
+    else if (type == Port::KP_DATA)
+        kp_feature_vector_.push_back(feature_data);
 }
 
 char* SampleFBBuilder::add_model_lp(st_model_data* model_lp, char* buffer, size_t& buf_size, int peid)
@@ -226,7 +232,7 @@ void SampleFBBuilder::finish()
         return;
 
     auto sample = CreateDamarisDataSampleDirect(fbb_, vts_, rts_, last_gvt_, mode_,
-        &pe_vector_, &kp_vector_, &lp_vector_, &mlp_vector_, &feature_vector_);
+        &pe_vector_, &kp_vector_, &lp_vector_, &mlp_vector_, &pe_feature_vector_, &kp_feature_vector_);
     fbb_.Finish(sample);
     is_finished_ = true;
 }
