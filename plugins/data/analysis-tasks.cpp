@@ -216,8 +216,6 @@ void queue_feature_extraction_task(set<double>& timestamps, int mode)
 //TODO return a map of flatbuffers (one for each sampling point)
 void sample_processing_gvt(int mode, int step)
 {
-    int my_rank;
-    ABT_xstream_self_rank(&my_rank);
     //cout << "sample_processing_gvt my_rank = " << my_rank << endl;
     damaris::BlocksByIteration::iterator begin, end;
     DUtil::get_damaris_iterators(inst_buffer_names[mode], step, begin, end);
@@ -234,6 +232,9 @@ void sample_processing_gvt(int mode, int step)
     }
 
     set<double> timestamps;
+    const InstMode *modes = EnumValuesInstMode();
+    static bool size_calculated = false;
+    static size_t pe_fb_size = 0;
     while (begin != end)
     {
         // each iterator is to a buffer sample from ROSS
@@ -243,7 +244,7 @@ void sample_processing_gvt(int mode, int step)
 
         damaris::DataSpace<damaris::Buffer> ds((*begin)->GetDataSpace());
         size_t ds_size = ds.GetSize();
-        raw_data_size += ds_size;
+        //raw_data_size += ds_size;
         char* dbuf_cur = reinterpret_cast<char*>(ds.GetData());
         sample_metadata *sample_md = reinterpret_cast<sample_metadata*>(dbuf_cur);
         table_builder->save_data(dbuf_cur, ds_size, sample_md->last_gvt);
@@ -254,6 +255,18 @@ void sample_processing_gvt(int mode, int step)
         auto it = gvtsamples.get<by_gvt>().find(sample_md->last_gvt);
         if (it == gvtsamples.get<by_gvt>().end())
             gvtsamples.insert(std::make_shared<TSSample>(sample_md, InstMode_GVT));
+
+        if (!size_calculated)
+        {
+            SampleFBBuilder samp_fbb(sample_md->vts, sample_md->rts, sample_md->last_gvt, modes[mode]);
+            create_flatbuffer(modes[mode], dbuf_cur, ds_size, sample_md, samp_fbb);
+            samp_fbb.finish();
+            size_t offset;
+            auto ptr = samp_fbb.release_raw(pe_fb_size, offset);
+            delete[] ptr;
+            size_calculated = true;
+        }
+        raw_data_size += pe_fb_size;
 
         ++begin;
     }
@@ -278,6 +291,9 @@ void sample_processing_rts(int mode, int step)
     }
 
     set<double> timestamps;
+    const InstMode *modes = EnumValuesInstMode();
+    static bool size_calculated = false;
+    static size_t pe_fb_size = 0;
     while (begin != end)
     {
         // each iterator is to a buffer sample from ROSS
@@ -287,7 +303,7 @@ void sample_processing_rts(int mode, int step)
 
         damaris::DataSpace<damaris::Buffer> ds((*begin)->GetDataSpace());
         size_t ds_size = ds.GetSize();
-        raw_data_size += ds_size;
+        //raw_data_size += ds_size;
         char* dbuf_cur = reinterpret_cast<char*>(ds.GetData());
         sample_metadata *sample_md = reinterpret_cast<sample_metadata*>(dbuf_cur);
         table_builder->save_data(dbuf_cur, ds_size, sample_md->rts);
@@ -295,12 +311,21 @@ void sample_processing_rts(int mode, int step)
         ds_size -= sizeof(*sample_md);
         timestamps.insert(sample_md->rts);
 
-        //cout << "peid: " << sample_md->peid << " vts: " << sample_md->vts << " rts: " << sample_md->rts
-        //    << " last_gvt: " << sample_md->vts << endl;
         auto it = rtsamples.get<by_rts>().find(sample_md->rts);
         if (it == rtsamples.get<by_rts>().end())
             rtsamples.insert(std::make_shared<TSSample>(sample_md, InstMode_RT));
 
+        if (!size_calculated)
+        {
+            SampleFBBuilder samp_fbb(sample_md->vts, sample_md->rts, sample_md->last_gvt, modes[mode]);
+            create_flatbuffer(modes[mode], dbuf_cur, ds_size, sample_md, samp_fbb);
+            samp_fbb.finish();
+            size_t offset;
+            auto ptr = samp_fbb.release_raw(pe_fb_size, offset);
+            delete[] ptr;
+            size_calculated = true;
+        }
+        raw_data_size += pe_fb_size;
 
         ++begin;
     }
@@ -498,8 +523,6 @@ void table_to_flatbuffer(vtkPartitionedDataSet* pds, feature_extraction_args* ar
     if (!samp_fbb)
         return;
 
-    //auto sample_it = samples->get<by_pe_rt>().find(make_tuple());
-    //if (sample_it != samples->get<by_kp_vt_rt>().end())
     bool data_to_write = false;
     for (int p = 0; p < 2; p++)
     {
