@@ -26,6 +26,39 @@ struct FeatureTypeMap : public std::unordered_map<std::string, sample::FeatureTy
     }
 };
 
+struct MetricTypeMap : public std::unordered_map<std::string, sample::MetricType>
+{
+    MetricTypeMap()
+    {
+        this->operator[]("event_proc") = sample::MetricType_EVENT_PROC;
+        this->operator[]("event_abort") = sample::MetricType_EVENT_ABORT;
+        this->operator[]("event_rbs") = sample::MetricType_EVENT_RB;
+        this->operator[]("rb_total") = sample::MetricType_RB_TOTAL;
+        this->operator[]("rb_primary") = sample::MetricType_RB_PRIM;
+        this->operator[]("rb_secondary") = sample::MetricType_RB_SEC;
+        this->operator[]("fc_attempts") = sample::MetricType_FC_ATTEMPTS;
+        this->operator[]("pq_size") = sample::MetricType_PQ_QSIZE;
+        this->operator[]("net_send") = sample::MetricType_NET_SEND;
+        this->operator[]("net_recv") = sample::MetricType_NET_RECV;
+        this->operator[]("num_gvt") = sample::MetricType_NUM_GVT;
+        this->operator[]("pe_event_ties") = sample::MetricType_EVENT_TIES;
+        this->operator[]("all_red_count") = sample::MetricType_ALLRED;
+        this->operator[]("net_read_time") = sample::MetricType_NET_READ_TIME;
+        this->operator[]("net_other_time") = sample::MetricType_NET_OTHER_TIME;
+        this->operator[]("gvt_time") = sample::MetricType_GVT_TIME;
+        this->operator[]("fc_time") = sample::MetricType_FC_TIME;
+        this->operator[]("ev_abort_time") = sample::MetricType_EVENT_ABORT_TIME;
+        this->operator[]("ev_proc_time") = sample::MetricType_EVENT_PROC_TIME;
+        this->operator[]("pq_time") = sample::MetricType_PQ_TIME;
+        this->operator[]("rb_time") = sample::MetricType_RB_TIME;
+        this->operator[]("cancelq_time") = sample::MetricType_CANCEL_Q_TIME;
+        this->operator[]("avl_time") = sample::MetricType_AVL_TIME;
+        this->operator[]("buddy_time") = sample::MetricType_BUDDY_TIME;
+        this->operator[]("lz4_time") = sample::MetricType_LZ4_TIME;
+        this->operator[]("virtual_time_diff") = sample::MetricType_VIRT_TIME_DIFF;
+    }
+};
+
 enum class PrimaryFeatures
 {
     MIN,

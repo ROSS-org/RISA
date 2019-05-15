@@ -27,9 +27,9 @@ namespace fb = flatbuffers;
 
 config::SimConfig* sim_config = nullptr;
 streaming::StreamClient* stream_client = nullptr;
-VTIndex vtsamples;
-VTIndex rtsamples;
-VTIndex gvtsamples;
+TSIndex vtsamples;
+TSIndex rtsamples;
+TSIndex gvtsamples;
 
 const char * const inst_buffer_names[] = {
     "",
@@ -248,18 +248,9 @@ void sample_processing_gvt(int mode, int step)
         ds_size -= sizeof(*sample_md);
         timestamps.insert(sample_md->last_gvt);
 
-        //cout << "peid: " << sample_md->peid << " vts: " << sample_md->vts << " rts: " << sample_md->rts
-        //    << " last_gvt: " << sample_md->last_gvt << endl;
-        auto it = gvtsamples.get<by_pe_gvt>().find(make_tuple(sample_md->peid, sample_md->last_gvt));
-        SampleFBBuilder* sample_fbb;
-        if (it != gvtsamples.get<by_pe_gvt>().end())
-        {
-            //cout << "not found in fb_map for time " << sample_md->last_gvt << endl;
-            auto samp = gvtsamples.insert(std::make_shared<VTSample>(sample_md->kp_gid, sample_md->vts,
-                        sample_md->rts, sample_md->last_gvt));
-            //sample_fbb = (*(samp.first))->get_sample_fbb();
-            //create_flatbuffer(modes[mode], dbuf_cur, ds_size, sample_md, *sample_fbb);
-        }
+        auto it = gvtsamples.get<by_gvt>().find(sample_md->last_gvt);
+        if (it == gvtsamples.get<by_gvt>().end())
+            gvtsamples.insert(std::make_shared<TSSample>(sample_md, InstMode_GVT));
 
         ++begin;
     }
@@ -302,18 +293,9 @@ void sample_processing_rts(int mode, int step)
 
         //cout << "peid: " << sample_md->peid << " vts: " << sample_md->vts << " rts: " << sample_md->rts
         //    << " last_gvt: " << sample_md->vts << endl;
-        auto it = rtsamples.get<by_pe_rt>().find(make_tuple(sample_md->peid, sample_md->rts));
-        SampleFBBuilder* sample_fbb;
-        if (it != rtsamples.get<by_pe_rt>().end())
-        {
-        }
-        else
-        {
-            auto samp = rtsamples.insert(std::make_shared<VTSample>(sample_md->kp_gid, sample_md->vts,
-                        sample_md->rts, sample_md->last_gvt));
-            //sample_fbb = (*(samp.first))->get_sample_fbb();
-            //create_flatbuffer(modes[mode], dbuf_cur, ds_size, sample_md, *sample_fbb);
-        }
+        auto it = rtsamples.get<by_rts>().find(sample_md->rts);
+        if (it == rtsamples.get<by_rts>().end())
+            rtsamples.insert(std::make_shared<TSSample>(sample_md, InstMode_RT));
 
 
         ++begin;
@@ -375,8 +357,7 @@ void sample_processing_vts(int mode, int step)
         {
             //cout << "[vtsamples]: add pe " << sample_md->peid << " kp " << sample_md->kp_gid << " vts "
             //    << sample_md->vts << " rts " << sample_md->rts << endl;
-            auto samp = vtsamples.insert(std::make_shared<VTSample>(sample_md->kp_gid, sample_md->vts,
-                        sample_md->rts, sample_md->last_gvt));
+            auto samp = vtsamples.insert(std::make_shared<TSSample>(sample_md, InstMode_VT));
             sample_fbb = (*(samp.first))->get_sample_fbb();
             create_flatbuffer(modes[mode], dbuf_cur, ds_size, sample_md, *sample_fbb);
         }
@@ -494,25 +475,43 @@ void feature_extraction_task(void* arguments)
 
 void table_to_flatbuffer(vtkPartitionedDataSet* pds, feature_extraction_args* args)
 {
-    VTIndex* samples = NULL;
+    static FeatureTypeMap ft_map;
+    static MetricTypeMap mt_map;
+    SampleFBBuilder* samp_fbb = NULL;
     //boost::variant<VTSByPERT, VTSByPEGVT> samp;
     if (static_cast<InstMode>(args->mode) == InstMode_GVT)
-        samples = &gvtsamples;
+    {
+        auto samp = gvtsamples.get<by_gvt>().find(args->ts);
+        samp_fbb = (*samp)->get_sample_fbb();
+    }
     else if (static_cast<InstMode>(args->mode) == InstMode_RT)
-        samples = &rtsamples;
+    {
+        auto samp = rtsamples.get<by_rts>().find(args->ts);
+        samp_fbb = (*samp)->get_sample_fbb();
+    }
 
-    if (!samples)
+    if (!samp_fbb)
         return;
 
     //auto sample_it = samples->get<by_pe_rt>().find(make_tuple());
     //if (sample_it != samples->get<by_kp_vt_rt>().end())
 
     vtkTable* pe_selected = vtkTable::SafeDownCast(pds->GetPartitionAsDataObject(0));
-    pe_selected->Dump(15, 5);
+    if (pe_selected->GetNumberOfColumns() == 0)
+        return;
 
     for (vtkIdType i = 1; i < pe_selected->GetNumberOfColumns(); i++)
     {
         vtkDoubleArray* col = vtkDoubleArray::SafeDownCast(pe_selected->GetColumn(i));
-        
+        string col_name = col->GetName();
+        int delim_pos = col_name.find("/");
+        auto feat = ft_map[col_name.substr(delim_pos+1)];
+        auto metric = mt_map[col_name.substr(0, delim_pos)];
+        samp_fbb->add_feature(col, feat, metric);
     }
+
+    samp_fbb->finish();
+    size_t size, offset;
+    uint8_t* raw = samp_fbb->release_raw(size, offset);
+    stream_client->enqueue_data(raw, &raw[offset], size);
 }

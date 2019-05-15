@@ -29,60 +29,55 @@ struct by_kp_vt{};
 struct by_kp_vt_rt{};
 
 typedef boost::multi_index_container<
-        std::shared_ptr<ross_damaris::data::VTSample>,
+        std::shared_ptr<ross_damaris::data::TSSample>,
         bmi::indexed_by<
                 bmi::ordered_non_unique<bmi::tag<by_peid>,
-                    bmi::const_mem_fun<VTSample,int,&VTSample::get_peid> >,
+                    bmi::const_mem_fun<TSSample,int,&TSSample::get_peid> >,
                 bmi::ordered_non_unique<bmi::tag<by_kp_gid>,
-                    bmi::const_mem_fun<VTSample,int,&VTSample::get_kp_gid> >,
+                    bmi::const_mem_fun<TSSample,int,&TSSample::get_kp_gid> >,
                 bmi::ordered_non_unique<bmi::tag<by_vts>,
-                    bmi::const_mem_fun<VTSample,double,&VTSample::get_vts> >,
+                    bmi::const_mem_fun<TSSample,double,&TSSample::get_vts> >,
                 bmi::ordered_non_unique<bmi::tag<by_rts>,
-                    bmi::const_mem_fun<VTSample,double,&VTSample::get_rts> >,
+                    bmi::const_mem_fun<TSSample,double,&TSSample::get_rts> >,
                 bmi::ordered_non_unique<bmi::tag<by_gvt>,
-                    bmi::const_mem_fun<VTSample,double,&VTSample::get_gvt> >,
+                    bmi::const_mem_fun<TSSample,double,&TSSample::get_gvt> >,
                 bmi::ordered_non_unique<bmi::tag<by_kp_vt>,
-                    bmi::composite_key<VTSample,
-                        bmi::const_mem_fun<VTSample,int,&VTSample::get_kp_gid>,
-                        bmi::const_mem_fun<VTSample,double,&VTSample::get_vts>
+                    bmi::composite_key<TSSample,
+                        bmi::const_mem_fun<TSSample,int,&TSSample::get_kp_gid>,
+                        bmi::const_mem_fun<TSSample,double,&TSSample::get_vts>
                     >
                 >,
-                bmi::ordered_unique<bmi::tag<by_pe_gvt>,
-                    bmi::composite_key<VTSample,
-                        bmi::const_mem_fun<VTSample,int,&VTSample::get_peid>,
-                        bmi::const_mem_fun<VTSample,double,&VTSample::get_gvt>
+                bmi::ordered_non_unique<bmi::tag<by_pe_gvt>,
+                    bmi::composite_key<TSSample,
+                        bmi::const_mem_fun<TSSample,int,&TSSample::get_peid>,
+                        bmi::const_mem_fun<TSSample,double,&TSSample::get_gvt>
                     >
                 >,
-                bmi::ordered_unique<bmi::tag<by_pe_rt>,
-                    bmi::composite_key<VTSample,
-                        bmi::const_mem_fun<VTSample,int,&VTSample::get_peid>,
-                        bmi::const_mem_fun<VTSample,double,&VTSample::get_rts>
+                bmi::ordered_non_unique<bmi::tag<by_pe_rt>,
+                    bmi::composite_key<TSSample,
+                        bmi::const_mem_fun<TSSample,int,&TSSample::get_peid>,
+                        bmi::const_mem_fun<TSSample,double,&TSSample::get_rts>
                     >
                 >,
-                bmi::ordered_unique<bmi::tag<by_kp_vt_rt>,
-                    bmi::composite_key<VTSample,
-                        bmi::const_mem_fun<VTSample,int,&VTSample::get_kp_gid>,
-                        bmi::const_mem_fun<VTSample,double,&VTSample::get_vts>,
-                        bmi::const_mem_fun<VTSample,double,&VTSample::get_rts>
+                bmi::ordered_non_unique<bmi::tag<by_kp_vt_rt>,
+                    bmi::composite_key<TSSample,
+                        bmi::const_mem_fun<TSSample,int,&TSSample::get_kp_gid>,
+                        bmi::const_mem_fun<TSSample,double,&TSSample::get_vts>,
+                        bmi::const_mem_fun<TSSample,double,&TSSample::get_rts>
                     >
                 >
         >
-    > VTIndex;
+    > TSIndex;
 
-typedef VTIndex::index<by_peid>::type VTSByPE;
-typedef VTIndex::index<by_kp_gid>::type VTSByKP;
-typedef VTIndex::index<by_vts>::type VTSByVT;
-typedef VTIndex::index<by_rts>::type VTSByRT;
-typedef VTIndex::index<by_gvt>::type VTSByGVT;
-typedef VTIndex::index<by_kp_vt>::type VTSByKPVT;
-typedef VTIndex::index<by_pe_rt>::type VTSByPERT;
-typedef VTIndex::index<by_pe_gvt>::type VTSByPEGVT;
-typedef VTIndex::index<by_kp_vt_rt>::type VTSByKPVTRT;
-
-struct SampleVisitor
-{
-    void operator()(VTIndex* samples, VTSByPERT samp) const {}
-};
+typedef TSIndex::index<by_peid>::type SampleByPE;
+typedef TSIndex::index<by_kp_gid>::type SampleByKP;
+typedef TSIndex::index<by_vts>::type SampleByVT;
+typedef TSIndex::index<by_rts>::type SampleByRT;
+typedef TSIndex::index<by_gvt>::type SampleByGVT;
+typedef TSIndex::index<by_kp_vt>::type SampleByKPVT;
+typedef TSIndex::index<by_pe_rt>::type SampleByPERT;
+typedef TSIndex::index<by_pe_gvt>::type SampleByPEGVT;
+typedef TSIndex::index<by_kp_vt_rt>::type SampleByKPVTRT;
 
 } // end namespace data
 } // end namespace ross_damaris

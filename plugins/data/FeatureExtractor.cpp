@@ -219,7 +219,7 @@ void FeatureExtractor::CalculatePrimaryFeatures(vtkPartitionedDataSet* in_data, 
                 for (int f = static_cast<int>(PrimaryFeatures::START);
                         f < static_cast<int>(PrimaryFeatures::NUM_FEAT); f++)
                 {
-                    std::string col_name = metric_name + "_" +
+                    std::string col_name = metric_name + "/" +
                         EnumNamePrimaryFeatures(static_cast<PrimaryFeatures>(f));
                     vtkDoubleArray* col = vtkDoubleArray::New();
                     col->SetName(col_name.c_str());
@@ -230,7 +230,7 @@ void FeatureExtractor::CalculatePrimaryFeatures(vtkPartitionedDataSet* in_data, 
                 for (int f = static_cast<int>(DerivedFeatures::START);
                         f < static_cast<int>(DerivedFeatures::NUM_FEAT); f++)
                 {
-                    std::string col_name = metric_name + "_" +
+                    std::string col_name = metric_name + "/" +
                         EnumNameDerivedFeatures(static_cast<DerivedFeatures>(f));
                     vtkDoubleArray* col = vtkDoubleArray::New();
                     col->SetName(col_name.c_str());

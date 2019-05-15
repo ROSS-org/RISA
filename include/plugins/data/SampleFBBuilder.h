@@ -30,7 +30,7 @@ public:
     void add_pe(const st_pe_stats* pe_stats);
     void add_kp(const st_kp_stats* kp_stats, int peid);
     void add_lp(const st_lp_stats* lp_stats, int peid);
-    void add_feature(vtkDoubleArray* arr);
+    void add_feature(vtkDoubleArray* arr, sample::FeatureType ft, sample::MetricType mt);
     char* add_model_lp(st_model_data* model_lp, char* buffer, size_t& buf_size, int peid);
     void finish();
     uint8_t* release_raw(size_t& fb_size, size_t& offset);

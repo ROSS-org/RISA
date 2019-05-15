@@ -2,35 +2,43 @@
 #define VTSAMPLE_H
 
 #include <plugins/flatbuffers/data_sample_generated.h>
+#include <instrumentation/st-instrumentation-internal.h>
+#include <iostream>
 
 namespace ross_damaris {
 namespace data {
 
-class VTSample {
+class TSSample {
 public:
-    VTSample(int kp_gid, double vts, double rts, double gvt,
+    TSSample(sample_metadata* sample_md, sample::InstMode mode,
             sample::DataStatus status = sample::DataStatus_speculative) :
-        kp_gid_(kp_gid),
-        vts_(vts),
-        rts_(rts),
-        gvt_(gvt),
+        peid_(sample_md->peid),
+        kp_gid_(sample_md->kp_gid),
+        vts_(sample_md->vts),
+        rts_(sample_md->rts),
+        gvt_(sample_md->last_gvt),
+        mode_(mode),
         status_(status),
-        sample_fbb_(vts, rts, gvt, sample::InstMode_VT) {  }
+        sample_fbb_(vts_, rts_, gvt_, mode_) {  }
 
-    VTSample(VTSample&& s) :
+    TSSample(TSSample&& s) :
+        peid_(s.peid_),
         kp_gid_(s.kp_gid_),
         vts_(s.vts_),
         rts_(s.rts_),
         gvt_(s.gvt_),
+        mode_(s.mode_),
         status_(s.status_),
         sample_fbb_(std::move(s.sample_fbb_)) {  }
 
-    VTSample& operator=(VTSample&& s)
+    TSSample& operator=(TSSample&& s)
     {
+        peid_ = s.peid_;
         kp_gid_ = s.kp_gid_;
         vts_ = s.vts_;
         rts_ = s.rts_;
         gvt_ = s.gvt_;
+        mode_ = s.mode_;
         status_ = s.status_;
         sample_fbb_ = std::move(s.sample_fbb_);
         return *this;
@@ -54,15 +62,23 @@ public:
         status_ = sample::DataStatus_committed;
     }
 
+    void print_sample()
+    {
+        std::cout << "peid " << peid_ << "\nkp_gid " << kp_gid_ <<
+            "\nvts " << vts_ << "\nrts " << rts_ << "\ngvt " << gvt_ <<
+            "\nmode " << mode_ << std::endl;
+    }
+
 private:
-    VTSample(const VTSample&) = delete;
-    VTSample& operator=(const VTSample&) = delete;
+    TSSample(const TSSample&) = delete;
+    TSSample& operator=(const TSSample&) = delete;
 
     int peid_;
     int kp_gid_;
     double vts_;
     double rts_;
     double gvt_;
+    sample::InstMode mode_;
     sample::DataStatus status_;
     SampleFBBuilder sample_fbb_;
 };
