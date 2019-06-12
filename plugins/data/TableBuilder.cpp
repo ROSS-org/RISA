@@ -31,19 +31,19 @@ TableBuilder::TableBuilder() :
         time_col->SetNumberOfTuples(0);
         cur_table->AddColumn(time_col);
 
-        for (int i = 0; i < NUM_PE_UINT - 1; i++)
+        for (int j = 0; j < NUM_PE_UINT - 1; j++)
         {
             vtkSmartPointer<vtkUnsignedIntArray> col = vtkUnsignedIntArray::New();
             col->SetNumberOfComponents(1);
-            col->SetName(pe_cols[i]);
+            col->SetName(pe_cols[j]);
             col->SetNumberOfTuples(0);
             cur_table->AddColumn(col);
         }
-        for (int i = 0; i < NUM_PE_FLOAT; i++)
+        for (int j = 0; j < NUM_PE_FLOAT; j++)
         {
             vtkSmartPointer<vtkFloatArray> col = vtkFloatArray::New();
             col->SetNumberOfComponents(1);
-            col->SetName(pe_cols[NUM_PE_UINT - 1 + i]);
+            col->SetName(pe_cols[NUM_PE_UINT - 1 + j]);
             col->SetNumberOfTuples(0);
             cur_table->AddColumn(col);
         }
@@ -59,19 +59,19 @@ TableBuilder::TableBuilder() :
         time_col->SetName("timestamp");
         time_col->SetNumberOfTuples(0);
         cur_table->AddColumn(time_col);
-        for (int i = 0; i < NUM_KP_UINT - 1; i++)
+        for (int j = 0; j < NUM_KP_UINT - 1; j++)
         {
             vtkSmartPointer<vtkUnsignedIntArray> col = vtkUnsignedIntArray::New();
             col->SetNumberOfComponents(1);
-            col->SetName(kp_cols[i]);
+            col->SetName(kp_cols[j]);
             col->SetNumberOfTuples(0);
             cur_table->AddColumn(col);
         }
-        for (int i = 0; i < NUM_KP_FLOAT; i++)
+        for (int j = 0; j < NUM_KP_FLOAT; j++)
         {
             vtkSmartPointer<vtkFloatArray> col = vtkFloatArray::New();
             col->SetNumberOfComponents(1);
-            col->SetName(kp_cols[NUM_KP_UINT - 1 + i]);
+            col->SetName(kp_cols[NUM_KP_UINT - 1 + j]);
             col->SetNumberOfTuples(0);
             cur_table->AddColumn(col);
         }
@@ -87,11 +87,11 @@ TableBuilder::TableBuilder() :
         time_col->SetName("timestamp");
         time_col->SetNumberOfTuples(0);
         cur_table->AddColumn(time_col);
-        for (int i = 0; i < NUM_LP_UINT - 2; i++)
+        for (int j = 0; j < NUM_LP_UINT - 2; j++)
         {
             vtkSmartPointer<vtkUnsignedIntArray> col = vtkUnsignedIntArray::New();
             col->SetNumberOfComponents(1);
-            col->SetName(lp_cols[i]);
+            col->SetName(lp_cols[j]);
             col->SetNumberOfTuples(0);
             cur_table->AddColumn(col);
         }
