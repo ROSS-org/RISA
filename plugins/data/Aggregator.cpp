@@ -14,10 +14,10 @@ Aggregator::Aggregator() :
     NumSteps(100),
     TS(0.0),
     AggPE(true),
-    AggKP(false),
+    AggKP(true),
     AggLP(false)
 {
-    this->SetNumberOfInputPorts(2);
+    this->SetNumberOfInputPorts(3);
     this->SetNumberOfOutputPorts(1);
 }
 
@@ -29,7 +29,13 @@ int Aggregator::FillInputPortInformation(int port, vtkInformation* info)
         info->Set(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE(), "vtkPartitionedDataSet");
         return 1;
     }
-    else if (port == 1)
+    else if (port == INPUT_KP)
+    {
+        info->Set(vtkAlgorithm::INPUT_IS_OPTIONAL(), 1);
+        info->Set(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE(), "vtkPartitionedDataSet");
+        return 1;
+    }
+    else if (port == INPUT_LP)
     {
         info->Set(vtkAlgorithm::INPUT_IS_OPTIONAL(), 1);
         info->Set(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE(), "vtkPartitionedDataSet");
@@ -52,7 +58,9 @@ int Aggregator::RequestData(vtkInformation* request, vtkInformationVector** inpu
         vtkInformationVector* output_vec)
 {
     vtkPartitionedDataSet* pe_data = vtkPartitionedDataSet::GetData(input_vec[INPUT_PE], 0);
+    vtkPartitionedDataSet* kp_data = vtkPartitionedDataSet::GetData(input_vec[INPUT_KP], 0);
     vtkTable* pe_features = nullptr;
+    vtkTable* kp_features = nullptr;
 
     vtkPartitionedDataSet* full_pds = vtkPartitionedDataSet::GetData(output_vec, FULL_FEATURES);
     full_pds->SetNumberOfPartitions(3);
@@ -62,8 +70,14 @@ int Aggregator::RequestData(vtkInformation* request, vtkInformationVector** inpu
         pe_features = vtkTable::New();
         CalculateFeatures<PEMetrics>(pe_data, Port::PE_DATA, pe_features);
     }
+    if (AggKP && kp_data)
+    {
+        kp_features = vtkTable::New();
+        CalculateFeatures<KPMetrics>(kp_data, Port::KP_DATA, kp_features);
+    }
 
     full_pds->SetPartition(0, pe_features);
+    full_pds->SetPartition(1, kp_features);
 
     return 1;
 }

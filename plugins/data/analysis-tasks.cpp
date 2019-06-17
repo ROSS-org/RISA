@@ -519,6 +519,7 @@ void aggregation_task(void* arguments)
     feature_extraction_args* args = reinterpret_cast<feature_extraction_args*>(arguments);
     vtkSmartPointer<Aggregator> aggregator = Aggregator::New();
     aggregator->SetInputData(Aggregator::INPUT_PE, table_builder->pe_pds);
+    aggregator->SetInputData(Aggregator::INPUT_KP, table_builder->kp_pds);
     aggregator->SetNumSteps(args->num_steps);
     aggregator->SetTS(args->ts);
     aggregator->Update();
