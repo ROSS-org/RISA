@@ -65,12 +65,11 @@ enum class PrimaryFeatures
     MAX,
     SUM,
     MEAN,
-    M2,
-    M3,
-    M4,
+    STDDEV,
+    VAR,
     NUM_FEAT,
     START = MIN,
-    END = M4
+    END = VAR
 };
 
 inline const char * const *EnumNamesPrimaryFeatures()
@@ -81,9 +80,8 @@ inline const char * const *EnumNamesPrimaryFeatures()
         "max",
         "sum",
         "mean",
-        "m2",
-        "m3",
-        "m4"
+        "stddev",
+        "var",
     };
     return names;
 }

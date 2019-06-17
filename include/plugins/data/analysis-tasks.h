@@ -48,6 +48,7 @@ void forward_vts_task(void* arguments);
 void sample_processing_task(void *arguments);
 
 void feature_extraction_task(void *arguments);
+void aggregation_task(void *arguments);
 void hypothesis_tests_task(void *arguments);
 
 void get_reduction_sizes(size_t* raw, size_t* reduced);

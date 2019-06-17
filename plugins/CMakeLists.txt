@@ -51,6 +51,7 @@ SET(plugin_srcs
     data/ArgobotsManager.cpp
     data/TableBuilder.cpp
     data/FeatureExtractor.cpp
+    data/Aggregator.cpp
     data/analysis-tasks.cpp
     streaming/StreamClient.cpp)
 

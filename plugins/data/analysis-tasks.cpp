@@ -9,6 +9,7 @@
 #include <plugins/data/VTIndex.h>
 #include <plugins/data/TableBuilder.h>
 #include <plugins/data/FeatureExtractor.h>
+#include <plugins/data/Aggregator.h>
 
 #include <damaris/buffer/DataSpace.hpp>
 #include <damaris/buffer/Buffer.hpp>
@@ -48,6 +49,7 @@ void sample_processing_rts(int mode, int step);
 void sample_processing_vts(int mode, int step);
 void table_to_flatbuffer(vtkPartitionedDataSet* pds, feature_extraction_args *args);
 void queue_feature_extraction_task(set<double>& timestamps, int mode);
+void queue_aggregation_task(set<double>& timestamps, int mode);
 
 void init_analysis_tasks()
 {
@@ -193,6 +195,33 @@ void sample_processing_task(void *arguments)
     free(args);
 }
 
+void queue_aggregation_task(set<double>& timestamps, int mode)
+{
+    static long gvt_count = 0;
+
+    ABT_xstream xstream;
+    ABT_pool pool;
+    ABT_xstream_self(&xstream);
+    ABT_xstream_get_main_pools(xstream, 1, &pool);
+    int pool_id;
+    ABT_pool_get_id(pool, &pool_id);
+
+    for (double ts: timestamps)
+    {
+        gvt_count++;
+        if (gvt_count % 100 == 0)
+        {
+            cout << "setting up aggregation task for GVT " << ts << " count " << gvt_count << endl;
+            feature_extraction_args *args = (feature_extraction_args*)malloc(
+                    sizeof(feature_extraction_args));
+            args->num_steps = 100;
+            args->mode = mode;
+            args->ts = ts;
+            ABT_task_create(pool, aggregation_task, args, NULL);
+        }
+    }
+}
+
 void queue_feature_extraction_task(set<double>& timestamps, int mode)
 {
     ABT_xstream xstream;
@@ -271,7 +300,7 @@ void sample_processing_gvt(int mode, int step)
         ++begin;
     }
 
-    queue_feature_extraction_task(timestamps, mode);
+    queue_aggregation_task(timestamps, mode);
 }
 
 void sample_processing_rts(int mode, int step)
@@ -485,6 +514,21 @@ void forward_vts_task(void* arguments)
     free(args);
 }
 
+void aggregation_task(void* arguments)
+{
+    feature_extraction_args* args = reinterpret_cast<feature_extraction_args*>(arguments);
+    vtkSmartPointer<Aggregator> aggregator = Aggregator::New();
+    aggregator->SetInputData(Aggregator::INPUT_PE, table_builder->pe_pds);
+    aggregator->SetNumSteps(args->num_steps);
+    aggregator->SetTS(args->ts);
+    aggregator->Update();
+
+    vtkPartitionedDataSet* features = vtkPartitionedDataSet::SafeDownCast(
+            aggregator->GetOutputDataObject(Aggregator::FULL_FEATURES));
+    table_to_flatbuffer(features, args);
+    free(args);
+}
+
 void feature_extraction_task(void* arguments)
 {
     feature_extraction_args* args = reinterpret_cast<feature_extraction_args*>(arguments);
@@ -527,7 +571,7 @@ void table_to_flatbuffer(vtkPartitionedDataSet* pds, feature_extraction_args* ar
     for (int p = 0; p < 2; p++)
     {
         vtkTable* selected = vtkTable::SafeDownCast(pds->GetPartitionAsDataObject(p));
-        if (selected->GetNumberOfColumns() == 0)
+        if (!selected || selected->GetNumberOfColumns() == 0)
             continue;
 
         for (vtkIdType i = 1; i < selected->GetNumberOfColumns(); i++)

@@ -70,9 +70,9 @@ int FeatureExtractor::RequestData(vtkInformation* request, vtkInformationVector*
 {
     vtkPartitionedDataSetCollection* raw_data =
         vtkPartitionedDataSetCollection::GetData(input_vec[INPUT_DATA], 0);
-    vtkCompositeDataIterator* iter = raw_data->NewIterator();
-    //iter->SkipEmptyNodesOn();
-    iter->InitTraversal();
+    //vtkCompositeDataIterator* iter = raw_data->NewIterator();
+    ////iter->SkipEmptyNodesOn();
+    //iter->InitTraversal();
 
     vtkPartitionedDataSet* input_features =
         vtkPartitionedDataSet::GetData(input_vec[INPUT_FEATURES], 0);
@@ -269,9 +269,9 @@ void FeatureExtractor::CalculatePrimaryFeatures(vtkPartitionedDataSet* in_data, 
             }
 
             float std_dev = 0, var = 0, skew = 0, kur = 0;
-            if (num_row > 1 && m2 > 1.e-150)
+            if (NumSteps > 1 && m2 > 1.e-150)
             {
-                float n = static_cast<float>(num_row);
+                float n = static_cast<float>(NumSteps);
                 float inv_n = 1. / n;
                 float nm1 = n - 1.;
 
