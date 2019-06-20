@@ -269,6 +269,7 @@ void risa_expose_data_gvt(tw_pe *me, int inst_type)
 
             bzero(sample_md, sizeof(*sample_md));
             sample_md->last_gvt = me->GVT;
+            sample_md->rts = tw_clock_read() / (double)g_tw_clock_rate;
 
             sample_md->peid = (unsigned int)g_tw_mynode;
             sample_md->num_model_lps = model_num_lps[inst_type];
