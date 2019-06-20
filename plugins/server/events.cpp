@@ -42,6 +42,7 @@ void damaris_rank_init(const std::string& event, int32_t src, int32_t step, cons
     server = RDServer::get_instance();
     auto sim_config = ross_damaris::config::SimConfig::get_instance();
     sim_config->set_model_metadata();
+    sim_config->create_pe_lp_map();
     //cout << "end of damaris_rank_init()\n";
 }
 

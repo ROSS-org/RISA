@@ -52,6 +52,7 @@ SET(plugin_srcs
     data/TableBuilder.cpp
     data/FeatureExtractor.cpp
     data/Aggregator.cpp
+    data/LPAnalyzer.cpp
     data/analysis-tasks.cpp
     streaming/StreamClient.cpp)
 

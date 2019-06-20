@@ -32,6 +32,7 @@
         <layout name="flatbuf_data_layout" type="char" dimensions="sample_size" />
         <layout name="sample_data_layout" type="char" dimensions="sample_size" />
         <layout name="md_data_layout" type="char" dimensions="md_size" />
+        <layout name="pe_map_layout" type="int" dimensions="3" />
 
         <!-- The groups and variables nested under the ross group are for simulation engine metrics.
         Do not touch these, or you risk errors when running your simulation! -->
@@ -62,6 +63,9 @@
         </group>
         <group name="model_map">
             <variable name="lp_md" layout="md_data_layout" time-varying="false" />
+        </group>
+        <group name="entity_map">
+            <variable name="pe_map" layout="pe_map_layout" time-varying="false" />
         </group>
     </data>
 

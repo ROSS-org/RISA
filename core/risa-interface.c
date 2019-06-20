@@ -84,12 +84,31 @@ void risa_inst_init(const char *config_file)
     set_parameters(config_file);
 
     // get some metadata about model data to RISA
-    int block = 0, err;
-    if (g_st_model_stats)
+    int pe_block = 0, block = 0, err;
+    //if (g_st_model_stats)
     {
         for (int i = 0; i < g_tw_nlp; i++)
         {
             tw_lp* clp = g_tw_lp[i];
+            void *dbuf_ptr;
+            if ((err = damaris_alloc_block("entity_map/pe_map", pe_block, &dbuf_ptr))
+                    != DAMARIS_OK)
+                risa_damaris_error(TW_LOC, err, "entity_map/pe_map");
+            int *pe_map = (int*)dbuf_ptr;
+            pe_map[0] = (int)g_tw_mynode;
+            pe_map[1] = (int)clp->kp->id;
+            pe_map[2] = (int)clp->gid;
+
+            if ((err = damaris_commit_block_iteration("entity_map/pe_map", pe_block, 0))
+                    != DAMARIS_OK)
+                risa_damaris_error(TW_LOC, err, "entity_map/pe_map");
+            if ((err = damaris_clear_block_iteration("entity_map/pe_map", pe_block, 0))
+                    != DAMARIS_OK)
+                risa_damaris_error(TW_LOC, err, "entity_map/pe_map");
+            pe_block++;
+
+            if (!g_st_model_stats)
+                continue;
             // doesn't matter which instrumentation mode is being used for this
             if (!clp->model_types || clp->model_types->num_vars <= 0)
                 continue;
@@ -107,7 +126,7 @@ void risa_inst_init(const char *config_file)
                     != DAMARIS_OK)
                 risa_damaris_error(TW_LOC, err, "md_size");
 
-            void *dbuf_ptr;
+            dbuf_ptr = NULL;
             if ((err = damaris_alloc_block("model_map/lp_md", block, &dbuf_ptr))
                     != DAMARIS_OK)
                 risa_damaris_error(TW_LOC, err, "model_map/lp_md");

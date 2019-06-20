@@ -530,6 +530,11 @@ void aggregation_task(void* arguments)
     free(args);
 }
 
+void lp_analysis_task(void* arguments)
+{
+
+}
+
 void feature_extraction_task(void* arguments)
 {
     feature_extraction_args* args = reinterpret_cast<feature_extraction_args*>(arguments);

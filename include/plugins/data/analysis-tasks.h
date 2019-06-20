@@ -34,6 +34,11 @@ struct feature_extraction_args
     int mode;
 };
 
+struct lp_analysis_args
+{
+
+};
+
 void init_analysis_tasks(void);
 
 /**
@@ -50,6 +55,8 @@ void sample_processing_task(void *arguments);
 void feature_extraction_task(void *arguments);
 void aggregation_task(void *arguments);
 void hypothesis_tests_task(void *arguments);
+
+void lp_analysis_task(void *arguments);
 
 void get_reduction_sizes(size_t* raw, size_t* reduced);
 

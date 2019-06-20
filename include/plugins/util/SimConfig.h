@@ -66,6 +66,9 @@ public:
     ross_damaris::util::ModelMDByFullID::iterator end();
     ross_damaris::util::ModelMDByFullID::iterator get_lp_model_md(int peid, int kpid, int lpid);
 
+    void create_pe_lp_map();
+    std::map<int, std::pair<int, int>> lp_map;
+
 private:
     SimConfig();
     SimConfig(const SimConfig&) = delete;

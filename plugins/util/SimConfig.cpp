@@ -265,6 +265,20 @@ void SimConfig::print_mode_types(int type)
         cout << "model data";
 }
 
+void SimConfig::create_pe_lp_map()
+{
+    std::shared_ptr<Variable> v = VariableManager::Search("entity_map/pe_map");
+    BlocksByIteration::iterator begin, end;
+    v->GetBlocksByIteration(0, begin, end);
+
+    while (begin != end)
+    {
+        int *data = reinterpret_cast<int*>((*begin)->GetDataSpace().GetData());
+        lp_map[data[2]] = std::make_pair(data[0], data[1]);
+        ++begin;
+    }
+}
+
 void SimConfig::set_model_metadata()
 {
     //cout << "SimConfig: set model metadata\n";
