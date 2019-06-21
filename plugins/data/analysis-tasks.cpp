@@ -539,8 +539,10 @@ void lp_analysis_task(void* arguments)
     lp_analysis_args* args = reinterpret_cast<lp_analysis_args*>(arguments);
     static vtkSmartPointer<LPAnalyzer> analyzer = LPAnalyzer::New();
     analyzer->SetInputData(LPAnalyzer::LP_INPUT, table_builder->lp_pds);
+    // only setting TS because it forces Update() to actually do something
     analyzer->SetTS(args->ts);
     analyzer->Update();
+    reduced_data_size += analyzer->FindProblematicLPs(table_builder->lp_pds, gvtsamples);
     free(args);
 }
 

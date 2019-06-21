@@ -2,6 +2,7 @@
 #define VTSAMPLE_H
 
 #include <plugins/flatbuffers/data_sample_generated.h>
+#include <plugins/data/SampleFBBuilder.h>
 #include <instrumentation/st-instrumentation-internal.h>
 #include <iostream>
 

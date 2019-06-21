@@ -7,6 +7,8 @@
 #include <plugins/data/Features.h>
 #include <plugins/data/MovingAvgData.h>
 #include <plugins/util/SimConfig.h>
+#include <plugins/streaming/StreamClient.h>
+#include <plugins/data/VTIndex.h>
 #include <vector>
 
 namespace ross_damaris {
@@ -32,6 +34,8 @@ public:
     vtkSetMacro(TS, double);
     vtkGetMacro(TS, double);
 
+    size_t FindProblematicLPs(vtkPartitionedDataSet* lp_pds, TSIndex& samples);
+
 protected:
     LPAnalyzer();
     ~LPAnalyzer() = default;
@@ -43,7 +47,8 @@ protected:
             vtkInformationVector* output_vec) override;
 
     void CalculateMovingAverages(vtkPartitionedDataSet* in_data);
-    void FindProblematicLPs();
+    vtkIdType FindTSRow(vtkTable* entity_data, double ts);
+    //void GetProblematicLPs(vtkPartitionedDataSet* in_data, vtkPartitionedDataSet* out_data);
 
 private:
     LPAnalyzer(const LPAnalyzer&) = delete;
@@ -51,8 +56,11 @@ private:
 
     int LastStepProcessed;
     double TS;
+    int total_flagged;
     std::map<int, MovingAvgData> lp_avg_map;
+    std::set<double> rows_to_write;
     config::SimConfig* sim_config;
+    streaming::StreamClient* stream_client;
 };
 
 } // end namespace data

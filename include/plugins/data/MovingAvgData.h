@@ -39,6 +39,7 @@ public:
     std::pair<double, double> calc_moving_avg(double EMA_prev, double EMV_prev, double value);
     int get_num_flagged() { return num_flagged; }
 
+    std::map<int, bool> flagged_lps;
 private:
     int peid;
     int kp_gid;
@@ -48,7 +49,6 @@ private:
 
     metric_map kp_avgs;
     std::map<int, metric_map> lp_avgs;
-    std::map<int, bool> flagged_lps;
     //sim_config->lp_map map of int -> <int, int>
     // ie lpid -> peid, kp lid
 };

@@ -15,11 +15,13 @@ vtkObjectFactoryNewMacro(LPAnalyzer);
 // TODO should prob improve
 // do we really want to do all this every time we create a new LPAnalyzer?
 LPAnalyzer::LPAnalyzer() :
-    LastStepProcessed(-1)
+    LastStepProcessed(-1),
+    total_flagged(0)
 {
     this->SetNumberOfInputPorts(1);
     this->SetNumberOfOutputPorts(2);
     this->sim_config = config::SimConfig::get_instance();
+    this->stream_client = streaming::StreamClient::get_instance();
 
     // init lp_avgs
     for (std::map<int, std::pair<int,int>>::iterator it = sim_config->lp_map.begin();
@@ -78,8 +80,13 @@ int LPAnalyzer::RequestData(vtkInformation* request, vtkInformationVector** inpu
         vtkInformationVector* output_vec)
 {
     vtkPartitionedDataSet* lp_data = vtkPartitionedDataSet::GetData(input_vec[LP_INPUT], 0);
+    rows_to_write.clear();
     CalculateMovingAverages(lp_data);
-    FindProblematicLPs();
+    //FindProblematicLPs();
+
+    //vtkPartitionedDataSet* selected_lps = vtkPartitionedDataSet::GetData(output_vec, LP_OUTPUT);
+    //selected_lps->SetNumberOfPartitions(total_flagged);
+    //GetProblematicLPs(lp_data, selected_lps);
     return 1;
 }
 
@@ -119,14 +126,20 @@ void LPAnalyzer::CalculateMovingAverages(vtkPartitionedDataSet* in_data)
                     EnumNameMetrics(LPMetrics::EVENT_PROC), value, init_val);
             auto std_dev = sqrt(results.second);
             if (results.first > results.second + 3 * std_dev)
+            {
                 kp_madata.flag_lp(lpid);
+                rows_to_write.insert(table->GetValueByName(row, "timestamp").ToDouble());
+            }
 
             value = table->GetValueByName(row, EnumNameMetrics(LPMetrics::EVENT_RB)).ToFloat();
             kp_avgs_evrb[kp_gid] += value;
             results = kp_madata.update_lp_moving_avg(lpid, EnumNameMetrics(LPMetrics::EVENT_RB), value, init_val);
             std_dev = sqrt(results.second);
             if (results.first > results.second + 3 * std_dev)
+            {
                 kp_madata.flag_lp(lpid);
+                rows_to_write.insert(table->GetValueByName(row, "timestamp").ToDouble());
+            }
         }
 
         for (int kpid = 0; kpid < total_kp; kpid++)
@@ -141,20 +154,76 @@ void LPAnalyzer::CalculateMovingAverages(vtkPartitionedDataSet* in_data)
     this->LastStepProcessed = total_steps - 1;
 }
 
-void LPAnalyzer::FindProblematicLPs()
+vtkIdType LPAnalyzer::FindTSRow(vtkTable* entity_data, double ts)
 {
+    // start at end, of table, since that should be faster in practice
+    for (vtkIdType row = entity_data->GetNumberOfRows() - 1; row >= 0; row--)
+    {
+        if (ts == entity_data->GetValueByName(row, "timestamp").ToDouble())
+            return row;
+    }
+    return -1;
+}
+
+size_t LPAnalyzer::FindProblematicLPs(vtkPartitionedDataSet* lp_pds, TSIndex& samples)
+{
+    size_t reduced_data_size = 0;
     // Some LPs were already flagged based on their own moving averages
     // now see if we need to flag more based on comparing to the LP avg on this KP
     int total_kp = sim_config->num_kp_pe() * sim_config->num_local_pe();
-    int total_flagged = 0;
+    bool data_to_write = false;
+    total_flagged = 0;
     for (int kpid = 0; kpid < total_kp; kpid++)
     {
         MovingAvgData& kp_madata = lp_avg_map.at(kpid);
         kp_madata.compare_lp_to_kp(EnumNameMetrics(LPMetrics::EVENT_PROC));
         kp_madata.compare_lp_to_kp(EnumNameMetrics(LPMetrics::EVENT_RB));
         total_flagged += kp_madata.get_num_flagged();
+
+        // convert any LPs on this KP to flatbuffers
+        for (auto lp_it = kp_madata.flagged_lps.begin(); lp_it != kp_madata.flagged_lps.end(); ++lp_it)
+        {
+            if (!lp_it->second)
+                continue;
+
+            for (double ts : rows_to_write)
+            {
+                auto samp = samples.get<by_gvt>().find(ts);
+                SampleFBBuilder* samp_fbb = (*samp)->get_sample_fbb();
+                vtkTable *table = vtkTable::SafeDownCast(lp_pds->GetPartitionAsDataObject(lp_it->first));
+                auto row = FindTSRow(table, ts);
+                samp_fbb->add_lp(table, row, kp_madata.get_peid(), kp_madata.get_kp_lid(), lp_it->first);
+                data_to_write = true;
+            }
+            kp_madata.unflag_lp(lp_it->first);
+        }
     }
+
+    if (data_to_write)
+    {
+        for (double ts : rows_to_write)
+        {
+            auto samp = samples.get<by_gvt>().find(ts);
+            SampleFBBuilder* samp_fbb = (*samp)->get_sample_fbb();
+            samp_fbb->finish();
+            size_t size, offset;
+            uint8_t* raw = samp_fbb->release_raw(size, offset);
+            stream_client->enqueue_data(raw, &raw[offset], size);
+            reduced_data_size += size;
+        }
+    }
+
     //printf("LastStepProcessed: %d, total_flagged_lps: %d\n", LastStepProcessed, total_flagged);
+    return reduced_data_size;
 }
 
+//void LPAnalyzer::GetProblematicLPs(vtkPartitionedDataSet* in_data, vtkPartitionedDataSet* out_data)
+//{
+//    if (!in_data)
+//        return;
+//    if (!out_data)
+//        return;
+//
+//    
+//}
 

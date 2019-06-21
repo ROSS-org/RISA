@@ -136,6 +136,27 @@ void SampleFBBuilder::add_lp(const st_lp_stats* lp_stats, int peid)
                 lp_stats->lpid, sim_data));
 }
 
+void SampleFBBuilder::add_lp(vtkTable* lp_table, int row, int peid, int kpid, int lpid)
+{
+    if (is_finished_)
+        cout << "this flatbuffer has already been sent and released!\n";
+    SimEngineMetricsBuilder sim_builder(fbb_);
+    sim_builder.add_nevent_processed(lp_table->GetValueByName(row,
+                EnumNameMetrics(LPMetrics::EVENT_PROC)).ToUnsignedInt());
+    sim_builder.add_nevent_abort(lp_table->GetValueByName(row,
+                EnumNameMetrics(LPMetrics::EVENT_ABORT)).ToUnsignedInt());
+    sim_builder.add_nevent_rb(lp_table->GetValueByName(row,
+                EnumNameMetrics(LPMetrics::EVENT_RB)).ToUnsignedInt());
+    sim_builder.add_network_send(lp_table->GetValueByName(row,
+                EnumNameMetrics(LPMetrics::NET_SEND)).ToUnsignedInt());
+    sim_builder.add_network_recv(lp_table->GetValueByName(row,
+                EnumNameMetrics(LPMetrics::NET_RECV)).ToUnsignedInt());
+
+    auto sim_data = sim_builder.Finish();
+    int kp_gid = peid * sim_config_->num_kp_pe() + kpid;
+    lp_vector_.push_back(CreateLPData(fbb_, peid, kpid, kp_gid, 0, lpid, sim_data));
+}
+
 void SampleFBBuilder::add_feature(Port type, vtkFloatArray* arr, sample::FeatureType ft, sample::MetricType mt)
 {
     vector<float> data;
