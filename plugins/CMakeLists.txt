@@ -53,6 +53,7 @@ SET(plugin_srcs
     data/FeatureExtractor.cpp
     data/Aggregator.cpp
     data/LPAnalyzer.cpp
+    data/MovingAvgData.cpp
     data/analysis-tasks.cpp
     streaming/StreamClient.cpp)
 

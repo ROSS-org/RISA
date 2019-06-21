@@ -45,7 +45,7 @@ private:
     LPAnalyzer(const LPAnalyzer&) = delete;
     LPAnalyzer& operator=(const LPAnalyzer&) = delete;
 
-    int LastStep;
+    int LastStepProcessed;
     std::map<int, MovingAvgData> lp_avg_map;
     config::SimConfig* sim_config;
 };
