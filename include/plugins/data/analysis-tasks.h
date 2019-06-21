@@ -36,7 +36,7 @@ struct feature_extraction_args
 
 struct lp_analysis_args
 {
-
+    double ts;
 };
 
 void init_analysis_tasks(void);

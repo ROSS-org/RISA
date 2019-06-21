@@ -29,6 +29,9 @@ public:
         AVG_OUTPUT
     };
 
+    vtkSetMacro(TS, double);
+    vtkGetMacro(TS, double);
+
 protected:
     LPAnalyzer();
     ~LPAnalyzer() = default;
@@ -40,12 +43,14 @@ protected:
             vtkInformationVector* output_vec) override;
 
     void CalculateMovingAverages(vtkPartitionedDataSet* in_data);
+    void FindProblematicLPs();
 
 private:
     LPAnalyzer(const LPAnalyzer&) = delete;
     LPAnalyzer& operator=(const LPAnalyzer&) = delete;
 
     int LastStepProcessed;
+    double TS;
     std::map<int, MovingAvgData> lp_avg_map;
     config::SimConfig* sim_config;
 };

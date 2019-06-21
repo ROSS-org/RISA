@@ -12,6 +12,8 @@ using namespace std;
 
 vtkObjectFactoryNewMacro(LPAnalyzer);
 
+// TODO should prob improve
+// do we really want to do all this every time we create a new LPAnalyzer?
 LPAnalyzer::LPAnalyzer() :
     LastStepProcessed(-1)
 {
@@ -23,17 +25,17 @@ LPAnalyzer::LPAnalyzer() :
     for (std::map<int, std::pair<int,int>>::iterator it = sim_config->lp_map.begin();
             it != sim_config->lp_map.end(); ++it)
     {
-        auto lpid = it->first;
-        auto peid = it->second.first;
-        auto kp_lid = it->second.second;
-        auto kp_gid = peid * sim_config->num_kp_pe() + kp_lid;
+        int lpid = it->first;
+        int peid = it->second.first;
+        int kp_lid = it->second.second;
+        int kp_gid = peid * sim_config->num_kp_pe() + kp_lid;
 
         // find if we already created a MovingAvgData for this KP
         auto kp_it = lp_avg_map.find(kp_gid);
         if (kp_it == lp_avg_map.end())
         {
             MovingAvgData mva_data(peid, kp_gid, kp_lid);
-            auto rv = lp_avg_map.insert(std::make_pair(lpid, std::move(mva_data)));
+            auto rv = lp_avg_map.insert(std::make_pair(kp_gid, std::move(mva_data)));
             kp_it = rv.first;
         }
 
@@ -77,6 +79,7 @@ int LPAnalyzer::RequestData(vtkInformation* request, vtkInformationVector** inpu
 {
     vtkPartitionedDataSet* lp_data = vtkPartitionedDataSet::GetData(input_vec[LP_INPUT], 0);
     CalculateMovingAverages(lp_data);
+    FindProblematicLPs();
     return 1;
 }
 
@@ -112,11 +115,18 @@ void LPAnalyzer::CalculateMovingAverages(vtkPartitionedDataSet* in_data)
             vtkTable *table = vtkTable::SafeDownCast(in_data->GetPartitionAsDataObject(lpid));
             float value = table->GetValueByName(row, EnumNameMetrics(LPMetrics::EVENT_PROC)).ToFloat();
             kp_avgs_evproc[kp_gid] += value;
-            kp_madata.update_lp_moving_avg(lpid, EnumNameMetrics(LPMetrics::EVENT_PROC), value, init_val);
+            auto results = kp_madata.update_lp_moving_avg(lpid,
+                    EnumNameMetrics(LPMetrics::EVENT_PROC), value, init_val);
+            auto std_dev = sqrt(results.second);
+            if (results.first > results.second + 3 * std_dev)
+                kp_madata.flag_lp(lpid);
 
             value = table->GetValueByName(row, EnumNameMetrics(LPMetrics::EVENT_RB)).ToFloat();
             kp_avgs_evrb[kp_gid] += value;
-            kp_madata.update_lp_moving_avg(lpid, EnumNameMetrics(LPMetrics::EVENT_RB), value, init_val);
+            results = kp_madata.update_lp_moving_avg(lpid, EnumNameMetrics(LPMetrics::EVENT_RB), value, init_val);
+            std_dev = sqrt(results.second);
+            if (results.first > results.second + 3 * std_dev)
+                kp_madata.flag_lp(lpid);
         }
 
         for (int kpid = 0; kpid < total_kp; kpid++)
@@ -130,4 +140,21 @@ void LPAnalyzer::CalculateMovingAverages(vtkPartitionedDataSet* in_data)
     }
     this->LastStepProcessed = total_steps - 1;
 }
+
+void LPAnalyzer::FindProblematicLPs()
+{
+    // Some LPs were already flagged based on their own moving averages
+    // now see if we need to flag more based on comparing to the LP avg on this KP
+    int total_kp = sim_config->num_kp_pe() * sim_config->num_local_pe();
+    int total_flagged = 0;
+    for (int kpid = 0; kpid < total_kp; kpid++)
+    {
+        MovingAvgData& kp_madata = lp_avg_map.at(kpid);
+        kp_madata.compare_lp_to_kp(EnumNameMetrics(LPMetrics::EVENT_PROC));
+        kp_madata.compare_lp_to_kp(EnumNameMetrics(LPMetrics::EVENT_RB));
+        total_flagged += kp_madata.get_num_flagged();
+    }
+    //printf("LastStepProcessed: %d, total_flagged_lps: %d\n", LastStepProcessed, total_flagged);
+}
+
 

@@ -221,7 +221,9 @@ void queue_aggregation_task(set<double>& timestamps, int mode)
             ABT_task_create(pool, aggregation_task, args, NULL);
         }
     }
-    ABT_task_create(pool, lp_analysis_task, NULL, NULL);
+    lp_analysis_args *args = (lp_analysis_args*)malloc(sizeof(lp_analysis_args));
+    args->ts = *(timestamps.begin());
+    ABT_task_create(pool, lp_analysis_task, args, NULL);
 }
 
 void queue_feature_extraction_task(set<double>& timestamps, int mode)
@@ -534,11 +536,12 @@ void aggregation_task(void* arguments)
 
 void lp_analysis_task(void* arguments)
 {
-    //lp_analsis_args* args = reinterpret_cast<lp_analysis_args*>(arguments);
-    vtkSmartPointer<LPAnalyzer> analyzer = LPAnalyzer::New();
+    lp_analysis_args* args = reinterpret_cast<lp_analysis_args*>(arguments);
+    static vtkSmartPointer<LPAnalyzer> analyzer = LPAnalyzer::New();
     analyzer->SetInputData(LPAnalyzer::LP_INPUT, table_builder->lp_pds);
+    analyzer->SetTS(args->ts);
     analyzer->Update();
-    //free(args);
+    free(args);
 }
 
 void feature_extraction_task(void* arguments)
