@@ -221,9 +221,9 @@ void queue_aggregation_task(set<double>& timestamps, int mode)
             ABT_task_create(pool, aggregation_task, args, NULL);
         }
     }
-    lp_analysis_args *args = (lp_analysis_args*)malloc(sizeof(lp_analysis_args));
-    args->ts = *(timestamps.begin());
-    ABT_task_create(pool, lp_analysis_task, args, NULL);
+    //lp_analysis_args *args = (lp_analysis_args*)malloc(sizeof(lp_analysis_args));
+    //args->ts = *(timestamps.begin());
+    //ABT_task_create(pool, lp_analysis_task, args, NULL);
 }
 
 void queue_feature_extraction_task(set<double>& timestamps, int mode)
@@ -521,9 +521,15 @@ void forward_vts_task(void* arguments)
 void aggregation_task(void* arguments)
 {
     feature_extraction_args* args = reinterpret_cast<feature_extraction_args*>(arguments);
-    vtkSmartPointer<Aggregator> aggregator = Aggregator::New();
-    aggregator->SetInputData(Aggregator::INPUT_PE, table_builder->pe_pds);
-    aggregator->SetInputData(Aggregator::INPUT_KP, table_builder->kp_pds);
+    static vtkSmartPointer<Aggregator> aggregator = Aggregator::New();
+    static bool init = false;
+    if (!init)
+    {
+        aggregator->SetInputData(Aggregator::INPUT_PE, table_builder->pe_pds);
+        aggregator->SetInputData(Aggregator::INPUT_KP, table_builder->kp_pds);
+        aggregator->SetInputData(Aggregator::INPUT_LP, table_builder->lp_pds);
+        init = true;
+    }
     aggregator->SetNumSteps(args->num_steps);
     aggregator->SetTS(args->ts);
     aggregator->Update();

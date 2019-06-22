@@ -26,6 +26,7 @@ public:
     enum OutputPorts
     {
         FULL_FEATURES,
+        LP_AGGREGATES
     };
 
     vtkSetMacro(NumSteps, int);
@@ -53,8 +54,12 @@ protected:
     int RequestData(vtkInformation* request, vtkInformationVector** input_vec,
             vtkInformationVector* output_vec) override;
 
+    void InitLPOutput(vtkPartitionedDataSet* lp_aggs, int num_partitions);
+
     template <typename E>
     void CalculateFeatures(vtkPartitionedDataSet* in_data, Port data_type, vtkTable* Features);
+
+    void AggregateLPData(vtkPartitionedDataSet* in_data, vtkPartitionedDataSet* agg_data);
 
     vtkIdType FindTSRow(vtkTable* entity_data, double ts);
 
@@ -63,6 +68,7 @@ protected:
     bool AggPE;
     bool AggKP;
     bool AggLP;
+    bool LPInit;
 
 private:
     Aggregator(const Aggregator&) = delete;

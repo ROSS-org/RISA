@@ -4,6 +4,7 @@
 #include <vtkTable.h>
 #include <vtkUnsignedIntArray.h>
 #include <vtkFloatArray.h>
+#include <vtkDoubleArray.h>
 #include <vtkVariantArray.h>
 
 using namespace ross_damaris::data;
@@ -15,10 +16,11 @@ Aggregator::Aggregator() :
     TS(0.0),
     AggPE(true),
     AggKP(true),
-    AggLP(false)
+    AggLP(true),
+    LPInit(false)
 {
     this->SetNumberOfInputPorts(3);
-    this->SetNumberOfOutputPorts(1);
+    this->SetNumberOfOutputPorts(2);
 }
 
 int Aggregator::FillInputPortInformation(int port, vtkInformation* info)
@@ -51,6 +53,11 @@ int Aggregator::FillOutputPortInformation(int port, vtkInformation* info)
         info->Set(vtkDataObject::DATA_TYPE_NAME(), "vtkPartitionedDataSet");
         return 1;
     }
+    else if (port == LP_AGGREGATES)
+    {
+        info->Set(vtkDataObject::DATA_TYPE_NAME(), "vtkPartitionedDataSet");
+        return 1;
+    }
     return 0;
 }
 
@@ -59,11 +66,21 @@ int Aggregator::RequestData(vtkInformation* request, vtkInformationVector** inpu
 {
     vtkPartitionedDataSet* pe_data = vtkPartitionedDataSet::GetData(input_vec[INPUT_PE], 0);
     vtkPartitionedDataSet* kp_data = vtkPartitionedDataSet::GetData(input_vec[INPUT_KP], 0);
+    vtkPartitionedDataSet* lp_data = vtkPartitionedDataSet::GetData(input_vec[INPUT_LP], 0);
+
+    // TODO memory leak here when we have a static instance
     vtkTable* pe_features = nullptr;
     vtkTable* kp_features = nullptr;
 
     vtkPartitionedDataSet* full_pds = vtkPartitionedDataSet::GetData(output_vec, FULL_FEATURES);
     full_pds->SetNumberOfPartitions(3);
+
+    vtkPartitionedDataSet* agg_pds = vtkPartitionedDataSet::GetData(output_vec, LP_AGGREGATES);
+    if (!LPInit)
+    {
+        InitLPOutput(agg_pds, lp_data->GetNumberOfPartitions());
+        LPInit = true;
+    }
 
     if (AggPE && pe_data)
     {
@@ -76,10 +93,43 @@ int Aggregator::RequestData(vtkInformation* request, vtkInformationVector** inpu
         CalculateFeatures<KPMetrics>(kp_data, Port::KP_DATA, kp_features);
     }
 
+    if (AggLP && lp_data)
+    {
+        AggregateLPData(lp_data, agg_pds);
+    }
+
     full_pds->SetPartition(0, pe_features);
     full_pds->SetPartition(1, kp_features);
 
     return 1;
+}
+
+void Aggregator::InitLPOutput(vtkPartitionedDataSet* lp_aggs, int num_partitions)
+{
+    const char * const* lp_cols = EnumNamesLPMetrics();
+    int num_metrics = get_num_metrics<LPMetrics>();
+
+    for (int p = 0; p < num_partitions; p++)
+    {
+        vtkTable *table = vtkTable::New();
+        vtkDoubleArray *time_col = vtkDoubleArray::New();
+        time_col->SetNumberOfComponents(1);
+        time_col->SetName("timestamp");
+        time_col->SetNumberOfTuples(0);
+        table->AddColumn(time_col);
+        time_col->Delete();
+
+        for (int m = 0; m < num_metrics; m++)
+        {
+            vtkUnsignedIntArray* col = vtkUnsignedIntArray::New();
+            col->SetNumberOfComponents(1);
+            col->SetName(lp_cols[m]);
+            col->SetNumberOfTuples(0);
+            table->AddColumn(col);
+            col->Delete();
+        }
+    }
+
 }
 
 vtkIdType Aggregator::FindTSRow(vtkTable* entity_data, double ts)
@@ -205,4 +255,49 @@ void Aggregator::CalculateFeatures(vtkPartitionedDataSet* in_data, Port data_typ
         initialized = true;
     }
 
+}
+
+void Aggregator::AggregateLPData(vtkPartitionedDataSet* in_data, vtkPartitionedDataSet* agg_data)
+{
+    if (!in_data)
+        return;
+    if (!agg_data)
+        return;
+
+    int num_metrics = get_num_metrics<LPMetrics>();
+    unsigned int num_partitions = in_data->GetNumberOfPartitions();
+
+    vtkIdType end_row = -1;
+    for (unsigned int p = 0; p < num_partitions; p++)
+    {
+        vtkTable *table = vtkTable::SafeDownCast(in_data->GetPartitionAsDataObject(p));
+        vtkTable *agg_table = vtkTable::SafeDownCast(agg_data->GetPartitionAsDataObject(p));
+
+        if (p == 0)
+            end_row = FindTSRow(table, TS);
+        if (end_row - NumSteps <= 0)
+            return;
+        vtkIdType start_row = end_row - NumSteps;
+        vtkIdType num_row = NumSteps;
+
+        vtkVariantArray* agg_row = vtkVariantArray::New();
+        agg_row->SetNumberOfValues(table->GetNumberOfColumns());
+        agg_row->DeepCopy(table->GetRow(start_row));
+        start_row++;
+
+        for (vtkIdType r = start_row; r < end_row; r++)
+        {
+            for (int m = 0; m < num_metrics; m++)
+            {
+                int col = m + 1; // to skip timestamp column
+                auto val = agg_row->GetValue(col).ToUnsignedInt() +
+                    table->GetValue(r, col).ToUnsignedInt();
+                agg_row->SetVariantValue(col, val);
+            }
+        }
+        agg_row->SetVariantValue(0, table->GetValue(end_row-1, 0).ToDouble());
+        agg_table->InsertNextRow(agg_row);
+        agg_row->Delete();
+
+    }
 }

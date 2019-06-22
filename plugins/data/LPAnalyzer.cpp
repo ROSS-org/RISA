@@ -213,7 +213,7 @@ size_t LPAnalyzer::FindProblematicLPs(vtkPartitionedDataSet* lp_pds, TSIndex& sa
         }
     }
 
-    //printf("LastStepProcessed: %d, total_flagged_lps: %d\n", LastStepProcessed, total_flagged);
+    printf("LastStepProcessed: %d, total_flagged_lps: %d\n", LastStepProcessed, total_flagged);
     return reduced_data_size;
 }
 
