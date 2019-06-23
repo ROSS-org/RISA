@@ -76,11 +76,11 @@ int Aggregator::RequestData(vtkInformation* request, vtkInformationVector** inpu
     full_pds->SetNumberOfPartitions(3);
 
     vtkPartitionedDataSet* agg_pds = vtkPartitionedDataSet::GetData(output_vec, LP_AGGREGATES);
-    if (!LPInit)
-    {
-        InitLPOutput(agg_pds, lp_data->GetNumberOfPartitions());
-        LPInit = true;
-    }
+    //if (!LPInit)
+    //{
+    //    InitLPOutput(agg_pds, lp_data->GetNumberOfPartitions());
+    //    LPInit = true;
+    //}
 
     if (AggPE && pe_data)
     {
@@ -95,6 +95,7 @@ int Aggregator::RequestData(vtkInformation* request, vtkInformationVector** inpu
 
     if (AggLP && lp_data)
     {
+        InitLPOutput(agg_pds, lp_data->GetNumberOfPartitions());
         AggregateLPData(lp_data, agg_pds);
     }
 
@@ -106,6 +107,7 @@ int Aggregator::RequestData(vtkInformation* request, vtkInformationVector** inpu
 
 void Aggregator::InitLPOutput(vtkPartitionedDataSet* lp_aggs, int num_partitions)
 {
+    lp_aggs->SetNumberOfPartitions(num_partitions);
     const char * const* lp_cols = EnumNamesLPMetrics();
     int num_metrics = get_num_metrics<LPMetrics>();
 
@@ -128,8 +130,8 @@ void Aggregator::InitLPOutput(vtkPartitionedDataSet* lp_aggs, int num_partitions
             table->AddColumn(col);
             col->Delete();
         }
+        lp_aggs->SetPartition(p, table);
     }
-
 }
 
 vtkIdType Aggregator::FindTSRow(vtkTable* entity_data, double ts)
@@ -298,6 +300,5 @@ void Aggregator::AggregateLPData(vtkPartitionedDataSet* in_data, vtkPartitionedD
         agg_row->SetVariantValue(0, table->GetValue(end_row-1, 0).ToDouble());
         agg_table->InsertNextRow(agg_row);
         agg_row->Delete();
-
     }
 }

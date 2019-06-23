@@ -15,8 +15,9 @@ vtkObjectFactoryNewMacro(LPAnalyzer);
 // TODO should prob improve
 // do we really want to do all this every time we create a new LPAnalyzer?
 LPAnalyzer::LPAnalyzer() :
-    LastStepProcessed(-1),
-    total_flagged(0)
+    LastStepProcessed(0),
+    total_flagged(0),
+    initial_round(true)
 {
     this->SetNumberOfInputPorts(1);
     this->SetNumberOfOutputPorts(2);
@@ -101,13 +102,16 @@ void LPAnalyzer::CalculateMovingAverages(vtkPartitionedDataSet* in_data)
 
     vtkTable *table = vtkTable::SafeDownCast(in_data->GetPartitionAsDataObject(0));
     vtkIdType total_steps = table->GetNumberOfRows();
-    for (int row = this->LastStepProcessed + 1; row < total_steps; row++)
+    // When we input lp data from Aggregator, all rows should be added to average,
+    // because we get a new (small) table each time
+    for (int row = 0; row < total_steps; row++)
+    //for (int row = this->LastStepProcessed + 1; row < total_steps; row++)
     {
         vector<double> kp_avgs_evproc(total_kp, 0);
         vector<double> kp_avgs_evrb(total_kp, 0);
         vector<int> kp_num_lp(total_kp, 0);
 
-        bool init_val = (row == 0 ? true : false);
+        //bool init_val = (row == 0 ? true : false);
         // TODO lpid only correct when running sim on a single node
         for (int lpid = 0; lpid < num_partitions; lpid++)
         {
@@ -123,9 +127,11 @@ void LPAnalyzer::CalculateMovingAverages(vtkPartitionedDataSet* in_data)
             float value = table->GetValueByName(row, EnumNameMetrics(LPMetrics::EVENT_PROC)).ToFloat();
             kp_avgs_evproc[kp_gid] += value;
             auto results = kp_madata.update_lp_moving_avg(lpid,
-                    EnumNameMetrics(LPMetrics::EVENT_PROC), value, init_val);
+                    EnumNameMetrics(LPMetrics::EVENT_PROC), value, initial_round);
             auto std_dev = sqrt(results.second);
-            if (results.first > results.second + 3 * std_dev)
+            //cout << "CalcMA: lp: " << lpid << endl;
+            //cout << "\tev proc val: " << value << ", EMA: " << results.first << ", std_dev: " << std_dev << endl;
+            if (value > results.first + 4 * std_dev)
             {
                 kp_madata.flag_lp(lpid);
                 rows_to_write.insert(table->GetValueByName(row, "timestamp").ToDouble());
@@ -133,9 +139,9 @@ void LPAnalyzer::CalculateMovingAverages(vtkPartitionedDataSet* in_data)
 
             value = table->GetValueByName(row, EnumNameMetrics(LPMetrics::EVENT_RB)).ToFloat();
             kp_avgs_evrb[kp_gid] += value;
-            results = kp_madata.update_lp_moving_avg(lpid, EnumNameMetrics(LPMetrics::EVENT_RB), value, init_val);
+            results = kp_madata.update_lp_moving_avg(lpid, EnumNameMetrics(LPMetrics::EVENT_RB), value, initial_round);
             std_dev = sqrt(results.second);
-            if (results.first > results.second + 3 * std_dev)
+            if (value > results.first + 4 * std_dev)
             {
                 kp_madata.flag_lp(lpid);
                 rows_to_write.insert(table->GetValueByName(row, "timestamp").ToDouble());
@@ -146,12 +152,14 @@ void LPAnalyzer::CalculateMovingAverages(vtkPartitionedDataSet* in_data)
         {
             MovingAvgData& kp_madata = lp_avg_map.at(kpid);
             kp_madata.update_kp_moving_avg(EnumNameMetrics(LPMetrics::EVENT_PROC),
-                    kp_avgs_evproc[kpid] / kp_num_lp[kpid], init_val);
+                    kp_avgs_evproc[kpid] / kp_num_lp[kpid], initial_round);
             kp_madata.update_kp_moving_avg(EnumNameMetrics(LPMetrics::EVENT_RB),
-                    kp_avgs_evrb[kpid] / kp_num_lp[kpid], init_val);
+                    kp_avgs_evrb[kpid] / kp_num_lp[kpid], initial_round);
         }
     }
-    this->LastStepProcessed = total_steps - 1;
+    initial_round = false;
+    this->LastStepProcessed += total_steps;
+    //this->LastStepProcessed = total_steps - 1;
 }
 
 vtkIdType LPAnalyzer::FindTSRow(vtkTable* entity_data, double ts)
@@ -165,6 +173,8 @@ vtkIdType LPAnalyzer::FindTSRow(vtkTable* entity_data, double ts)
     return -1;
 }
 
+// TODO ideally when we flag an LP, we'd choose to stream some number of prev samples as well
+// TODO also examine cases where LPs are flagged and tweak as necessary
 size_t LPAnalyzer::FindProblematicLPs(vtkPartitionedDataSet* lp_pds, TSIndex& samples)
 {
     size_t reduced_data_size = 0;

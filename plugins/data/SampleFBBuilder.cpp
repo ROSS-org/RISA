@@ -250,7 +250,10 @@ char* SampleFBBuilder::add_model_lp(st_model_data* model_lp, char* buffer, size_
 void SampleFBBuilder::finish()
 {
     if (is_finished_)
+    {
+        cout << "This flatbuffer has already been finished!\n";
         return;
+    }
 
     auto sample = CreateDamarisDataSampleDirect(fbb_, vts_, rts_, last_gvt_, mode_,
         &pe_vector_, &kp_vector_, &lp_vector_, &mlp_vector_, &pe_feature_vector_, &kp_feature_vector_);

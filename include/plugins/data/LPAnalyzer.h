@@ -57,6 +57,7 @@ private:
     int LastStepProcessed;
     double TS;
     int total_flagged;
+    bool initial_round;
     std::map<int, MovingAvgData> lp_avg_map;
     std::set<double> rows_to_write;
     config::SimConfig* sim_config;

@@ -210,12 +210,12 @@ void queue_aggregation_task(set<double>& timestamps, int mode)
     for (double ts: timestamps)
     {
         gvt_count++;
-        if (gvt_count % 100 == 0)
+        if (gvt_count % 50 == 0)
         {
-            cout << "setting up aggregation task for GVT " << ts << " count " << gvt_count << endl;
+            cout << "queueing aggregation task for GVT " << ts << " count " << gvt_count << endl;
             feature_extraction_args *args = (feature_extraction_args*)malloc(
                     sizeof(feature_extraction_args));
-            args->num_steps = 100;
+            args->num_steps = 50;
             args->mode = mode;
             args->ts = ts;
             ABT_task_create(pool, aggregation_task, args, NULL);
@@ -533,6 +533,14 @@ void aggregation_task(void* arguments)
     aggregator->SetNumSteps(args->num_steps);
     aggregator->SetTS(args->ts);
     aggregator->Update();
+
+    vtkPartitionedDataSet* lp_agg_pds = vtkPartitionedDataSet::SafeDownCast(
+            aggregator->GetOutputDataObject(Aggregator::LP_AGGREGATES));
+    static vtkSmartPointer<LPAnalyzer> analyzer = LPAnalyzer::New();
+    analyzer->SetInputData(LPAnalyzer::LP_INPUT, lp_agg_pds);
+    analyzer->SetTS(args->ts);
+    analyzer->Update();
+    reduced_data_size += analyzer->FindProblematicLPs(table_builder->lp_pds, gvtsamples);
 
     vtkPartitionedDataSet* features = vtkPartitionedDataSet::SafeDownCast(
             aggregator->GetOutputDataObject(Aggregator::FULL_FEATURES));

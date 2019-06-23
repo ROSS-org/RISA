@@ -30,14 +30,16 @@ void MovingAvgData::setup_lp_flag(int lpid)
 
 void MovingAvgData::flag_lp(int lpid)
 {
+    if (!flagged_lps.at(lpid))
+        num_flagged++;
     flagged_lps.at(lpid) = true;
-    num_flagged++;
 }
 
 void MovingAvgData::unflag_lp(int lpid)
 {
+    if (flagged_lps.at(lpid))
+        num_flagged--;
     flagged_lps.at(lpid) = false;
-    num_flagged--;
 }
 
 bool MovingAvgData::lp_flagged(int lpid)
@@ -114,7 +116,7 @@ void MovingAvgData::compare_lp_to_kp(const char* metric)
             continue;
 
         double EMA_lp = it->second[metric].first;
-        if (EMA_lp > EMA_kp + 3 * EMSD_kp)
+        if (EMA_lp > EMA_kp + 4 * EMSD_kp)
             flag_lp(it->first);
     }
 }
