@@ -96,6 +96,7 @@ void LPAnalyzer::CalculateMovingAverages(vtkPartitionedDataSet* in_data)
     if (!in_data)
         return;
 
+    cout << "CalculateMovingAverages() initial_round = " << initial_round << endl;
     // num entities
     unsigned int num_partitions = in_data->GetNumberOfPartitions();
     int total_kp = sim_config->num_kp_pe() * sim_config->num_local_pe();
@@ -126,26 +127,30 @@ void LPAnalyzer::CalculateMovingAverages(vtkPartitionedDataSet* in_data)
             vtkTable *table = vtkTable::SafeDownCast(in_data->GetPartitionAsDataObject(lpid));
             float value = table->GetValueByName(row, EnumNameMetrics(LPMetrics::EVENT_PROC)).ToFloat();
             kp_avgs_evproc[kp_gid] += value;
-            auto results = kp_madata.update_lp_moving_avg(lpid,
-                    EnumNameMetrics(LPMetrics::EVENT_PROC), value, initial_round);
-            auto std_dev = sqrt(results.second);
-            //cout << "CalcMA: lp: " << lpid << endl;
-            //cout << "\tev proc val: " << value << ", EMA: " << results.first << ", std_dev: " << std_dev << endl;
-            if (value > results.first + 4 * std_dev)
+            auto old_results = kp_madata.get_lp_moving_avg(lpid, EnumNameMetrics(LPMetrics::EVENT_PROC));
+            auto std_dev = sqrt(old_results.second);
+            if (!initial_round && value > old_results.first + 4 * std_dev)
             {
                 kp_madata.flag_lp(lpid);
                 rows_to_write.insert(table->GetValueByName(row, "timestamp").ToDouble());
+                //cout << "CalcMA: lp: " << lpid << endl;
+                //cout << "\tev proc val: " << value << ", EMA: " << old_results.first << ", std_dev: " << std_dev << endl;
             }
+            kp_madata.update_lp_moving_avg(lpid,
+                    EnumNameMetrics(LPMetrics::EVENT_PROC), value, initial_round);
 
             value = table->GetValueByName(row, EnumNameMetrics(LPMetrics::EVENT_RB)).ToFloat();
             kp_avgs_evrb[kp_gid] += value;
-            results = kp_madata.update_lp_moving_avg(lpid, EnumNameMetrics(LPMetrics::EVENT_RB), value, initial_round);
-            std_dev = sqrt(results.second);
-            if (value > results.first + 4 * std_dev)
+            old_results = kp_madata.get_lp_moving_avg(lpid, EnumNameMetrics(LPMetrics::EVENT_RB));
+            std_dev = sqrt(old_results.second);
+            if (!initial_round && value > old_results.first + 4 * std_dev)
             {
                 kp_madata.flag_lp(lpid);
                 rows_to_write.insert(table->GetValueByName(row, "timestamp").ToDouble());
+                //cout << "CalcMA: lp: " << lpid << endl;
+                //cout << "\tev rb val: " << value << ", EMA: " << old_results.first << ", std_dev: " << std_dev << endl;
             }
+            kp_madata.update_lp_moving_avg(lpid, EnumNameMetrics(LPMetrics::EVENT_RB), value, initial_round);
         }
 
         for (int kpid = 0; kpid < total_kp; kpid++)
@@ -157,7 +162,8 @@ void LPAnalyzer::CalculateMovingAverages(vtkPartitionedDataSet* in_data)
                     kp_avgs_evrb[kpid] / kp_num_lp[kpid], initial_round);
         }
     }
-    initial_round = false;
+    if (total_steps > 0)
+        initial_round = false;
     this->LastStepProcessed += total_steps;
     //this->LastStepProcessed = total_steps - 1;
 }

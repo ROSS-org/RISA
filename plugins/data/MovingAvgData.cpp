@@ -49,9 +49,11 @@ bool MovingAvgData::lp_flagged(int lpid)
 
 std::pair<double, double> MovingAvgData::calc_moving_avg(double EMA_prev, double EMV_prev, double value)
 {
+    //cout << "calc_moving_avg: EMA_prev " << EMA_prev << " EMV_prev " << EMV_prev << " value " << value << endl;
     double delta = value - EMA_prev;
     double EMA = EMA_prev + alpha * delta;
     double EMV = (1 - alpha) * (EMV_prev + alpha * pow(delta, 2));
+    return make_pair(EMA, EMV);
 }
 
 void MovingAvgData::update_kp_moving_avg(const char* metric, double value, bool init_val)
@@ -70,12 +72,17 @@ void MovingAvgData::update_kp_moving_avg(const char* metric, double value, bool 
 
 pair<double, double> MovingAvgData::update_lp_moving_avg(int lpid, const char* metric, double value, bool init_val)
 {
+    //cout << "update_lp_moving_avg() lp " << lpid << " , " << metric << " = " << value << endl;
     auto lp_it = lp_avgs.find(lpid);
     if (lp_it == lp_avgs.end())
+    {
+        //cout << "lp_it == lp_avgs.end()\n";
         return make_pair(0.0, 0.0);
+    }
 
     if (init_val)
     {
+        //cout << "init_val\n";
         lp_it->second[metric].first = value;
         lp_it->second[metric].second = 0;
     }
@@ -83,7 +90,9 @@ pair<double, double> MovingAvgData::update_lp_moving_avg(int lpid, const char* m
     {
         double EMA_prev = lp_it->second[metric].first;
         double EMV_prev = lp_it->second[metric].second;
+        //cout << "EMA_prev " << EMA_prev << ", EMV_prev " << EMV_prev << endl;
         auto results = calc_moving_avg(EMA_prev, EMV_prev, value);
+        //cout << "new EMA " << results.first << ", new EMV " << results.second << endl;
         lp_it->second[metric].first = results.first;
         lp_it->second[metric].second = results.second;
     }
