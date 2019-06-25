@@ -183,6 +183,7 @@ size_t LPAnalyzer::FindProblematicLPs(vtkPartitionedDataSet* lp_pds, TSIndex& sa
     int total_kp = sim_config->num_kp_pe() * sim_config->num_local_pe();
     bool data_to_write = false;
     total_flagged = 0;
+    set<double> timestamps;
     for (int kpid = 0; kpid < total_kp; kpid++)
     {
         MovingAvgData& kp_madata = lp_avg_map.at(kpid);
@@ -196,14 +197,28 @@ size_t LPAnalyzer::FindProblematicLPs(vtkPartitionedDataSet* lp_pds, TSIndex& sa
             if (!lp_it->second)
                 continue;
 
+            // for each time stamp here, we want some number of previous time steps saved
+            // to have higher resolution data
             for (double ts : rows_to_write)
             {
-                auto samp = samples.get<by_gvt>().find(ts);
-                SampleFBBuilder* samp_fbb = (*samp)->get_sample_fbb();
-                vtkTable *table = vtkTable::SafeDownCast(lp_pds->GetPartitionAsDataObject(lp_it->first));
-                auto row = FindTSRow(table, ts);
-                samp_fbb->add_lp(table, row, kp_madata.get_peid(), kp_madata.get_kp_lid(), lp_it->first);
-                data_to_write = true;
+                // by_gvt is a ranked index now
+                auto max_rank = samples.get<by_gvt>().find_rank(ts);
+                size_t start_rank = 0;
+                size_t past_ranks = 10;
+                if (max_rank - past_ranks >= 0)
+                    start_rank = max_rank - past_ranks;
+
+                for (auto i = start_rank; i <= max_rank; i++)
+                {
+                    auto samp = samples.get<by_gvt>().nth(i);
+                    auto cur_ts = (*samp)->get_gvt();
+                    SampleFBBuilder* samp_fbb = (*samp)->get_sample_fbb();
+                    vtkTable *table = vtkTable::SafeDownCast(lp_pds->GetPartitionAsDataObject(lp_it->first));
+                    auto row = FindTSRow(table, cur_ts);
+                    samp_fbb->add_lp(table, row, kp_madata.get_peid(), kp_madata.get_kp_lid(), lp_it->first);
+                    timestamps.insert(cur_ts);
+                    data_to_write = true;
+                }
             }
             kp_madata.unflag_lp(lp_it->first);
         }
@@ -211,7 +226,7 @@ size_t LPAnalyzer::FindProblematicLPs(vtkPartitionedDataSet* lp_pds, TSIndex& sa
 
     if (data_to_write)
     {
-        for (double ts : rows_to_write)
+        for (double ts : timestamps)
         {
             auto samp = samples.get<by_gvt>().find(ts);
             SampleFBBuilder* samp_fbb = (*samp)->get_sample_fbb();

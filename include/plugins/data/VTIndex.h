@@ -6,6 +6,7 @@
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/member.hpp>
 #include <boost/multi_index/ordered_index.hpp>
+#include <boost/multi_index/ranked_index.hpp>
 #include <boost/multi_index/mem_fun.hpp>
 #include <boost/multi_index/composite_key.hpp>
 #include <boost/tuple/tuple.hpp>
@@ -39,7 +40,7 @@ typedef boost::multi_index_container<
                     bmi::const_mem_fun<TSSample,double,&TSSample::get_vts> >,
                 bmi::ordered_non_unique<bmi::tag<by_rts>,
                     bmi::const_mem_fun<TSSample,double,&TSSample::get_rts> >,
-                bmi::ordered_non_unique<bmi::tag<by_gvt>,
+                bmi::ranked_non_unique<bmi::tag<by_gvt>,
                     bmi::const_mem_fun<TSSample,double,&TSSample::get_gvt> >,
                 bmi::ordered_non_unique<bmi::tag<by_kp_vt>,
                     bmi::composite_key<TSSample,
