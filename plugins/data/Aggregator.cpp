@@ -269,36 +269,43 @@ void Aggregator::AggregateLPData(vtkPartitionedDataSet* in_data, vtkPartitionedD
     int num_metrics = get_num_metrics<LPMetrics>();
     unsigned int num_partitions = in_data->GetNumberOfPartitions();
 
+    vtkIdType final_end_row = -1;
     vtkIdType end_row = -1;
+    int inc_amount = NumSteps / 2;
     for (unsigned int p = 0; p < num_partitions; p++)
     {
         vtkTable *table = vtkTable::SafeDownCast(in_data->GetPartitionAsDataObject(p));
         vtkTable *agg_table = vtkTable::SafeDownCast(agg_data->GetPartitionAsDataObject(p));
 
         if (p == 0)
-            end_row = FindTSRow(table, TS);
-        if (end_row - NumSteps <= 0)
+            final_end_row = FindTSRow(table, TS);
+        if (final_end_row - NumSteps <= 0)
             return;
-        vtkIdType start_row = end_row - NumSteps;
-        vtkIdType num_row = NumSteps;
+        vtkIdType start_row = final_end_row - NumSteps;
+        end_row = start_row + inc_amount;
 
-        vtkVariantArray* agg_row = vtkVariantArray::New();
-        agg_row->SetNumberOfValues(table->GetNumberOfColumns());
-        agg_row->DeepCopy(table->GetRow(start_row));
-        start_row++;
-
-        for (vtkIdType r = start_row; r < end_row; r++)
+        while (start_row <= final_end_row)
         {
-            for (int m = 0; m < num_metrics; m++)
+            vtkVariantArray* agg_row = vtkVariantArray::New();
+            agg_row->SetNumberOfValues(table->GetNumberOfColumns());
+            agg_row->DeepCopy(table->GetRow(start_row));
+            start_row++;
+
+            for (vtkIdType r = start_row; r < end_row; r++)
             {
-                int col = m + 1; // to skip timestamp column
-                auto val = agg_row->GetValue(col).ToUnsignedInt() +
-                    table->GetValue(r, col).ToUnsignedInt();
-                agg_row->SetVariantValue(col, val);
+                for (int m = 0; m < num_metrics; m++)
+                {
+                    int col = m + 1; // to skip timestamp column
+                    auto val = agg_row->GetValue(col).ToUnsignedInt() +
+                        table->GetValue(r, col).ToUnsignedInt();
+                    agg_row->SetVariantValue(col, val);
+                }
             }
+            agg_row->SetVariantValue(0, table->GetValue(end_row-1, 0).ToDouble());
+            agg_table->InsertNextRow(agg_row);
+            agg_row->Delete();
+            start_row += inc_amount;
+            end_row += inc_amount;
         }
-        agg_row->SetVariantValue(0, table->GetValue(end_row-1, 0).ToDouble());
-        agg_table->InsertNextRow(agg_row);
-        agg_row->Delete();
     }
 }
